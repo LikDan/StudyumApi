@@ -7,4 +7,7 @@ require (
 	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
 )
 
-require github.com/go-stack/stack v1.8.0 // indirect
+require (
+	github.com/go-stack/stack v1.8.0 // indirect
+	github.com/robfig/cron v1.2.0 // indirect
+)
