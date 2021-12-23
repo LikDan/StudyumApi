@@ -11,6 +11,7 @@ func server(http.ResponseWriter, *http.Request) {
 }
 
 func main() {
+	initFirebaseApp()
 	Launch()
 
 	serverCrone := cron.New()

@@ -1,26 +1,39 @@
 package main
 
-import "github.com/robfig/cron"
+import (
+	"fmt"
+	"github.com/robfig/cron"
+	"strconv"
+)
 
 var Educations = [1]*education{&KBP}
 
 func Launch() {
-	for _, education := range Educations {
+	for _, edu := range Educations {
+		edu.availableTypes = edu.scheduleAvailableTypeUpdate()
+		if len(edu.availableTypes) <= 0 {
+			fmt.Printf("edu place with id: %s wasn't launched", strconv.Itoa(edu.educationPlaceId))
+			continue
+		}
+
 		c := cron.New()
 
 		updateSchedule := func() {
-			education.availableTypes = education.scheduleAvailableTypeUpdate()
+			edu.availableTypes = edu.scheduleAvailableTypeUpdate()
+			edu.states = edu.scheduleStatesUpdate(edu.availableTypes[0])
 			var subjects []Subject
-			for _, availableType := range education.availableTypes {
-				subjects = append(subjects, education.scheduleUpdate(availableType, education.states)...)
+			for _, availableType := range edu.availableTypes {
+				subjects = append(subjects, edu.scheduleUpdate(availableType, edu.states)...)
 			}
 		}
 
 		primaryCron := cron.New()
-		err := primaryCron.AddFunc(education.primaryScheduleUpdateCronPattern, func() {
-			for i, state := range education.scheduleStatesUpdate(education.availableTypes[0]) {
-				if state != education.states[i] {
+		err := primaryCron.AddFunc(edu.primaryScheduleUpdateCronPattern, func() {
+			for i, state := range edu.scheduleStatesUpdate(edu.availableTypes[0]) {
+				if len(edu.states) <= i || state != edu.states[i] {
 					updateSchedule()
+					sendNotification("schedule_update", "Schedule", "Schedule was updated", "")
+					primaryCron.Stop()
 				}
 			}
 		})
@@ -28,12 +41,13 @@ func Launch() {
 			checkError(err, false)
 			continue
 		}
-		err = c.AddFunc(education.scheduleUpdateCronPattern, updateSchedule)
+		err = c.AddFunc(edu.scheduleUpdateCronPattern, updateSchedule)
 		if err != nil {
 			checkError(err, false)
 			continue
 		}
-		err = c.AddFunc(education.primaryCronStartTimePattern, primaryCron.Start)
+		primaryCron.Start()
+		err = c.AddFunc(edu.primaryCronStartTimePattern, primaryCron.Start)
 		if err != nil {
 			checkError(err, false)
 			continue
