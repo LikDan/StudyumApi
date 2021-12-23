@@ -25,6 +25,24 @@ func Launch() {
 			for _, availableType := range edu.availableTypes {
 				subjects = append(subjects, edu.scheduleUpdate(availableType, edu.states)...)
 			}
+			var subjectsBSON []interface{}
+			for _, subject := range subjects {
+				subjectsBSON = append(subjectsBSON, subjectToBson(subject))
+			}
+
+			var stateBSON []interface{}
+			for _, state := range edu.states {
+				stateBSON = append(stateBSON, stateToBson(state))
+			}
+
+			err := subjectsCollection.Drop(nil)
+			checkError(err, true)
+			_, err = subjectsCollection.InsertMany(nil, subjectsBSON)
+			checkError(err, true)
+			err = stateCollection.Drop(nil)
+			checkError(err, true)
+			_, err = stateCollection.InsertMany(nil, stateBSON)
+			checkError(err, true)
 		}
 
 		primaryCron := cron.New()
