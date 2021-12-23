@@ -32,7 +32,7 @@ func main() {
 
 	serverCrone := cron.New()
 	err = serverCrone.AddFunc("@every 15m", func() {
-		_, err := http.Get("http://kbp-server.herokuapp.com/")
+		_, err := http.Get("https://college-helper.herokuapp.com/")
 		checkError(err, true)
 	})
 	checkError(err, true)
