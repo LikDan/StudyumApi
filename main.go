@@ -2,6 +2,9 @@ package main
 
 import (
 	"github.com/robfig/cron"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
 	"net/http"
 	"os"
 )
@@ -10,12 +13,25 @@ func server(http.ResponseWriter, *http.Request) {
 
 }
 
+var subjectsCollection *mongo.Collection
+var stateCollection *mongo.Collection
+
 func main() {
+	dbUrl := "mongodb+srv://likdan:Byd7FhSBtNfdaJ7w@maincluster.nafh0.mongodb.net/main?retryWrites=true&w=majority"
+
+	client, err := mongo.NewClient(options.Client().ApplyURI(dbUrl))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	subjectsCollection = client.Database("main").Collection("Schedule")
+	stateCollection = client.Database("main").Collection("Replacement")
+
 	initFirebaseApp()
 	Launch()
 
 	serverCrone := cron.New()
-	err := serverCrone.AddFunc("@every 15m", func() {
+	err = serverCrone.AddFunc("@every 15m", func() {
 		_, err := http.Get("http://kbp-server.herokuapp.com/")
 		checkError(err, true)
 	})
