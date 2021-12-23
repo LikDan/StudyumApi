@@ -98,7 +98,8 @@ func UpdateScheduleKbp(url string, states []StateInfo) []Subject {
 							if teacher2Node != nil {
 								addSubject(subject, teacher2Node.Data, room, group, "ADDED")
 							}
-						} else if strings.Contains(div.Attr[0].Val, "removed") && states[weekIndex*6+columnIndex].state != NotUpdated {
+						} else if strings.Contains(div.Attr[0].Val, "removed") &&
+							states[weekIndex*6+columnIndex].state != NotUpdated {
 							addSubject(subject, teacher, room, group, "REMOVED")
 							if teacher2Node != nil {
 								addSubject(subject, teacher2Node.Data, room, group, "REMOVED")
