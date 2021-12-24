@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/robfig/cron"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -9,8 +10,10 @@ import (
 	"os"
 )
 
-func server(http.ResponseWriter, *http.Request) {
-
+func server(w http.ResponseWriter, _ *http.Request) {
+	log.Println("Trying server access")
+	_, err := fmt.Fprintln(w, "College Helper")
+	checkError(err, false)
 }
 
 var subjectsCollection *mongo.Collection
@@ -31,7 +34,7 @@ func main() {
 	Launch()
 
 	serverCrone := cron.New()
-	err = serverCrone.AddFunc("@every 15m", func() {
+	err = serverCrone.AddFunc("@every 10m", func() {
 		_, err := http.Get("https://college-helper.herokuapp.com/")
 		checkError(err, true)
 	})
