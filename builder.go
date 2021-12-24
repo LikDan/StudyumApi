@@ -64,7 +64,8 @@ func Launch() {
 			checkError(err, false)
 			continue
 		}
-		primaryCron.Start()
+		updateSchedule()
+		sendNotification("schedule_update", "Schedule", "Schedule was updated", "")
 		err = c.AddFunc(edu.primaryCronStartTimePattern, primaryCron.Start)
 		if err != nil {
 			checkError(err, false)
