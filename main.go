@@ -27,6 +27,9 @@ func main() {
 		log.Fatal(err)
 	}
 
+	err = client.Connect(nil)
+	checkError(err, true)
+
 	subjectsCollection = client.Database("main").Collection("Schedule")
 	stateCollection = client.Database("main").Collection("Replacement")
 
