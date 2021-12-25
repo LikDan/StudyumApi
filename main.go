@@ -47,6 +47,7 @@ func main() {
 	serverCrone.Start()
 
 	http.HandleFunc("/schedule", getSchedule)
+	http.HandleFunc("/schedule/types", getScheduleTypes)
 	http.HandleFunc("/", server)
 	port := os.Getenv("PORT")
 	if port == "" {
