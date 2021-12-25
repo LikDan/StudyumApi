@@ -13,11 +13,12 @@ import (
 func server(w http.ResponseWriter, _ *http.Request) {
 	log.Println("Trying server access")
 	_, err := fmt.Fprintln(w, "College Helper")
-	checkError(err, false)
+	checkError(err)
 }
 
 var subjectsCollection *mongo.Collection
 var stateCollection *mongo.Collection
+var educationPlacesCollection *mongo.Collection
 
 func main() {
 	dbUrl := "mongodb+srv://likdan:Byd7FhSBtNfdaJ7w@maincluster.nafh0.mongodb.net/main?retryWrites=true&w=majority"
@@ -28,10 +29,11 @@ func main() {
 	}
 
 	err = client.Connect(nil)
-	checkError(err, true)
+	checkError(err)
 
 	subjectsCollection = client.Database("main").Collection("Schedule")
 	stateCollection = client.Database("main").Collection("Replacement")
+	educationPlacesCollection = client.Database("main").Collection("EducationPlace")
 
 	initFirebaseApp()
 	Launch()
@@ -39,11 +41,12 @@ func main() {
 	serverCrone := cron.New()
 	err = serverCrone.AddFunc("@every 10m", func() {
 		_, err := http.Get("https://college-helper.herokuapp.com/")
-		checkError(err, true)
+		checkError(err)
 	})
-	checkError(err, true)
+	checkError(err)
 	serverCrone.Start()
 
+	http.HandleFunc("/schedule", getSchedule)
 	http.HandleFunc("/", server)
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -51,5 +54,5 @@ func main() {
 		println("Port set to 8080")
 	}
 	err = http.ListenAndServe(":"+port, nil)
-	checkError(err, true)
+	checkError(err)
 }
