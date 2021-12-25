@@ -14,7 +14,7 @@ func normalizeStr(str string) string {
 
 func checkError(err error) bool {
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	return false
 }
