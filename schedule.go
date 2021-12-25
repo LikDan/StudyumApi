@@ -175,3 +175,35 @@ func getSchedule(w http.ResponseWriter, r *http.Request) {
 		", \"educationPlaceName\": \""+educationPlaceName+"\"}}")
 	checkError(err)
 }
+
+func getScheduleTypes(w http.ResponseWriter, r *http.Request) {
+	var res []string
+
+	educationPlaceIdStr, err := getUrlData(r, "educationPlaceId")
+	if err != nil {
+		_, err = fmt.Fprintf(w, "Please provide all params (url: %s)", r.URL.Path)
+		checkError(err)
+
+		return
+	}
+
+	educationPlaceId, err := strconv.Atoi(educationPlaceIdStr)
+	checkError(err)
+
+	var toJson = func(type_ string) {
+		var filter = bson.D{{type_, bson.D{{"$not", bson.D{{"$eq", ""}}}}}, {"educationPlaceId", bson.D{{"$eq", educationPlaceId}}}}
+		types, _ := subjectsCollection.Distinct(nil, type_, filter)
+
+		for _, response := range types {
+			res = append(res, "{\"type\": \""+type_+"\", \"name\": \""+response.(string)+"\"}")
+		}
+	}
+
+	toJson("room")
+	toJson("group")
+	toJson("teacher")
+	toJson("subject")
+
+	_, err = fmt.Fprintf(w, "[%s]", strings.Join(res, ", "))
+	checkError(err)
+}
