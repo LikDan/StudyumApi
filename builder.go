@@ -21,7 +21,7 @@ func Launch() {
 		updateSchedule := func() {
 			edu.availableTypes = edu.scheduleAvailableTypeUpdate()
 			edu.states = edu.scheduleStatesUpdate(edu.availableTypes[0])
-			var subjects []Subject
+			var subjects []SubjectFull
 			for _, availableType := range edu.availableTypes {
 				subjects = append(subjects, edu.scheduleUpdate(availableType, edu.states)...)
 			}
@@ -36,13 +36,13 @@ func Launch() {
 			}
 
 			err := subjectsCollection.Drop(nil)
-			checkError(err, true)
+			checkError(err)
 			_, err = subjectsCollection.InsertMany(nil, subjectsBSON)
-			checkError(err, true)
+			checkError(err)
 			err = stateCollection.Drop(nil)
-			checkError(err, true)
+			checkError(err)
 			_, err = stateCollection.InsertMany(nil, stateBSON)
-			checkError(err, true)
+			checkError(err)
 		}
 
 		primaryCron := cron.New()
@@ -56,19 +56,18 @@ func Launch() {
 			}
 		})
 		if err != nil {
-			checkError(err, false)
+			checkError(err)
 			continue
 		}
 		err = c.AddFunc(edu.scheduleUpdateCronPattern, updateSchedule)
 		if err != nil {
-			checkError(err, false)
+			checkError(err)
 			continue
 		}
-		updateSchedule()
-		sendNotification("schedule_update", "Schedule", "Schedule was updated", "")
+		primaryCron.Start()
 		err = c.AddFunc(edu.primaryCronStartTimePattern, primaryCron.Start)
 		if err != nil {
-			checkError(err, false)
+			checkError(err)
 			continue
 		}
 		c.Start()

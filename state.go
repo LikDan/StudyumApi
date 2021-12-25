@@ -1,6 +1,9 @@
 package main
 
-import "go.mongodb.org/mongo-driver/bson"
+import (
+	"go.mongodb.org/mongo-driver/bson"
+	"strconv"
+)
 
 type State string
 
@@ -23,4 +26,10 @@ func stateToBson(info StateInfo) bson.D {
 		{"status", info.state},
 		{"educationPlaceId", info.educationPlaceId},
 	}
+}
+
+func (s StateInfo) toJsonWithoutId() string {
+	return "{\"status\": \"" + string(s.state) +
+		"\", \"weekIndex\": " + strconv.Itoa(s.weekIndex) +
+		", \"dayIndex\": " + strconv.Itoa(s.dayIndex) + "}"
 }

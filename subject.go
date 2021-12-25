@@ -2,7 +2,7 @@ package main
 
 import "go.mongodb.org/mongo-driver/bson"
 
-type Subject struct {
+type SubjectFull struct {
 	subject          string
 	teacher          string
 	group            string
@@ -14,7 +14,7 @@ type Subject struct {
 	educationPlaceId int
 }
 
-func subjectToBson(subject Subject) bson.D {
+func subjectToBson(subject SubjectFull) bson.D {
 	return bson.D{
 		{"columnIndex", subject.columnIndex},
 		{"rowIndex", subject.rowIndex},

@@ -22,11 +22,11 @@ var KBP = education{
 
 func getWeeks(url string) *html.Node {
 	resp, err := http.Get("https://kbp.by/rasp/timetable/view_beta_kbp/" + url)
-	checkError(err, false)
+	checkError(err)
 
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
-		checkError(err, false)
+		checkError(err)
 	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
@@ -35,21 +35,21 @@ func getWeeks(url string) *html.Node {
 	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
-	checkError(err, false)
+	checkError(err)
 
 	doc, err := html.Parse(strings.NewReader(string(bodyBytes)))
-	checkError(err, false)
+	checkError(err)
 
 	return NextSiblings(doc.LastChild.LastChild.FirstChild, 7).FirstChild.NextSibling.LastChild.PrevSibling.FirstChild.NextSibling.LastChild.PrevSibling.FirstChild.NextSibling
 }
 
-func UpdateScheduleKbp(url string, states []StateInfo) []Subject {
+func UpdateScheduleKbp(url string, states []StateInfo) []SubjectFull {
 	weeks := getWeeks(url)
 	if weeks == nil {
 		return nil
 	}
 
-	var subjects []Subject
+	var subjects []SubjectFull
 
 	weekIndex := 0
 	rowIndex := 0
@@ -58,7 +58,7 @@ func UpdateScheduleKbp(url string, states []StateInfo) []Subject {
 		for c := week.LastChild.PrevSibling.FirstChild.NextSibling.FirstChild.NextSibling.NextSibling.NextSibling.NextSibling; c != nil; c = c.NextSibling.NextSibling {
 			for i := c.FirstChild.NextSibling.NextSibling.NextSibling; i != nil; i = i.NextSibling.NextSibling {
 				addSubject := func(subjectName, teacher, room, group, type_ string) {
-					subject := Subject{
+					subject := SubjectFull{
 						subject:          normalizeStr(subjectName),
 						teacher:          normalizeStr(teacher),
 						group:            normalizeStr(group),
@@ -169,7 +169,7 @@ func UpdateStateKbp(url string) []StateInfo {
 func UpdateAccessibleTypesKbp() []string {
 	var urls []string
 	resp, err := http.Get("https://kbp.by/rasp/timetable/view_beta_kbp/")
-	checkError(err, false)
+	checkError(err)
 
 	if resp.StatusCode == http.StatusOK {
 		bodyBytes, err := io.ReadAll(resp.Body)
@@ -179,7 +179,7 @@ func UpdateAccessibleTypesKbp() []string {
 		bodyString := string(bodyBytes)
 
 		doc, err := html.Parse(strings.NewReader(bodyString))
-		checkError(err, false)
+		checkError(err)
 
 		divs := doc.FirstChild.NextSibling.LastChild.FirstChild.NextSibling.FirstChild.NextSibling.NextSibling.NextSibling.NextSibling.NextSibling.NextSibling.NextSibling.FirstChild.NextSibling
 		for div := divs; div != nil; div = div.NextSibling.NextSibling {
