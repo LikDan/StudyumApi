@@ -4,7 +4,6 @@ import (
 	"context"
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
-	"fmt"
 	"google.golang.org/api/option"
 	"log"
 )
@@ -32,7 +31,7 @@ func sendNotification(topic string, title string, body string, url string) {
 		log.Fatalln(err)
 	}
 
-	fmt.Println(topic, response)
+	log.Println(topic, response)
 }
 
 func initFirebaseApp() {
