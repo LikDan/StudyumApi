@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/robfig/cron"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"strconv"
 )
 
@@ -12,13 +14,38 @@ func Launch() {
 	for _, edu := range Educations {
 		edu.availableTypes = edu.scheduleAvailableTypeUpdate()
 		if len(edu.availableTypes) <= 0 {
-			fmt.Printf("edu place with id: %s wasn't launched", strconv.Itoa(edu.educationPlaceId))
+			fmt.Printf("edu place with id: %s wasn't launched\n", strconv.Itoa(edu.id))
 			continue
 		}
 
+		find, err := stateCollection.Find(
+			nil,
+			bson.M{"educationPlaceId": edu.id},
+			options.Find().SetSort(bson.D{{"weekIndex", 1}, {"dayIndex", 1}}),
+		)
+		checkError(err)
+
+		for find.TryNext(nil) {
+			weekIndex := int(find.Current.Lookup("weekIndex").Int32())
+			dayIndex := int(find.Current.Lookup("dayIndex").Int32())
+			educationPlaceId := int(find.Current.Lookup("educationPlaceId").Int32())
+			status := find.Current.Lookup("status").StringValue()
+
+			state := StateInfo{
+				state:            State(status),
+				weekIndex:        weekIndex,
+				dayIndex:         dayIndex,
+				educationPlaceId: educationPlaceId,
+			}
+
+			edu.states = append(edu.states, state)
+		}
+
 		c := cron.New()
+		primaryCron := cron.New()
 
 		updateSchedule := func() {
+			send := EqualStateInfo(edu.states, edu.scheduleStatesUpdate(edu.availableTypes[0]))
 			edu.availableTypes = edu.scheduleAvailableTypeUpdate()
 			edu.states = edu.scheduleStatesUpdate(edu.availableTypes[0])
 			var subjects []SubjectFull
@@ -43,31 +70,28 @@ func Launch() {
 			checkError(err)
 			_, err = stateCollection.InsertMany(nil, stateBSON)
 			checkError(err)
+
+			if send {
+				sendNotification("schedule_update", "Schedule", "Schedule was updated", "")
+			}
 		}
 
-		primaryCron := cron.New()
-		err := primaryCron.AddFunc(edu.primaryScheduleUpdateCronPattern, func() {
-			for i, state := range edu.scheduleStatesUpdate(edu.availableTypes[0]) {
-				if len(edu.states) <= i || state != edu.states[i] {
-					updateSchedule()
-					sendNotification("schedule_update", "Schedule", "Schedule was updated", "")
-					primaryCron.Stop()
-				}
+		err = primaryCron.AddFunc(edu.primaryScheduleUpdateCronPattern, func() {
+			if EqualStateInfo(edu.states, edu.scheduleStatesUpdate(edu.availableTypes[0])) {
+				updateSchedule()
+				primaryCron.Stop()
 			}
 		})
-		if err != nil {
-			checkError(err)
+		if checkError(err) {
 			continue
 		}
 		err = c.AddFunc(edu.scheduleUpdateCronPattern, updateSchedule)
-		if err != nil {
-			checkError(err)
+		if checkError(err) {
 			continue
 		}
 		primaryCron.Start()
 		err = c.AddFunc(edu.primaryCronStartTimePattern, primaryCron.Start)
-		if err != nil {
-			checkError(err)
+		if checkError(err) {
 			continue
 		}
 		c.Start()
