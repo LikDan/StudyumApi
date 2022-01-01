@@ -45,7 +45,7 @@ func Launch() {
 		primaryCron := cron.New()
 
 		updateSchedule := func() {
-			send := EqualStateInfo(edu.states, edu.scheduleStatesUpdate(edu.availableTypes[0]))
+			send := !EqualStateInfo(edu.states, edu.scheduleStatesUpdate(edu.availableTypes[0]))
 			edu.availableTypes = edu.scheduleAvailableTypeUpdate()
 			edu.states = edu.scheduleStatesUpdate(edu.availableTypes[0])
 			var subjects []SubjectFull
