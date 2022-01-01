@@ -1,7 +1,7 @@
 package main
 
 type education struct {
-	educationPlaceId                 int
+	id                               int
 	scheduleUpdateCronPattern        string
 	primaryScheduleUpdateCronPattern string
 	primaryCronStartTimePattern      string

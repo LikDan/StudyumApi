@@ -9,7 +9,7 @@ import (
 )
 
 var KBP = education{
-	educationPlaceId:                 0,
+	id:                               0,
 	scheduleUpdateCronPattern:        "0 0-59/30 * * * MON-FRI",
 	primaryScheduleUpdateCronPattern: "@every 5m",
 	primaryCronStartTimePattern:      "0 0 11 * * MON-FRI",
