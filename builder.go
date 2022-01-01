@@ -77,7 +77,7 @@ func Launch() {
 		}
 
 		err = primaryCron.AddFunc(edu.primaryScheduleUpdateCronPattern, func() {
-			if EqualStateInfo(edu.states, edu.scheduleStatesUpdate(edu.availableTypes[0])) {
+			if !EqualStateInfo(edu.states, edu.scheduleStatesUpdate(edu.availableTypes[0])) {
 				updateSchedule()
 				primaryCron.Stop()
 			}
