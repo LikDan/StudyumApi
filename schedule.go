@@ -35,7 +35,7 @@ func getSchedule(w http.ResponseWriter, r *http.Request) {
 
 	var educationPlace bson.M
 
-	educationPlaceResult := educationPlacesCollection.FindOne(nil, bson.M{"_id": educationPlaceId})
+	educationPlaceResult := studyPlacesCollection.FindOne(nil, bson.M{"_id": educationPlaceId})
 	err = educationPlaceResult.Decode(&educationPlace)
 	checkError(err)
 

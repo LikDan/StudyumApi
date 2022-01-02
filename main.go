@@ -18,10 +18,10 @@ func server(w http.ResponseWriter, _ *http.Request) {
 
 var subjectsCollection *mongo.Collection
 var stateCollection *mongo.Collection
-var educationPlacesCollection *mongo.Collection
+var studyPlacesCollection *mongo.Collection
 
 func main() {
-	dbUrl := "mongodb+srv://likdan:Byd7FhSBtNfdaJ7w@maincluster.nafh0.mongodb.net/main?retryWrites=true&w=majority"
+	dbUrl := "mongodb+srv://likdan:Byd7FhSBtNfdaJ7w@maincluster.nafh0.mongodb.net/?retryWrites=true&w=majority"
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(dbUrl))
 	if err != nil {
@@ -31,9 +31,9 @@ func main() {
 	err = client.Connect(nil)
 	checkError(err)
 
-	subjectsCollection = client.Database("main").Collection("Schedule")
-	stateCollection = client.Database("main").Collection("Replacement")
-	educationPlacesCollection = client.Database("main").Collection("EducationPlace")
+	studyPlacesCollection = client.Database("General").Collection("StudyPlaces")
+	subjectsCollection = client.Database("Schedule").Collection("Subjects")
+	stateCollection = client.Database("Schedule").Collection("States")
 
 	initFirebaseApp()
 	Launch()
