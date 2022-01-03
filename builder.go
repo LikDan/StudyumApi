@@ -5,6 +5,7 @@ import (
 	"github.com/robfig/cron"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
 	"strconv"
 )
 
@@ -45,6 +46,7 @@ func Launch() {
 		primaryCron := cron.New()
 
 		updateSchedule := func() {
+			log.Println("Schedule was updated")
 			send := !EqualStateInfo(edu.states, edu.scheduleStatesUpdate(edu.availableTypes[0]))
 			edu.availableTypes = edu.scheduleAvailableTypeUpdate()
 			edu.states = edu.scheduleStatesUpdate(edu.availableTypes[0])
@@ -80,6 +82,8 @@ func Launch() {
 			if !EqualStateInfo(edu.states, edu.scheduleStatesUpdate(edu.availableTypes[0])) {
 				updateSchedule()
 				primaryCron.Stop()
+			} else {
+				log.Println("No updates")
 			}
 		})
 		if checkError(err) {
