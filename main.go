@@ -46,6 +46,7 @@ func main() {
 
 	http.HandleFunc("/schedule", getSchedule)
 	http.HandleFunc("/schedule/types", getScheduleTypes)
+	http.HandleFunc("/studyPlaces", getStudyPlaces)
 	http.HandleFunc("/", server)
 	port := os.Getenv("PORT")
 	if port == "" {
