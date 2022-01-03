@@ -93,7 +93,6 @@ func Launch() {
 		if checkError(err) {
 			continue
 		}
-		primaryCron.Start()
 		err = c.AddFunc(edu.primaryCronStartTimePattern, primaryCron.Start)
 		if checkError(err) {
 			continue
