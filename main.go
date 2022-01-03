@@ -21,9 +21,7 @@ var stateCollection *mongo.Collection
 var studyPlacesCollection *mongo.Collection
 
 func main() {
-	dbUrl := "mongodb+srv://likdan:Byd7FhSBtNfdaJ7w@maincluster.nafh0.mongodb.net/?retryWrites=true&w=majority"
-
-	client, err := mongo.NewClient(options.Client().ApplyURI(dbUrl))
+	client, err := mongo.NewClient(options.Client().ApplyURI(getDbUrl()))
 	if err != nil {
 		log.Fatal(err)
 	}
