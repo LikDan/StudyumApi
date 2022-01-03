@@ -168,7 +168,7 @@ func UpdateStateKbp(url string) []StateInfo {
 
 func UpdateAccessibleTypesKbp() []string {
 	var urls []string
-	resp, err := http.Get("https://kbp.by/rasp/timetable/view_beta_kbp/")
+	resp, err := http.Get("http://kbp.by/rasp/timetable/view_beta_kbp/")
 	checkError(err)
 
 	if resp.StatusCode == http.StatusOK {
