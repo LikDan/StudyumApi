@@ -187,6 +187,8 @@ func UpdateAccessibleTypesKbp() []string {
 				urls = append(urls, a.Attr[0].Val)
 			}
 		}
+	} else {
+		log.Printf("Bad status: %s", resp.Status)
 	}
 	return urls
 }
