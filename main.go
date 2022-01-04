@@ -22,8 +22,7 @@ var stateCollection *mongo.Collection
 var studyPlacesCollection *mongo.Collection
 
 func main() {
-	_, err := http.Get("http://kbp.by/rasp/timetable/view_beta_kbp/")
-	log.Println(err)
+	Educations[0].scheduleAvailableTypeUpdate()
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(getDbUrl()))
 	if err != nil {
