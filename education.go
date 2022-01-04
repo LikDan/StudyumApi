@@ -5,6 +5,7 @@ type education struct {
 	scheduleUpdateCronPattern        string
 	primaryScheduleUpdateCronPattern string
 	primaryCronStartTimePattern      string
+	generalScheduleUpdate            func(string, []StateInfo) []SubjectFull
 	scheduleUpdate                   func(string, []StateInfo) []SubjectFull
 	scheduleStatesUpdate             func(string) []StateInfo
 	scheduleAvailableTypeUpdate      func() []string

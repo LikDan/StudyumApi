@@ -16,11 +16,15 @@ func server(w http.ResponseWriter, _ *http.Request) {
 	checkError(err)
 }
 
+var generalSubjectsCollection *mongo.Collection
 var subjectsCollection *mongo.Collection
 var stateCollection *mongo.Collection
 var studyPlacesCollection *mongo.Collection
 
 func main() {
+	_, err := http.Get("http://google.com/")
+	log.Println(err)
+
 	client, err := mongo.NewClient(options.Client().ApplyURI(getDbUrl()))
 	if err != nil {
 		log.Fatal(err)
@@ -31,6 +35,7 @@ func main() {
 
 	studyPlacesCollection = client.Database("General").Collection("StudyPlaces")
 	subjectsCollection = client.Database("Schedule").Collection("Subjects")
+	generalSubjectsCollection = client.Database("Schedule").Collection("General")
 	stateCollection = client.Database("Schedule").Collection("States")
 
 	initFirebaseApp()
