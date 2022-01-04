@@ -31,7 +31,7 @@ var studyPlacesCollection *mongo.Collection
 func main() {
 	log.Println(os.Hostname())
 
-	resp, err := http.Get("http://kbp.by")
+	resp, err := http.Get("https://kbp.by")
 	checkError(err)
 	log.Println(resp.StatusCode)
 
