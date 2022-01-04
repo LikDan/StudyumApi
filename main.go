@@ -29,6 +29,8 @@ var stateCollection *mongo.Collection
 var studyPlacesCollection *mongo.Collection
 
 func main() {
+	log.Println(os.Hostname())
+
 	resp, err := http.Get("http://kbp.by")
 	checkError(err)
 	log.Println(resp.StatusCode)
