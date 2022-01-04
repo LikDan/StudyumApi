@@ -13,6 +13,7 @@ var KBP = education{
 	scheduleUpdateCronPattern:        "0 0-59/30 * * * MON-FRI",
 	primaryScheduleUpdateCronPattern: "@every 5m",
 	primaryCronStartTimePattern:      "0 0 11 * * MON-FRI",
+	generalScheduleUpdate:            UpdateGeneralSchedule,
 	scheduleUpdate:                   UpdateScheduleKbp,
 	scheduleStatesUpdate:             UpdateStateKbp,
 	scheduleAvailableTypeUpdate:      UpdateAccessibleTypesKbp,
@@ -191,4 +192,18 @@ func UpdateAccessibleTypesKbp() []string {
 		log.Printf("Bad status: %s", resp.Status)
 	}
 	return urls
+}
+
+func UpdateGeneralSchedule(url string, states []StateInfo) []SubjectFull {
+	subjectFull := UpdateScheduleKbp(url, states)
+
+	var subjects []SubjectFull
+
+	for _, subject := range subjectFull {
+		if subject.type_ != "ADDED" {
+			subjects = append(subjects, subject)
+		}
+	}
+
+	return subjects
 }

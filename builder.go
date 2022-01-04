@@ -98,5 +98,16 @@ func Launch() {
 			continue
 		}
 		c.Start()
+
+		generalSubjects := edu.generalScheduleUpdate(edu.availableTypes[0], edu.states)
+		var generalSubjectsBson []interface{}
+		for _, subject := range generalSubjects {
+			generalSubjectsBson = append(generalSubjectsBson, subjectToBsonWithoutType(subject))
+		}
+
+		_, err = generalSubjectsCollection.InsertMany(nil, generalSubjectsBson)
+		if checkError(err) {
+			continue
+		}
 	}
 }
