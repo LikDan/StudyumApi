@@ -22,7 +22,7 @@ var stateCollection *mongo.Collection
 var studyPlacesCollection *mongo.Collection
 
 func main() {
-	resp, err := http.Get("http://kbp.by/rasp/timetable/view_beta_kbp/")
+	resp, err := http.Get("http://google.com")
 	checkError(err)
 	log.Println(resp.StatusCode)
 
