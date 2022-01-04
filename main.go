@@ -10,9 +10,16 @@ import (
 	"os"
 )
 
-func server(w http.ResponseWriter, _ *http.Request) {
+func server(w http.ResponseWriter, r *http.Request) {
 	log.Println("Trying server access")
-	_, err := fmt.Fprintln(w, "College Helper")
+
+	url, err := getUrlData(r, "url")
+	checkError(err)
+
+	resp, err := http.Get("http://" + url)
+	checkError(err)
+	log.Println(resp.StatusCode)
+	_, err = fmt.Fprintln(w, resp.StatusCode)
 	checkError(err)
 }
 
