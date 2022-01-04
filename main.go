@@ -10,20 +10,32 @@ import (
 	"os"
 )
 
-func server(w http.ResponseWriter, _ *http.Request) {
+func server(w http.ResponseWriter, r *http.Request) {
 	log.Println("Trying server access")
-	_, err := fmt.Fprintln(w, "College Helper")
+
+	url, err := getUrlData(r, "url")
+	checkError(err)
+
+	resp, err := http.Get("http://" + url)
+	checkError(err)
+	log.Println(resp.StatusCode)
+	_, err = fmt.Fprintln(w, resp.StatusCode)
 	checkError(err)
 }
 
+var generalSubjectsCollection *mongo.Collection
 var subjectsCollection *mongo.Collection
 var stateCollection *mongo.Collection
 var studyPlacesCollection *mongo.Collection
 
 func main() {
-	dbUrl := "mongodb+srv://likdan:Byd7FhSBtNfdaJ7w@maincluster.nafh0.mongodb.net/?retryWrites=true&w=majority"
+	log.Println(os.Hostname())
 
-	client, err := mongo.NewClient(options.Client().ApplyURI(dbUrl))
+	resp, err := http.Get("https://kbp.by")
+	checkError(err)
+	log.Println(resp.StatusCode)
+
+	client, err := mongo.NewClient(options.Client().ApplyURI(getDbUrl()))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -33,6 +45,7 @@ func main() {
 
 	studyPlacesCollection = client.Database("General").Collection("StudyPlaces")
 	subjectsCollection = client.Database("Schedule").Collection("Subjects")
+	generalSubjectsCollection = client.Database("Schedule").Collection("General")
 	stateCollection = client.Database("Schedule").Collection("States")
 
 	initFirebaseApp()
@@ -48,6 +61,7 @@ func main() {
 
 	http.HandleFunc("/schedule", getSchedule)
 	http.HandleFunc("/schedule/types", getScheduleTypes)
+	http.HandleFunc("/studyPlaces", getStudyPlaces)
 	http.HandleFunc("/", server)
 	port := os.Getenv("PORT")
 	if port == "" {

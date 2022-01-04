@@ -27,3 +27,16 @@ func subjectToBson(subject SubjectFull) bson.D {
 		{"educationPlaceId", subject.educationPlaceId},
 	}
 }
+
+func subjectToBsonWithoutType(subject SubjectFull) bson.D {
+	return bson.D{
+		{"columnIndex", subject.columnIndex},
+		{"rowIndex", subject.rowIndex},
+		{"weekIndex", subject.weekIndex},
+		{"subject", subject.subject},
+		{"teacher", subject.teacher},
+		{"group", subject.group},
+		{"room", subject.room},
+		{"educationPlaceId", subject.educationPlaceId},
+	}
+}
