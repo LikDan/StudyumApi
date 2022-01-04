@@ -22,7 +22,7 @@ var stateCollection *mongo.Collection
 var studyPlacesCollection *mongo.Collection
 
 func main() {
-	resp, err := http.Get("http://kbp.by")
+	resp, err := http.Get("http://nehai.by")
 	checkError(err)
 	log.Println(resp.StatusCode)
 
