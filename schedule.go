@@ -207,3 +207,14 @@ func getScheduleTypes(w http.ResponseWriter, r *http.Request) {
 	_, err = fmt.Fprintf(w, "[%s]", strings.Join(res, ", "))
 	checkError(err)
 }
+
+func updateSchedule(w http.ResponseWriter, r *http.Request) {
+	edu, err := getEducationViaPasswordRequest(r)
+	if checkError(err) {
+		_, err := fmt.Fprintln(w, err.Error())
+		checkError(err)
+		return
+	}
+
+	UpdateDbSchedule(edu)
+}
