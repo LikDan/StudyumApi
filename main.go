@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 func server(w http.ResponseWriter, r *http.Request) {
@@ -29,6 +30,8 @@ var stateCollection *mongo.Collection
 var studyPlacesCollection *mongo.Collection
 
 func main() {
+	time.Local = time.FixedZone("GMT", 3*3600)
+
 	log.Println(os.Hostname())
 
 	resp, err := http.Get("https://kbp.by")
