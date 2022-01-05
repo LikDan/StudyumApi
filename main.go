@@ -56,6 +56,7 @@ func main() {
 
 	http.HandleFunc("/schedule", getSchedule)
 	http.HandleFunc("/schedule/types", getScheduleTypes)
+	http.HandleFunc("/schedule/update", updateSchedule)
 	http.HandleFunc("/studyPlaces", getStudyPlaces)
 	http.HandleFunc("/stopPrimaryUpdates", stopPrimaryCron)
 	http.HandleFunc("/launchPrimaryUpdates", launchPrimaryCron)
