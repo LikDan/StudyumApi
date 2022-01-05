@@ -11,14 +11,19 @@ import (
 )
 
 func server(w http.ResponseWriter, r *http.Request) {
-	log.Println("Trying server access")
-
+	if r.URL.Path != "/" {
+		return
+	}
 	url, err := getUrlData(r, "url")
 	checkError(err)
 
-	resp, err := http.Get("http://" + url)
-	checkError(err)
-	log.Println(resp.StatusCode)
+	resp, err := http.Get("https://" + url)
+	if err != nil {
+		_, err = fmt.Fprintln(w, "No such host")
+		checkError(err)
+		return
+	}
+
 	_, err = fmt.Fprintln(w, resp.StatusCode)
 	checkError(err)
 }
@@ -52,6 +57,8 @@ func main() {
 	http.HandleFunc("/schedule", getSchedule)
 	http.HandleFunc("/schedule/types", getScheduleTypes)
 	http.HandleFunc("/studyPlaces", getStudyPlaces)
+	http.HandleFunc("/stopPrimaryUpdates", stopPrimaryCron)
+	http.HandleFunc("/launchPrimaryUpdates", launchPrimaryCron)
 	http.HandleFunc("/", server)
 	port := os.Getenv("PORT")
 	if port == "" {

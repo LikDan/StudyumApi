@@ -11,6 +11,39 @@ import (
 
 var Educations = [1]*education{&KBP}
 
+func UpdateDbSchedule(edu *education) {
+	log.Println("Schedule was updated")
+	send := !EqualStateInfo(edu.states, edu.scheduleStatesUpdate(edu.availableTypes[0]))
+	edu.availableTypes = edu.scheduleAvailableTypeUpdate()
+	edu.states = edu.scheduleStatesUpdate(edu.availableTypes[0])
+	var subjects []SubjectFull
+	for _, availableType := range edu.availableTypes {
+		subjects = append(subjects, edu.scheduleUpdate(availableType, edu.states)...)
+	}
+	var subjectsBSON []interface{}
+	for _, subject := range subjects {
+		subjectsBSON = append(subjectsBSON, subjectToBson(subject))
+	}
+
+	var stateBSON []interface{}
+	for _, state := range edu.states {
+		stateBSON = append(stateBSON, stateToBson(state))
+	}
+
+	err := subjectsCollection.Drop(nil)
+	checkError(err)
+	_, err = subjectsCollection.InsertMany(nil, subjectsBSON)
+	checkError(err)
+	err = stateCollection.Drop(nil)
+	checkError(err)
+	_, err = stateCollection.InsertMany(nil, stateBSON)
+	checkError(err)
+
+	if send {
+		sendNotification("schedule_update", "Schedule", "Schedule was updated", "")
+	}
+}
+
 func Launch() {
 	for _, edu := range Educations {
 		edu.availableTypes = edu.scheduleAvailableTypeUpdate()
@@ -42,46 +75,13 @@ func Launch() {
 			edu.states = append(edu.states, state)
 		}
 
-		c := cron.New()
-		primaryCron := cron.New()
+		edu.generalCron = cron.New()
+		edu.primaryCron = cron.New()
 
-		updateSchedule := func() {
-			log.Println("Schedule was updated")
-			send := !EqualStateInfo(edu.states, edu.scheduleStatesUpdate(edu.availableTypes[0]))
-			edu.availableTypes = edu.scheduleAvailableTypeUpdate()
-			edu.states = edu.scheduleStatesUpdate(edu.availableTypes[0])
-			var subjects []SubjectFull
-			for _, availableType := range edu.availableTypes {
-				subjects = append(subjects, edu.scheduleUpdate(availableType, edu.states)...)
-			}
-			var subjectsBSON []interface{}
-			for _, subject := range subjects {
-				subjectsBSON = append(subjectsBSON, subjectToBson(subject))
-			}
-
-			var stateBSON []interface{}
-			for _, state := range edu.states {
-				stateBSON = append(stateBSON, stateToBson(state))
-			}
-
-			err := subjectsCollection.Drop(nil)
-			checkError(err)
-			_, err = subjectsCollection.InsertMany(nil, subjectsBSON)
-			checkError(err)
-			err = stateCollection.Drop(nil)
-			checkError(err)
-			_, err = stateCollection.InsertMany(nil, stateBSON)
-			checkError(err)
-
-			if send {
-				sendNotification("schedule_update", "Schedule", "Schedule was updated", "")
-			}
-		}
-
-		err = primaryCron.AddFunc(edu.primaryScheduleUpdateCronPattern, func() {
+		err = edu.primaryCron.AddFunc(edu.primaryScheduleUpdateCronPattern, func() {
 			if !EqualStateInfo(edu.states, edu.scheduleStatesUpdate(edu.availableTypes[0])) {
-				updateSchedule()
-				primaryCron.Stop()
+				UpdateDbSchedule(edu)
+				edu.primaryCron.Stop()
 			} else {
 				log.Println("No updates")
 			}
@@ -89,15 +89,23 @@ func Launch() {
 		if checkError(err) {
 			continue
 		}
-		err = c.AddFunc(edu.scheduleUpdateCronPattern, updateSchedule)
+		err = edu.generalCron.AddFunc(edu.scheduleUpdateCronPattern, func() {
+			UpdateDbSchedule(edu)
+		})
 		if checkError(err) {
 			continue
 		}
-		err = c.AddFunc(edu.primaryCronStartTimePattern, primaryCron.Start)
+		err = edu.generalCron.AddFunc(edu.primaryCronStartTimePattern, func() {
+			if !edu.launchPrimaryCron {
+				return
+			}
+
+			edu.primaryCron.Start()
+		})
 		if checkError(err) {
 			continue
 		}
-		c.Start()
+		edu.generalCron.Start()
 
 		generalSubjects := edu.generalScheduleUpdate(edu.availableTypes[0], edu.states)
 		var generalSubjectsBson []interface{}

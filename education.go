@@ -1,5 +1,7 @@
 package main
 
+import "github.com/robfig/cron"
+
 type education struct {
 	id                               int
 	scheduleUpdateCronPattern        string
@@ -11,4 +13,9 @@ type education struct {
 	scheduleAvailableTypeUpdate      func() []string
 	availableTypes                   []string
 	states                           []StateInfo
+	password                         string
+
+	primaryCron       *cron.Cron
+	generalCron       *cron.Cron
+	launchPrimaryCron bool
 }
