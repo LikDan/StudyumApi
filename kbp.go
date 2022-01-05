@@ -19,6 +19,7 @@ var KBP = education{
 	scheduleAvailableTypeUpdate:      UpdateAccessibleTypesKbp,
 	availableTypes:                   []string{},
 	states:                           []StateInfo{},
+	password:                         "kbp-corn-pass",
 }
 
 func getWeeks(url string) *html.Node {
