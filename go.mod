@@ -1,7 +1,7 @@
 module awe
 
 // +heroku goVersion go1.17
-go 1.17
+go 1.16
 
 require (
 	firebase.google.com/go/v4 v4.7.0
