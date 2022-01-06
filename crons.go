@@ -28,6 +28,9 @@ func getEducationViaPasswordRequest(r *http.Request) (*education, error) {
 }
 
 func stopPrimaryCron(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
 	edu, err := getEducationViaPasswordRequest(r)
 	if checkError(err) {
 		_, err := fmt.Fprintln(w, err.Error())
@@ -39,6 +42,9 @@ func stopPrimaryCron(w http.ResponseWriter, r *http.Request) {
 }
 
 func launchPrimaryCron(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
 	edu, err := getEducationViaPasswordRequest(r)
 	if checkError(err) {
 		_, err := fmt.Fprintln(w, err.Error())
