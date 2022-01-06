@@ -12,6 +12,9 @@ import (
 )
 
 func getSchedule(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
 	log.Println("GET SCHEDULE")
 	type_, err := getUrlData(r, "type")
 	if checkError(err) {
@@ -177,6 +180,9 @@ func getSchedule(w http.ResponseWriter, r *http.Request) {
 }
 
 func getScheduleTypes(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
 	var res []string
 
 	educationPlaceIdStr, err := getUrlData(r, "educationPlaceId")
@@ -209,6 +215,9 @@ func getScheduleTypes(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateSchedule(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
 	edu, err := getEducationViaPasswordRequest(r)
 	if checkError(err) {
 		_, err := fmt.Fprintln(w, err.Error())
