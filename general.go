@@ -9,6 +9,9 @@ import (
 )
 
 func getStudyPlaces(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
 	var res []string
 
 	types, _ := studyPlacesCollection.Find(nil, bson.D{})

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
@@ -54,18 +55,20 @@ func main() {
 	initFirebaseApp()
 	Launch()
 
-	http.HandleFunc("/schedule", getSchedule)
-	http.HandleFunc("/schedule/types", getScheduleTypes)
-	http.HandleFunc("/schedule/update", updateSchedule)
-	http.HandleFunc("/studyPlaces", getStudyPlaces)
-	http.HandleFunc("/stopPrimaryUpdates", stopPrimaryCron)
-	http.HandleFunc("/launchPrimaryUpdates", launchPrimaryCron)
-	http.HandleFunc("/", server)
+	router := mux.NewRouter()
+
+	router.HandleFunc("/schedule", getSchedule)
+	router.HandleFunc("/schedule/types", getScheduleTypes)
+	router.HandleFunc("/schedule/update", updateSchedule)
+	router.HandleFunc("/studyPlaces", getStudyPlaces)
+	router.HandleFunc("/stopPrimaryUpdates", stopPrimaryCron)
+	router.HandleFunc("/launchPrimaryUpdates", launchPrimaryCron)
+	router.HandleFunc("/", server)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 		println("Port set to 8080")
 	}
-	err = http.ListenAndServe(":"+port, nil)
+	err = http.ListenAndServe(":"+port, router)
 	checkError(err)
 }
