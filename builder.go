@@ -31,7 +31,7 @@ func UpdateDbSchedule(edu *education) {
 		stateBSON = append(stateBSON, stateToBson(state))
 	}
 
-	err := subjectsCollection.Drop(nil)
+	_, err := subjectsCollection.DeleteMany(nil, bson.D{{"educationPlaceId", edu.id}, {"group", bson.D{{"$not", bson.D{{"$eq", "Т-095"}}}}}})
 	checkError(err)
 	_, err = subjectsCollection.InsertMany(nil, subjectsBSON)
 	checkError(err)
@@ -127,9 +127,12 @@ func Launch() {
 			generalSubjectsBson = append(generalSubjectsBson, subjectToBsonWithoutType(subject))
 		}
 
+		generalSubjectsCollection.DeleteMany(nil, bson.D{{"educationPlaceId", 0}})
 		_, err = generalSubjectsCollection.InsertMany(nil, generalSubjectsBson)
 		if checkError(err) {
 			continue
 		}
+
+		UpdateDbSchedule(edu)
 	}
 }
