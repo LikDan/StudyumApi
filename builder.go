@@ -73,6 +73,8 @@ func Launch() {
 		)
 		checkError(err)
 
+		var states []StateInfo
+
 		for find.TryNext(nil) {
 			weekIndex := int(find.Current.Lookup("weekIndex").Int32())
 			dayIndex := int(find.Current.Lookup("dayIndex").Int32())
@@ -86,8 +88,10 @@ func Launch() {
 				educationPlaceId: educationPlaceId,
 			}
 
-			edu.states = append(edu.states, state)
+			states = append(states, state)
 		}
+
+		edu.states = states
 
 		edu.generalCron = cron.New()
 		edu.primaryCron = cron.New()
