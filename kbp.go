@@ -186,6 +186,9 @@ func UpdateAccessibleTypesKbp() []string {
 		divs := doc.FirstChild.NextSibling.LastChild.FirstChild.NextSibling.FirstChild.NextSibling.NextSibling.NextSibling.NextSibling.NextSibling.NextSibling.NextSibling.FirstChild.NextSibling
 		for div := divs; div != nil; div = div.NextSibling.NextSibling {
 			for a := div.LastChild.PrevSibling.FirstChild.NextSibling; a != nil; a = a.NextSibling.NextSibling {
+				if a.Attr[0].Val == "?page=stable&cat=group&id=66" {
+					continue
+				}
 				urls = append(urls, a.Attr[0].Val)
 			}
 		}
