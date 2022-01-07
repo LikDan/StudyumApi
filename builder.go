@@ -13,6 +13,7 @@ var Educations = [1]*education{&KBP}
 
 func UpdateDbSchedule(edu *education) {
 	log.Println("Schedule was updated")
+	lastStates := edu.states
 	send := !EqualStateInfo(edu.states, edu.scheduleStatesUpdate(edu.availableTypes[0]))
 	edu.availableTypes = edu.scheduleAvailableTypeUpdate()
 	edu.states = edu.scheduleStatesUpdate(edu.availableTypes[0])
@@ -40,6 +41,19 @@ func UpdateDbSchedule(edu *education) {
 	checkError(err)
 
 	if send {
+		lastStatesString := ""
+		currentStatesString := ""
+
+		for _, state := range lastStates {
+			lastStatesString += state.toJsonWithoutId()
+		}
+
+		for _, state := range edu.states {
+			currentStatesString += state.toJsonWithoutId()
+		}
+
+		log.Printf("Schedule updated from\n" + lastStatesString + "\nto\n" + currentStatesString)
+
 		sendNotification("schedule_update", "Schedule", "Schedule was updated", "")
 	}
 }
