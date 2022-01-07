@@ -12,6 +12,9 @@ func createNewUser(username, password string) {
 }
 
 func getUserViaToken(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
 	username, err := getUrlData(r, "username")
 	if checkError(err) {
 		return
