@@ -111,7 +111,7 @@ func getSchedule(w http.ResponseWriter, r *http.Request) {
 
 	var lessons []*Lesson
 
-	for lessonsCursor.TryNext(nil) {
+	for true {
 		var subjects []Subject
 
 		lessonRaw := lessonsCursor.Current
@@ -156,6 +156,10 @@ func getSchedule(w http.ResponseWriter, r *http.Request) {
 		}
 
 		lessons = append(lessons, lesson)
+
+		if !lessonsCursor.TryNext(nil) {
+			break
+		}
 	}
 
 	for currentRowIndex != subjectsAmount-1 || currentColumnIndex != daysAmount-1 || currentWeekIndex != weeksAmount-1 {
