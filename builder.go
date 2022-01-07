@@ -136,7 +136,5 @@ func Launch() {
 		if checkError(err) {
 			continue
 		}
-
-		UpdateDbSchedule(edu)
 	}
 }
