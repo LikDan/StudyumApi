@@ -33,6 +33,7 @@ var generalSubjectsCollection *mongo.Collection
 var subjectsCollection *mongo.Collection
 var stateCollection *mongo.Collection
 var studyPlacesCollection *mongo.Collection
+var usersCollection *mongo.Collection
 
 func main() {
 	time.Local = time.FixedZone("GMT", 3*3600)
@@ -48,6 +49,8 @@ func main() {
 	checkError(err)
 
 	studyPlacesCollection = client.Database("General").Collection("StudyPlaces")
+	usersCollection = client.Database("General").Collection("Users")
+
 	subjectsCollection = client.Database("Schedule").Collection("Subjects")
 	generalSubjectsCollection = client.Database("Schedule").Collection("General")
 	stateCollection = client.Database("Schedule").Collection("States")
@@ -60,9 +63,13 @@ func main() {
 	router.HandleFunc("/schedule", getSchedule)
 	router.HandleFunc("/schedule/types", getScheduleTypes)
 	router.HandleFunc("/schedule/update", updateSchedule)
+
 	router.HandleFunc("/studyPlaces", getStudyPlaces)
+	router.HandleFunc("/getUserViaToken", getUserViaToken)
+
 	router.HandleFunc("/stopPrimaryUpdates", stopPrimaryCron)
 	router.HandleFunc("/launchPrimaryUpdates", launchPrimaryCron)
+
 	router.HandleFunc("/", server)
 	port := os.Getenv("PORT")
 	if port == "" {
