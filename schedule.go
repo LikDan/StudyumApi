@@ -42,6 +42,12 @@ func getSchedule(w http.ResponseWriter, r *http.Request) {
 	err = educationPlaceResult.Decode(&educationPlace)
 	checkError(err)
 
+	if educationPlace == nil {
+		_, err := fmt.Fprintln(w, "{\"error\": \"No such study place\"}")
+		checkError(err)
+		return
+	}
+
 	educationPlaceName := educationPlace["name"].(string)
 	weeksAmount := educationPlace["weeksCount"].(int32)
 	daysAmount := educationPlace["daysCount"].(int32)
@@ -80,6 +86,12 @@ func getSchedule(w http.ResponseWriter, r *http.Request) {
 		bson.D{{"$sort", bson.D{{"_id.weekIndex", 1}, {"_id.columnIndex", 1}, {"_id.rowIndex", 1}}}},
 	})
 	checkError(err)
+
+	if !lessonsCursor.TryNext(nil) {
+		_, err := fmt.Fprintln(w, "{\"error\": \"No subjects provided\"}")
+		checkError(err)
+		return
+	}
 
 	currentRowIndex := int32(-1)
 	currentColumnIndex := int32(0)
