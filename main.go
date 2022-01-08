@@ -65,7 +65,8 @@ func main() {
 	router.HandleFunc("/schedule/update", updateSchedule)
 
 	router.HandleFunc("/studyPlaces", getStudyPlaces)
-	router.HandleFunc("/getUserViaToken", getUserViaToken)
+	router.HandleFunc("/getUser", getUser)
+	router.HandleFunc("/getToken", getToken)
 
 	router.HandleFunc("/stopPrimaryUpdates", stopPrimaryCron)
 	router.HandleFunc("/launchPrimaryUpdates", launchPrimaryCron)

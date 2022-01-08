@@ -61,3 +61,7 @@ func EqualStateInfo(a, b []StateInfo) bool {
 	}
 	return true
 }
+
+func buildJSONError(err string) string {
+	return "{\"error\": \"" + err + "\"}"
+}
