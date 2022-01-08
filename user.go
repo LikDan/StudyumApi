@@ -4,8 +4,10 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func getUserFromDb(w http.ResponseWriter, r *http.Request) (bson.M, string) {
@@ -36,7 +38,7 @@ func getUserFromDb(w http.ResponseWriter, r *http.Request) (bson.M, string) {
 	userResult := usersCollection.FindOne(nil, bson.M{"username": username, type_: password})
 	err = userResult.Decode(&user)
 	if checkError(err) {
-		return nil, buildJSONError("wrong response")
+		return nil, buildJSONError("wrong response: " + err.Error())
 	}
 
 	if user == nil {
@@ -62,10 +64,17 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var rights []string
+
+	for _, right := range user["rights"].(primitive.A) {
+		rights = append(rights, right.(string))
+	}
+
 	_, err := fmt.Fprintln(w, "{\"username\": \""+user["username"].(string)+
 		"\", \"studyPlaceId\": "+strconv.Itoa(int(user["studyPlaceId"].(int32)))+
 		", \"type\": \""+user["type"].(string)+
-		"\", \"name\": \""+user["name"].(string)+"\"}",
+		"\", \"name\": \""+user["name"].(string)+
+		"\", \"rights\": [\""+strings.Join(rights, "\", \"")+"\"]}",
 	)
 	checkError(err)
 }
