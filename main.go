@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/robfig/cron"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
@@ -38,7 +39,13 @@ var usersCollection *mongo.Collection
 func main() {
 	time.Local = time.FixedZone("GMT", 3*3600)
 
-	log.Println(os.Hostname())
+	serverCron := cron.New()
+	err := serverCron.AddFunc("@every 10m", func() {
+		_, err := http.Get("https://collegehelper-3f572.appspot.com/")
+		checkError(err)
+	})
+	checkError(err)
+	serverCron.Start()
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(getDbUrl()))
 	if err != nil {
