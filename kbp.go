@@ -1,6 +1,7 @@
 package main
 
 import (
+	htmlParser "github.com/PuerkitoBio/goquery"
 	"golang.org/x/net/html"
 	"io"
 	"log"
@@ -170,28 +171,17 @@ func UpdateStateKbp(url string) []StateInfo {
 
 func UpdateAccessibleTypesKbp() []string {
 	var urls []string
-	resp, err := http.Get("http://kbp.by/rasp/timetable/view_beta_kbp/")
+	document, err := htmlParser.NewDocument("https://kbp.by/rasp/timetable/view_beta_kbp/?q=")
 	checkError(err)
 
-	if resp.StatusCode == http.StatusOK {
-		bodyBytes, err := io.ReadAll(resp.Body)
-		if err != nil {
-			log.Fatal(err)
-		}
-		bodyString := string(bodyBytes)
-
-		doc, err := html.Parse(strings.NewReader(bodyString))
-		checkError(err)
-
-		divs := doc.FirstChild.NextSibling.LastChild.FirstChild.NextSibling.FirstChild.NextSibling.NextSibling.NextSibling.NextSibling.NextSibling.NextSibling.NextSibling.FirstChild.NextSibling
-		for div := divs; div != nil; div = div.NextSibling.NextSibling {
-			for a := div.LastChild.PrevSibling.FirstChild.NextSibling; a != nil; a = a.NextSibling.NextSibling {
-				urls = append(urls, a.Attr[0].Val)
+	document.Find(".block_back").Find("div").Each(func(ix int, div *htmlParser.Selection) {
+		if div.Find("span").Text() == "группа" {
+			url, exists := div.Find("a").Attr("href")
+			if exists {
+				urls = append(urls, url)
 			}
 		}
-	} else {
-		log.Printf("Bad status: %s", resp.Status)
-	}
+	})
 	return urls
 }
 
