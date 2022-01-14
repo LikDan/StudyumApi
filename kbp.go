@@ -101,42 +101,33 @@ func UpdateScheduleKbp(url string, states []StateInfo) []SubjectFull {
 }
 
 func UpdateStateKbp(url string) []StateInfo {
-	weeks := getWeeks(url)
-	if weeks == nil {
-		return nil
-	}
+	document, err := htmlParser.NewDocument("http://kbp.by/rasp/timetable/view_beta_kbp/" + url)
+	checkError(err)
 
 	var states []StateInfo
 
-	weekIndex := 0
-	dayIndex := 0
-
-	for week := weeks; week != nil; week = NextSiblings(week, 2) {
-		statusRow := week.LastChild.PrevSibling.FirstChild.NextSibling.FirstChild.NextSibling.NextSibling
-		for col := statusRow.FirstChild.NextSibling.NextSibling.NextSibling; col != nil; col = col.NextSibling.NextSibling {
-			if col.FirstChild == nil {
-				continue
+	document.Find(".zamena").Each(func(trIndex int, tr *htmlParser.Selection) {
+		tr.Find("th").Each(func(thIndex int, th *htmlParser.Selection) {
+			if thIndex == 0 || thIndex > 6 {
+				return
 			}
 
-			var state State
-
-			if col.FirstChild.NextSibling == nil && col.FirstChild.Data == "\n\t    \t\t    \t\t\t\t\t" {
-				state = NotUpdated
-			} else {
-				state = Updated
-			}
-
-			states = append(states, StateInfo{
-				state:            state,
-				weekIndex:        weekIndex,
-				dayIndex:         dayIndex,
+			stateInfo := StateInfo{
+				weekIndex:        trIndex,
+				dayIndex:         thIndex - 1,
 				educationPlaceId: 0,
-			})
-			dayIndex++
-		}
-		dayIndex = 0
-		weekIndex++
-	}
+			}
+
+			state := strings.Trim(th.Text(), "\n\t ")
+			if state == "" {
+				stateInfo.state = NotUpdated
+			} else {
+				stateInfo.state = Updated
+			}
+
+			states = append(states, stateInfo)
+		})
+	})
 
 	return states
 }
