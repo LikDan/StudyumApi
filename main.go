@@ -43,8 +43,10 @@ func main() {
 	api.GET("/schedule/update", updateSchedule)
 
 	api.GET("/studyPlaces", getStudyPlaces)
-	api.GET("/getUser", getUser)
-	api.GET("/getToken", getToken)
+
+	api.GET("/user/login", saveUser)
+	api.GET("/user/logoff", deleteUser)
+	api.GET("/user/schedule", getUserSchedule)
 
 	api.GET("/stopPrimaryUpdates", stopPrimaryCron)
 	api.GET("/launchPrimaryUpdates", launchPrimaryCron)
