@@ -16,7 +16,7 @@ func getSchedule(ctx *gin.Context) {
 
 	type_ := ctx.Query("type")
 	name := ctx.Query("name")
-	educationPlaceIdStr := ctx.Query("educationPlaceId")
+	educationPlaceIdStr := ctx.Query("studyPlaceId")
 
 	if type_ == "" || name == "" || educationPlaceIdStr == "" {
 		message(ctx, "error", "provide all params", 418)
@@ -181,15 +181,15 @@ func getSchedule(ctx *gin.Context) {
 		", \"subjectsCount\": "+strconv.Itoa(int(subjectsAmount))+
 		", \"type\": \""+type_+
 		"\", \"name\": \""+name+
-		"\", \"educationPlaceId\": "+educationPlaceIdStr+
-		", \"educationPlaceName\": \""+educationPlaceName+"\"}}")
+		"\", \"studyPlaceId\": "+educationPlaceIdStr+
+		", \"studyPlaceId\": \""+educationPlaceName+"\"}}")
 	checkError(err)
 }
 
 func getScheduleTypes(ctx *gin.Context) {
 	var res []string
 
-	educationPlaceIdStr := ctx.Query("educationPlaceId")
+	educationPlaceIdStr := ctx.Query("studyPlaceId")
 	if educationPlaceIdStr == "" {
 		message(ctx, "error", "provide all params", 418)
 		return
