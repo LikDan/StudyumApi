@@ -1,33 +1,12 @@
 package main
 
 import (
-	"fmt"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
-	"net/http"
-	"os"
 	"time"
 )
-
-func server(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		return
-	}
-	url, err := getUrlData(r, "url")
-	checkError(err)
-
-	resp, err := http.Get("https://" + url)
-	if err != nil {
-		_, err = fmt.Fprintln(w, "No such host")
-		checkError(err)
-		return
-	}
-
-	_, err = fmt.Fprintln(w, resp.StatusCode)
-	checkError(err)
-}
 
 var generalSubjectsCollection *mongo.Collection
 var subjectsCollection *mongo.Collection
@@ -56,25 +35,20 @@ func main() {
 	initFirebaseApp()
 	Launch()
 
-	router := mux.NewRouter()
+	r := gin.Default()
+	api := r.Group("/api")
 
-	router.HandleFunc("/schedule", getSchedule)
-	router.HandleFunc("/schedule/types", getScheduleTypes)
-	router.HandleFunc("/schedule/update", updateSchedule)
+	api.GET("/schedule", getSchedule)
+	api.GET("/schedule/types", getScheduleTypes)
+	api.GET("/schedule/update", updateSchedule)
 
-	router.HandleFunc("/studyPlaces", getStudyPlaces)
-	router.HandleFunc("/getUser", getUser)
-	router.HandleFunc("/getToken", getToken)
+	api.GET("/studyPlaces", getStudyPlaces)
+	api.GET("/getUser", getUser)
+	api.GET("/getToken", getToken)
 
-	router.HandleFunc("/stopPrimaryUpdates", stopPrimaryCron)
-	router.HandleFunc("/launchPrimaryUpdates", launchPrimaryCron)
+	api.GET("/stopPrimaryUpdates", stopPrimaryCron)
+	api.GET("/launchPrimaryUpdates", launchPrimaryCron)
 
-	router.HandleFunc("/", server)
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-		println("Port set to 8080")
-	}
-	err = http.ListenAndServe(":"+port, router)
+	err = r.Run()
 	checkError(err)
 }

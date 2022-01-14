@@ -1,16 +1,10 @@
 package main
 
 import (
-	"fmt"
+	"github.com/gin-gonic/gin"
 	"golang.org/x/net/html"
 	"log"
-	"net/http"
-	"strings"
 )
-
-func normalizeStr(str string) string {
-	return strings.Title(strings.Trim(str, " "))
-}
 
 func checkError(err error) bool {
 	if err != nil {
@@ -30,26 +24,6 @@ func NextSiblings(node *html.Node, amount int) *html.Node {
 	return sibling
 }
 
-func PrevSiblings(node *html.Node, amount int) *html.Node {
-	sibling := node.PrevSibling
-
-	for i := 1; i < amount; i++ {
-		sibling = sibling.PrevSibling
-	}
-
-	return sibling
-}
-
-func getUrlData(r *http.Request, key string) (string, error) {
-	keys, ok := r.URL.Query()[key]
-
-	if !ok || len(keys[0]) < 1 {
-		return "", fmt.Errorf("url Param %s is missing", key)
-	}
-
-	return keys[0], nil
-}
-
 func EqualStateInfo(a, b []StateInfo) bool {
 	if len(a) != len(b) {
 		return false
@@ -62,6 +36,6 @@ func EqualStateInfo(a, b []StateInfo) bool {
 	return true
 }
 
-func buildJSONError(err string) string {
-	return "{\"error\": \"" + err + "\"}"
+func message(ctx *gin.Context, name string, value string, code int) {
+	ctx.JSON(code, gin.H{name: value})
 }

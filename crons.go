@@ -1,14 +1,15 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"net/http"
+	"github.com/gin-gonic/gin"
 )
 
-func getEducationViaPasswordRequest(r *http.Request) (*education, error) {
-	password, err := getUrlData(r, "password")
-	if checkError(err) {
-		return nil, err
+func getEducationViaPasswordRequest(ctx *gin.Context) (*education, error) {
+	password := ctx.Query("password")
+	if password == "" {
+		return nil, errors.New("provide all params")
 	}
 
 	var confirmedEducation *education
@@ -27,28 +28,20 @@ func getEducationViaPasswordRequest(r *http.Request) (*education, error) {
 	return confirmedEducation, nil
 }
 
-func stopPrimaryCron(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-	edu, err := getEducationViaPasswordRequest(r)
+func stopPrimaryCron(ctx *gin.Context) {
+	edu, err := getEducationViaPasswordRequest(ctx)
 	if checkError(err) {
-		_, err := fmt.Fprintln(w, err.Error())
-		checkError(err)
+		message(ctx, "error", err.Error(), 418)
 		return
 	}
 	edu.primaryCron.Stop()
 	edu.launchPrimaryCron = false
 }
 
-func launchPrimaryCron(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-	edu, err := getEducationViaPasswordRequest(r)
+func launchPrimaryCron(ctx *gin.Context) {
+	edu, err := getEducationViaPasswordRequest(ctx)
 	if checkError(err) {
-		_, err := fmt.Fprintln(w, err.Error())
-		checkError(err)
+		message(ctx, "error", err.Error(), 418)
 		return
 	}
 	edu.primaryCron.Start()

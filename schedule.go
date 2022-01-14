@@ -2,37 +2,30 @@ package main
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
-	"net/http"
 	"strconv"
 	"strings"
 )
 
-func getSchedule(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
+func getSchedule(ctx *gin.Context) {
 	log.Println("GET SCHEDULE")
-	type_, err := getUrlData(r, "type")
-	if checkError(err) {
-		return
-	}
 
-	name, err := getUrlData(r, "name")
-	if checkError(err) {
-		return
-	}
+	type_ := ctx.Query("type")
+	name := ctx.Query("name")
+	educationPlaceIdStr := ctx.Query("educationPlaceId")
 
-	educationPlaceIdStr, err := getUrlData(r, "educationPlaceId")
-	if checkError(err) {
+	if type_ == "" || name == "" || educationPlaceIdStr == "" {
+		message(ctx, "error", "provide all params", 418)
 		return
 	}
 
 	educationPlaceId, err := strconv.Atoi(educationPlaceIdStr)
 	if checkError(err) {
+		message(ctx, "error", "not valid params", 418)
 		return
 	}
 
@@ -43,8 +36,7 @@ func getSchedule(w http.ResponseWriter, r *http.Request) {
 	checkError(err)
 
 	if educationPlace == nil {
-		_, err := fmt.Fprintln(w, "{\"error\": \"No such study place\"}")
-		checkError(err)
+		message(ctx, "error", "no such study place with id", 418)
 		return
 	}
 
@@ -88,8 +80,7 @@ func getSchedule(w http.ResponseWriter, r *http.Request) {
 	checkError(err)
 
 	if !lessonsCursor.TryNext(nil) {
-		_, err := fmt.Fprintln(w, "{\"error\": \"No subjects provided\"}")
-		checkError(err)
+		message(ctx, "error", "not subjects provided", 418)
 		return
 	}
 
@@ -182,7 +173,7 @@ func getSchedule(w http.ResponseWriter, r *http.Request) {
 		statesJson = append(statesJson, state.toJsonWithoutId())
 	}
 
-	_, err = fmt.Fprintln(w, "{\"status\": ["+strings.Join(statesJson, ", ")+
+	_, err = fmt.Fprintln(ctx.Writer, "{\"status\": ["+strings.Join(statesJson, ", ")+
 		"], \"subjects\": ["+strings.Join(lessonsJson, ", ")+
 		"], \"info\": {"+
 		"\"weeksCount\": "+strconv.Itoa(int(weeksAmount))+
@@ -195,17 +186,12 @@ func getSchedule(w http.ResponseWriter, r *http.Request) {
 	checkError(err)
 }
 
-func getScheduleTypes(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
+func getScheduleTypes(ctx *gin.Context) {
 	var res []string
 
-	educationPlaceIdStr, err := getUrlData(r, "educationPlaceId")
-	if err != nil {
-		_, err = fmt.Fprintf(w, "Please provide all params (url: %s)", r.URL.Path)
-		checkError(err)
-
+	educationPlaceIdStr := ctx.Query("educationPlaceId")
+	if educationPlaceIdStr == "" {
+		message(ctx, "error", "provide all params", 418)
 		return
 	}
 
@@ -226,18 +212,14 @@ func getScheduleTypes(w http.ResponseWriter, r *http.Request) {
 	toJson("teacher")
 	toJson("subject")
 
-	_, err = fmt.Fprintf(w, "[%s]", strings.Join(res, ", "))
+	_, err = fmt.Fprintf(ctx.Writer, "[%s]", strings.Join(res, ", "))
 	checkError(err)
 }
 
-func updateSchedule(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-	edu, err := getEducationViaPasswordRequest(r)
+func updateSchedule(ctx *gin.Context) {
+	edu, err := getEducationViaPasswordRequest(ctx)
 	if checkError(err) {
-		_, err := fmt.Fprintln(w, err.Error())
-		checkError(err)
+		message(ctx, "error", err.Error(), 418)
 		return
 	}
 

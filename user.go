@@ -2,7 +2,9 @@ package main
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
@@ -10,24 +12,18 @@ import (
 	"strings"
 )
 
-func getUserFromDb(w http.ResponseWriter, r *http.Request) (bson.M, string) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+func getUserFromDb(ctx *gin.Context) (bson.M, error) {
+	username := ctx.Query("username")
+	type_ := ctx.Query("type")
+	password := ctx.Query("password")
 
-	username, err := getUrlData(r, "username")
-	if checkError(err) {
-		return nil, buildJSONError("provide all params")
-	}
-	type_, err := getUrlData(r, "type")
-	if checkError(err) {
-		return nil, buildJSONError("provide all params")
+	if username == "" || type_ == "" || password == "" {
+		return nil, errors.New("provide all params")
 	}
 
 	if type_ != "password_hash" && type_ != "token" {
-		return nil, buildJSONError("provide all params")
+		return nil, errors.New("wrong type")
 	}
-
-	password, err := getUrlData(r, "password")
 
 	if type_ == "password_hash" {
 		password = fmt.Sprintf("%x", sha256.Sum256([]byte(password)))
@@ -36,16 +32,12 @@ func getUserFromDb(w http.ResponseWriter, r *http.Request) (bson.M, string) {
 	var user bson.M
 
 	userResult := usersCollection.FindOne(nil, bson.M{"username": username, type_: password})
-	err = userResult.Decode(&user)
+	err := userResult.Decode(&user)
 	if checkError(err) {
-		return nil, buildJSONError("wrong response: " + err.Error())
+		return nil, errors.New("wrong user or password")
 	}
 
-	if user == nil {
-		return nil, buildJSONError("no user")
-	}
-
-	return user, ""
+	return user, nil
 }
 
 func createUser(w http.ResponseWriter, r *http.Request) {
@@ -56,11 +48,10 @@ func editUser(w http.ResponseWriter, r *http.Request) {
 	//TODO
 }
 
-func getUser(w http.ResponseWriter, r *http.Request) {
-	user, stringErr := getUserFromDb(w, r)
-	if stringErr != "" {
-		_, err := fmt.Fprintln(w, stringErr)
-		checkError(err)
+func getUser(ctx *gin.Context) {
+	user, err := getUserFromDb(ctx)
+	if err != nil {
+		message(ctx, "error", err.Error(), 418)
 		return
 	}
 
@@ -70,7 +61,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 		rights = append(rights, right.(string))
 	}
 
-	_, err := fmt.Fprintln(w, "{\"username\": \""+user["username"].(string)+
+	_, err = fmt.Fprintln(ctx.Writer, "{\"username\": \""+user["username"].(string)+
 		"\", \"studyPlaceId\": "+strconv.Itoa(int(user["studyPlaceId"].(int32)))+
 		", \"type\": \""+user["type"].(string)+
 		"\", \"name\": \""+user["name"].(string)+
@@ -79,15 +70,14 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	checkError(err)
 }
 
-func getToken(w http.ResponseWriter, r *http.Request) {
-	user, stringErr := getUserFromDb(w, r)
-	if stringErr != "" {
-		_, err := fmt.Fprintln(w, stringErr)
-		checkError(err)
+func getToken(ctx *gin.Context) {
+	user, err := getUserFromDb(ctx)
+	if err != nil {
+		message(ctx, "error", err.Error(), 418)
 		return
 	}
 
-	_, err := fmt.Fprintln(w, "{\"token\": \""+user["token"].(string)+"\"}")
+	_, err = fmt.Fprintln(ctx.Writer, "{\"token\": \""+user["token"].(string)+"\"}")
 	checkError(err)
 }
 

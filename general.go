@@ -2,16 +2,13 @@ package main
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
-	"net/http"
 	"strconv"
 	"strings"
 )
 
-func getStudyPlaces(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
+func getStudyPlaces(ctx *gin.Context) {
 	var res []string
 
 	types, _ := studyPlacesCollection.Find(nil, bson.D{})
@@ -20,6 +17,6 @@ func getStudyPlaces(w http.ResponseWriter, _ *http.Request) {
 		res = append(res, "{ \"id\": "+strconv.Itoa(int(types.Current.Lookup("_id").Int32()))+", \"name\": \""+types.Current.Lookup("name").StringValue()+"\"}")
 	}
 
-	_, err := fmt.Fprintf(w, "[%s]", strings.Join(res, ", "))
+	_, err := fmt.Fprintf(ctx.Writer, "[%s]", strings.Join(res, ", "))
 	checkError(err)
 }
