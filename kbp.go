@@ -47,83 +47,55 @@ func getWeeks(url string) *html.Node {
 }
 
 func UpdateScheduleKbp(url string, states []StateInfo) []SubjectFull {
-	weeks := getWeeks(url)
+	document, err := htmlParser.NewDocument("http://kbp.by/rasp/timetable/view_beta_kbp/" + url)
+	checkError(err)
+
+	weeks := document.Find("tbody")
 	if weeks == nil {
 		return nil
 	}
 
 	var subjects []SubjectFull
 
-	weekIndex := 0
-	rowIndex := 0
-	columnIndex := 0
-	for week := weeks; week != nil; week = NextSiblings(week, 2) {
-		for c := week.LastChild.PrevSibling.FirstChild.NextSibling.FirstChild.NextSibling.NextSibling.NextSibling.NextSibling; c != nil; c = c.NextSibling.NextSibling {
-			for i := c.FirstChild.NextSibling.NextSibling.NextSibling; i != nil; i = i.NextSibling.NextSibling {
-				addSubject := func(subjectName, teacher, room, group, type_ string) {
-					subject := SubjectFull{
-						subject:          normalizeStr(subjectName),
-						teacher:          normalizeStr(teacher),
-						group:            normalizeStr(group),
-						room:             normalizeStr(room),
-						columnIndex:      columnIndex,
-						rowIndex:         rowIndex,
-						weekIndex:        weekIndex,
-						type_:            type_,
-						educationPlaceId: 0,
+	weeks.Each(func(tableIndex int, table *htmlParser.Selection) {
+		table.Find("tr").Each(func(rowIndex int, row *htmlParser.Selection) {
+			rowIndex -= 2
+			row.Find("td").Each(func(columnIndex int, column *htmlParser.Selection) {
+				columnIndex -= 1
+				column.Find(".pair").Each(func(_ int, div *htmlParser.Selection) {
+					var type_ string
+
+					if div.HasClass("added") {
+						type_ = "ADDED"
+					} else if div.HasClass("removed") && states[tableIndex*6+columnIndex].state == Updated {
+						type_ = "REMOVED"
+					} else {
+						type_ = "STAY"
 					}
-					for _, s := range subjects {
-						if s == subject {
+
+					div.Find(".teacher").Each(func(_ int, teacherDiv *htmlParser.Selection) {
+						if teacherDiv.Text() == "" {
 							return
 						}
-					}
 
-					subjects = append(subjects, subject)
-				}
+						subject := SubjectFull{
+							subject:          div.Find(".subject").Text(),
+							teacher:          teacherDiv.Text(),
+							group:            div.Find(".group").Text(),
+							room:             div.Find(".place").Text(),
+							columnIndex:      columnIndex,
+							rowIndex:         rowIndex,
+							weekIndex:        tableIndex,
+							type_:            type_,
+							educationPlaceId: 0,
+						}
 
-				for div := i.FirstChild; div != nil; div = div.NextSibling {
-					if div.Data == "div" {
-						if strings.Contains(div.Attr[0].Val, "empty-pair") {
-							continue
-						}
-						subject := div.FirstChild.NextSibling.FirstChild.NextSibling.FirstChild.FirstChild.Data
-						teacher := ""
-						teacherDiv := div.FirstChild.NextSibling.FirstChild.NextSibling.NextSibling.NextSibling.FirstChild.FirstChild
-						if teacherDiv != nil {
-							teacher = teacherDiv.Data
-						}
-						room := div.FirstChild.NextSibling.NextSibling.NextSibling.LastChild.PrevSibling.FirstChild.FirstChild.Data
-						group := div.FirstChild.NextSibling.NextSibling.NextSibling.FirstChild.NextSibling.FirstChild.FirstChild.FirstChild.Data
-						teacher2Node := div.FirstChild.NextSibling.LastChild.PrevSibling.FirstChild.FirstChild
-
-						if strings.Contains(div.Attr[0].Val, "added") {
-							addSubject(subject, teacher, room, group, "ADDED")
-							if teacher2Node != nil {
-								addSubject(subject, teacher2Node.Data, room, group, "ADDED")
-							}
-						} else if strings.Contains(div.Attr[0].Val, "removed") &&
-							states[weekIndex*6+columnIndex].state != NotUpdated {
-							addSubject(subject, teacher, room, group, "REMOVED")
-							if teacher2Node != nil {
-								addSubject(subject, teacher2Node.Data, room, group, "REMOVED")
-							}
-						} else {
-							addSubject(subject, teacher, room, group, "STAY")
-							if teacher2Node != nil {
-								addSubject(subject, teacher2Node.Data, room, group, "STAY")
-							}
-						}
-					}
-				}
-				columnIndex++
-			}
-			rowIndex++
-			columnIndex = 0
-		}
-		rowIndex = 0
-		columnIndex = 0
-		weekIndex++
-	}
+						subjects = append(subjects, subject)
+					})
+				})
+			})
+		})
+	})
 
 	return subjects
 }
