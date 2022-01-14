@@ -14,6 +14,10 @@ var stateCollection *mongo.Collection
 var studyPlacesCollection *mongo.Collection
 var usersCollection *mongo.Collection
 
+func indexHandler(ctx *gin.Context) {
+	message(ctx, "message", "hi", 200)
+}
+
 func main() {
 	time.Local = time.FixedZone("GMT", 3*3600)
 
@@ -36,6 +40,9 @@ func main() {
 	Launch()
 
 	r := gin.Default()
+
+	r.GET("/", indexHandler)
+
 	api := r.Group("/api")
 
 	api.GET("/schedule", getSchedule)
