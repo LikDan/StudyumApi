@@ -6,33 +6,23 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"net/http"
-	"strconv"
-	"strings"
 )
 
-func getUserFromDb(ctx *gin.Context) (bson.M, error) {
-	username := ctx.Query("username")
-	type_ := ctx.Query("type")
-	password := ctx.Query("password")
-
-	if username == "" || type_ == "" || password == "" {
-		return nil, errors.New("provide all params")
+func getUserFromDbViaCookies(ctx *gin.Context) (bson.M, error) {
+	login, err := ctx.Cookie("login")
+	if checkError(err) {
+		return nil, errors.New("no enough data")
 	}
 
-	if type_ != "password_hash" && type_ != "token" {
-		return nil, errors.New("wrong type")
-	}
-
-	if type_ == "password_hash" {
-		password = fmt.Sprintf("%x", sha256.Sum256([]byte(password)))
+	token, err := ctx.Cookie("password")
+	if checkError(err) {
+		return nil, errors.New("no enough data")
 	}
 
 	var user bson.M
 
-	userResult := usersCollection.FindOne(nil, bson.M{"username": username, type_: password})
-	err := userResult.Decode(&user)
+	userResult := usersCollection.FindOne(nil, bson.M{"username": login, "token": token})
+	err = userResult.Decode(&user)
 	if checkError(err) {
 		return nil, errors.New("wrong user or password")
 	}
@@ -40,47 +30,59 @@ func getUserFromDb(ctx *gin.Context) (bson.M, error) {
 	return user, nil
 }
 
-func createUser(w http.ResponseWriter, r *http.Request) {
+func createUser(ctx *gin.Context) {
 	//TODO
 }
 
-func editUser(w http.ResponseWriter, r *http.Request) {
+func editUser(ctx *gin.Context) {
 	//TODO
 }
 
-func getUser(ctx *gin.Context) {
-	user, err := getUserFromDb(ctx)
-	if err != nil {
+func getUserSchedule(ctx *gin.Context) {
+	user, err := getUserFromDbViaCookies(ctx)
+	if checkError(err) {
 		message(ctx, "error", err.Error(), 418)
+	}
+
+	response := gin.H{
+		"type":         user["type"].(string),
+		"name":         user["name"].(string),
+		"studyPlaceId": user["educationPlaceId"].(int32),
+	}
+
+	ctx.JSON(200, response)
+}
+
+func saveUser(ctx *gin.Context) {
+	username := ctx.Query("login")
+	password := ctx.Query("password")
+
+	if username == "" || password == "" {
+		message(ctx, "error", "provide all params", 418)
 		return
 	}
 
-	var rights []string
+	password = fmt.Sprintf("%x", sha256.Sum256([]byte(password)))
 
-	for _, right := range user["rights"].(primitive.A) {
-		rights = append(rights, right.(string))
-	}
+	var user bson.M
 
-	_, err = fmt.Fprintln(ctx.Writer, "{\"username\": \""+user["username"].(string)+
-		"\", \"studyPlaceId\": "+strconv.Itoa(int(user["studyPlaceId"].(int32)))+
-		", \"type\": \""+user["type"].(string)+
-		"\", \"name\": \""+user["name"].(string)+
-		"\", \"rights\": [\""+strings.Join(rights, "\", \"")+"\"]}",
-	)
-	checkError(err)
-}
+	userResult := usersCollection.FindOne(nil, bson.M{"username": username, "password_hash": password})
+	err := userResult.Decode(&user)
 
-func getToken(ctx *gin.Context) {
-	user, err := getUserFromDb(ctx)
-	if err != nil {
-		message(ctx, "error", err.Error(), 418)
+	if checkError(err) {
+		message(ctx, "error", "wrong user or password", 418)
 		return
 	}
 
-	_, err = fmt.Fprintln(ctx.Writer, "{\"token\": \""+user["token"].(string)+"\"}")
-	checkError(err)
+	ctx.SetCookie("login", user["username"].(string), 0, "", "", false, false)
+	ctx.SetCookie("token", user["token"].(string), 0, "", "", true, false)
+
+	message(ctx, "message", "successful", 200)
 }
 
-func changeToken(w http.ResponseWriter, r *http.Request) {
-	//TODO
+func deleteUser(ctx *gin.Context) {
+	ctx.SetCookie("login", "", -1, "", "", false, false)
+	ctx.SetCookie("token", "", -1, "", "", true, false)
+
+	message(ctx, "message", "successful", 200)
 }
