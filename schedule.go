@@ -182,7 +182,7 @@ func getSchedule(ctx *gin.Context) {
 		", \"type\": \""+type_+
 		"\", \"name\": \""+name+
 		"\", \"studyPlaceId\": "+educationPlaceIdStr+
-		", \"studyPlaceId\": \""+educationPlaceName+"\"}}")
+		", \"studyPlaceName\": \""+educationPlaceName+"\"}}")
 	checkError(err)
 }
 
