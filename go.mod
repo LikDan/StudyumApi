@@ -16,6 +16,7 @@ require (
 	cloud.google.com/go/firestore v1.5.0 // indirect
 	cloud.google.com/go/storage v1.10.0 // indirect
 	github.com/PuerkitoBio/goquery v1.8.0
+	github.com/gin-gonic/gin v1.7.7
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.4.3 // indirect
