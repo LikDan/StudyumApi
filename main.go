@@ -45,15 +45,21 @@ func main() {
 
 	api := r.Group("/api")
 
+	userGroup := api.Group("/user")
+
 	api.GET("/schedule", getSchedule)
 	api.GET("/schedule/types", getScheduleTypes)
 	api.GET("/schedule/update", updateSchedule)
 
-	api.GET("/studyPlaces", getStudyPlaces)
+	userGroup.GET("/login", loginUser)
+	userGroup.GET("/logout", logoutUser)
+	userGroup.GET("/edit", editUser)
+	userGroup.GET("/create", createUser)
+	userGroup.GET("/delete", deleteUser)
 
-	api.GET("/user/login", saveUser)
-	api.GET("/user/logoff", deleteUser)
-	api.GET("/user/schedule", getUserSchedule)
+	userGroup.GET("/schedule", getUserSchedule)
+
+	api.GET("/studyPlaces", getStudyPlaces)
 
 	api.GET("/stopPrimaryUpdates", stopPrimaryCron)
 	api.GET("/launchPrimaryUpdates", launchPrimaryCron)
