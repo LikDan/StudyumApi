@@ -60,6 +60,7 @@ func main() {
 	userGroup.GET("/schedule", getUserSchedule)
 
 	api.GET("/studyPlaces", getStudyPlaces)
+	api.GET("/info", getInfo)
 
 	api.GET("/stopPrimaryUpdates", stopPrimaryCron)
 	api.GET("/launchPrimaryUpdates", launchPrimaryCron)
