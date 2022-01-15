@@ -15,7 +15,7 @@ type Cron struct {
 	stop     chan struct{}
 	add      chan *Entry
 	snapshot chan []*Entry
-	Running  bool
+	running  bool
 	ErrorLog *log.Logger
 	location *time.Location
 }
@@ -68,6 +68,10 @@ func (s byTime) Less(i, j int) bool {
 	return s[i].Next.Before(s[j].Next)
 }
 
+func (c *Cron) IsRunning() bool {
+	return c.running
+}
+
 // New returns a new Cron job runner, in the Local time zone.
 func New() *Cron {
 	return NewWithLocation(time.Now().Location())
@@ -80,7 +84,7 @@ func NewWithLocation(location *time.Location) *Cron {
 		add:      make(chan *Entry),
 		stop:     make(chan struct{}),
 		snapshot: make(chan []*Entry),
-		Running:  false,
+		running:  false,
 		ErrorLog: nil,
 		location: location,
 	}
@@ -112,7 +116,7 @@ func (c *Cron) Schedule(schedule Schedule, cmd Job) {
 		Schedule: schedule,
 		Job:      cmd,
 	}
-	if !c.Running {
+	if !c.running {
 		c.entries = append(c.entries, entry)
 		return
 	}
@@ -122,7 +126,7 @@ func (c *Cron) Schedule(schedule Schedule, cmd Job) {
 
 // Entries returns a snapshot of the cron entries.
 func (c *Cron) Entries() []*Entry {
-	if c.Running {
+	if c.running {
 		c.snapshot <- nil
 		x := <-c.snapshot
 		return x
@@ -137,19 +141,19 @@ func (c *Cron) Location() *time.Location {
 
 // Start the cron scheduler in its own go-routine, or no-op if already started.
 func (c *Cron) Start() {
-	if c.Running {
+	if c.running {
 		return
 	}
-	c.Running = true
+	c.running = true
 	go c.run()
 }
 
 // Run the cron scheduler, or no-op if already running.
 func (c *Cron) Run() {
-	if c.Running {
+	if c.running {
 		return
 	}
-	c.Running = true
+	c.running = true
 	c.run()
 }
 
@@ -232,11 +236,11 @@ func (c *Cron) logf(format string, args ...interface{}) {
 
 // Stop stops the cron scheduler if it is running; otherwise it does nothing.
 func (c *Cron) Stop() {
-	if !c.Running {
+	if !c.running {
 		return
 	}
 	c.stop <- struct{}{}
-	c.Running = false
+	c.running = false
 }
 
 // entrySnapshot returns a copy of the current cron entry list.

@@ -29,8 +29,8 @@ func getInfo(ctx *gin.Context) {
 			"id":                    studyPlace.id,
 			"states":                studyPlace.statesJSON(),
 			"availableTypes":        studyPlace.availableTypes,
-			"isPrimaryCronLaunched": studyPlace.primaryCron.Running,
-			"isGeneralCronLaunched": studyPlace.generalCron.Running,
+			"isPrimaryCronLaunched": studyPlace.primaryCron.IsRunning(),
+			"isGeneralCronLaunched": studyPlace.generalCron.IsRunning(),
 		}
 
 		info = append(info, i)
