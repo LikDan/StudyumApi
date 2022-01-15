@@ -20,3 +20,21 @@ func getStudyPlaces(ctx *gin.Context) {
 	_, err := fmt.Fprintf(ctx.Writer, "[%s]", strings.Join(res, ", "))
 	checkError(err)
 }
+
+func getInfo(ctx *gin.Context) {
+	var info []gin.H
+
+	for _, studyPlace := range Educations {
+		i := gin.H{
+			"id":                    studyPlace.id,
+			"states":                studyPlace.statesJSON(),
+			"availableTypes":        studyPlace.availableTypes,
+			"isPrimaryCronLaunched": studyPlace.primaryCron.Running,
+			"isGeneralCronLaunched": studyPlace.generalCron.Running,
+		}
+
+		info = append(info, i)
+	}
+
+	ctx.JSON(200, info)
+}
