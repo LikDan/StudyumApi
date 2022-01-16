@@ -2,10 +2,6 @@ package main
 
 import (
 	htmlParser "github.com/PuerkitoBio/goquery"
-	"golang.org/x/net/html"
-	"io"
-	"log"
-	"net/http"
 	"strings"
 )
 
@@ -21,29 +17,6 @@ var KBP = education{
 	availableTypes:                   []string{},
 	states:                           []StateInfo{},
 	password:                         "kbp-corn-pass",
-}
-
-func getWeeks(url string) *html.Node {
-	resp, err := http.Get("http://kbp.by/rasp/timetable/view_beta_kbp/" + url)
-	checkError(err)
-
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		checkError(err)
-	}(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		log.Printf("Kbp: Status code %s", resp.Status)
-		return nil
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	checkError(err)
-
-	doc, err := html.Parse(strings.NewReader(string(bodyBytes)))
-	checkError(err)
-
-	return NextSiblings(doc.LastChild.LastChild.FirstChild, 7).FirstChild.NextSibling.LastChild.PrevSibling.FirstChild.NextSibling.LastChild.PrevSibling.FirstChild.NextSibling
 }
 
 func UpdateScheduleKbp(url string, states []StateInfo) []SubjectFull {
