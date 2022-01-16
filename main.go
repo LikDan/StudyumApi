@@ -56,6 +56,7 @@ func main() {
 	userGroup.GET("/edit", editUser)
 	userGroup.GET("/create", createUser)
 	userGroup.GET("/delete", deleteUser)
+	userGroup.GET("/getLogin", getLogin)
 
 	userGroup.GET("/schedule", getUserSchedule)
 
