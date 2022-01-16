@@ -10,25 +10,32 @@ import (
 )
 
 func getUserFromDbViaCookies(ctx *gin.Context) (bson.M, error) {
-	login, err := ctx.Cookie("login")
-	if checkError(err) {
-		return nil, errors.New("user not saved")
-	}
+	login, loginErr := ctx.Cookie("login")
+	token, tokenErr := ctx.Cookie("token")
 
-	token, err := ctx.Cookie("token")
-	if checkError(err) {
-		return nil, errors.New("user not saved")
+	if checkError(loginErr) || checkError(tokenErr) {
+		return nil, errors.New("not authorized")
 	}
 
 	var user bson.M
 
 	userResult := usersCollection.FindOne(nil, bson.M{"login": login, "token": token})
-	err = userResult.Decode(&user)
+	err := userResult.Decode(&user)
 	if checkError(err) {
-		return nil, errors.New("wrong user or password")
+		return nil, errors.New("not authorized")
 	}
 
 	return user, nil
+}
+
+func getLogin(ctx *gin.Context) {
+	user, err := getUserFromDbViaCookies(ctx)
+	if checkError(err) {
+		message(ctx, "error", err.Error(), 418)
+		return
+	}
+
+	message(ctx, "login", user["login"].(string), 200)
 }
 
 func createUser(ctx *gin.Context) {
