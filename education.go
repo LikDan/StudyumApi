@@ -27,9 +27,9 @@ func (e education) statesJSON() []gin.H {
 	var statesJSON []gin.H
 	for _, state := range e.states {
 		stateJSON := gin.H{
-			"weekIndex": state.weekIndex,
-			"dayIndex":  state.dayIndex,
-			"state":     state.state,
+			"weekIndex": state.WeekIndex,
+			"dayIndex":  state.DayIndex,
+			"state":     state.State,
 		}
 
 		statesJSON = append(statesJSON, stateJSON)

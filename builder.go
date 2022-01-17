@@ -82,10 +82,10 @@ func Launch() {
 			status := find.Current.Lookup("status").StringValue()
 
 			state := StateInfo{
-				state:            State(status),
-				weekIndex:        weekIndex,
-				dayIndex:         dayIndex,
-				educationPlaceId: educationPlaceId,
+				State:        State(status),
+				WeekIndex:    weekIndex,
+				DayIndex:     dayIndex,
+				StudyPlaceId: educationPlaceId,
 			}
 
 			states = append(states, state)

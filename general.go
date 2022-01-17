@@ -27,7 +27,7 @@ func getInfo(ctx *gin.Context) {
 	for _, studyPlace := range Educations {
 		i := gin.H{
 			"id":                    studyPlace.id,
-			"states":                studyPlace.statesJSON(),
+			"states":                studyPlace.states,
 			"availableTypes":        studyPlace.availableTypes,
 			"isPrimaryCronLaunched": studyPlace.primaryCron.IsRunning(),
 			"isGeneralCronLaunched": studyPlace.generalCron.IsRunning(),
