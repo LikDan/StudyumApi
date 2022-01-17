@@ -40,7 +40,7 @@ func UpdateScheduleKbp(url string, states []StateInfo) []SubjectFull {
 
 					if div.HasClass("added") {
 						type_ = "ADDED"
-					} else if div.HasClass("removed") && states[tableIndex*6+columnIndex].state == Updated {
+					} else if div.HasClass("removed") && states[tableIndex*6+columnIndex].State == Updated {
 						type_ = "REMOVED"
 					} else {
 						type_ = "STAY"
@@ -86,16 +86,16 @@ func UpdateStateKbp(url string) []StateInfo {
 			}
 
 			stateInfo := StateInfo{
-				weekIndex:        trIndex,
-				dayIndex:         thIndex - 1,
-				educationPlaceId: 0,
+				WeekIndex:    trIndex,
+				DayIndex:     thIndex - 1,
+				StudyPlaceId: 0,
 			}
 
 			state := strings.Trim(th.Text(), "\n\t ")
 			if state == "" {
-				stateInfo.state = NotUpdated
+				stateInfo.State = NotUpdated
 			} else {
-				stateInfo.state = Updated
+				stateInfo.State = Updated
 			}
 
 			states = append(states, stateInfo)

@@ -13,23 +13,23 @@ const (
 )
 
 type StateInfo struct {
-	state            State
-	weekIndex        int
-	dayIndex         int
-	educationPlaceId int
+	State        State `json:"state"`
+	WeekIndex    int   `json:"weekIndex"`
+	DayIndex     int   `json:"dayIndex"`
+	StudyPlaceId int   `json:"studyPlaceId"`
 }
 
 func stateToBson(info StateInfo) bson.D {
 	return bson.D{
-		{"weekIndex", info.weekIndex},
-		{"dayIndex", info.dayIndex},
-		{"status", info.state},
-		{"educationPlaceId", info.educationPlaceId},
+		{"weekIndex", info.WeekIndex},
+		{"dayIndex", info.DayIndex},
+		{"status", info.State},
+		{"educationPlaceId", info.StudyPlaceId},
 	}
 }
 
 func (s StateInfo) toJsonWithoutId() string {
-	return "{\"status\": \"" + string(s.state) +
-		"\", \"weekIndex\": " + strconv.Itoa(s.weekIndex) +
-		", \"dayIndex\": " + strconv.Itoa(s.dayIndex) + "}"
+	return "{\"status\": \"" + string(s.State) +
+		"\", \"weekIndex\": " + strconv.Itoa(s.WeekIndex) +
+		", \"dayIndex\": " + strconv.Itoa(s.DayIndex) + "}"
 }

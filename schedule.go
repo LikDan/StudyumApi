@@ -71,10 +71,10 @@ func getSchedule(ctx *gin.Context) {
 		state := State(stateCursor.Current.Lookup("status").StringValue())
 
 		stateInfo := StateInfo{
-			state:            state,
-			weekIndex:        int(weekIndex),
-			dayIndex:         int(dayIndex),
-			educationPlaceId: educationPlaceId,
+			State:        state,
+			WeekIndex:    int(weekIndex),
+			DayIndex:     int(dayIndex),
+			StudyPlaceId: educationPlaceId,
 		}
 
 		states = append(states, stateInfo)
