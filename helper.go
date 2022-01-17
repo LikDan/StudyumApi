@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"golang.org/x/net/html"
 	"log"
 )
 
@@ -12,16 +11,6 @@ func checkError(err error) bool {
 		return true
 	}
 	return false
-}
-
-func NextSiblings(node *html.Node, amount int) *html.Node {
-	sibling := node.NextSibling
-
-	for i := 1; i < amount; i++ {
-		sibling = sibling.NextSibling
-	}
-
-	return sibling
 }
 
 func EqualStateInfo(a, b []StateInfo) bool {
