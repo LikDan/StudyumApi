@@ -39,3 +39,9 @@ func EqualStateInfo(a, b []StateInfo) bool {
 func message(ctx *gin.Context, name string, value string, code int) {
 	ctx.JSON(code, gin.H{name: value})
 }
+
+func errorMessage(ctx *gin.Context, value string) {
+	ctx.Header("error", value)
+	ctx.Header("cookie", "")
+	ctx.JSON(204, gin.H{})
+}

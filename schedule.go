@@ -6,26 +6,37 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
 	"strconv"
 	"strings"
 )
 
 func getSchedule(ctx *gin.Context) {
-	log.Println("GET SCHEDULE")
+	user, err := getUserFromDbViaCookies(ctx)
 
 	type_ := ctx.Query("type")
 	name := ctx.Query("name")
-	educationPlaceIdStr := ctx.Query("studyPlaceId")
+	studyPlaceIdStr := ctx.Query("studyPlaceId")
 
-	if type_ == "" || name == "" || educationPlaceIdStr == "" {
-		message(ctx, "error", "provide all params", 418)
+	if err == nil {
+		if type_ == "" {
+			type_ = user["type"].(string)
+		}
+		if name == "" {
+			name = user["name"].(string)
+		}
+		if studyPlaceIdStr == "" {
+			studyPlaceIdStr = strconv.Itoa(int(user["studyPlaceId"].(int32)))
+		}
+	}
+
+	if type_ == "" || name == "" || studyPlaceIdStr == "" {
+		errorMessage(ctx, "not authorized")
 		return
 	}
 
-	educationPlaceId, err := strconv.Atoi(educationPlaceIdStr)
+	educationPlaceId, err := strconv.Atoi(studyPlaceIdStr)
 	if checkError(err) {
-		message(ctx, "error", "not valid params", 418)
+		errorMessage(ctx, "not valid params")
 		return
 	}
 
@@ -36,7 +47,7 @@ func getSchedule(ctx *gin.Context) {
 	checkError(err)
 
 	if educationPlace == nil {
-		message(ctx, "error", "no such study place with id", 418)
+		errorMessage(ctx, "no such study place with id")
 		return
 	}
 
@@ -80,7 +91,7 @@ func getSchedule(ctx *gin.Context) {
 	checkError(err)
 
 	if !lessonsCursor.TryNext(nil) {
-		message(ctx, "error", "not subjects provided", 418)
+		errorMessage(ctx, "not subjects provided")
 		return
 	}
 
@@ -181,7 +192,7 @@ func getSchedule(ctx *gin.Context) {
 		", \"subjectsCount\": "+strconv.Itoa(int(subjectsAmount))+
 		", \"type\": \""+type_+
 		"\", \"name\": \""+name+
-		"\", \"studyPlaceId\": "+educationPlaceIdStr+
+		"\", \"studyPlaceId\": "+studyPlaceIdStr+
 		", \"studyPlaceName\": \""+educationPlaceName+"\"}}")
 	checkError(err)
 }
@@ -191,7 +202,7 @@ func getScheduleTypes(ctx *gin.Context) {
 
 	educationPlaceIdStr := ctx.Query("studyPlaceId")
 	if educationPlaceIdStr == "" {
-		message(ctx, "error", "provide all params", 418)
+		errorMessage(ctx, "provide all params")
 		return
 	}
 
@@ -219,7 +230,7 @@ func getScheduleTypes(ctx *gin.Context) {
 func updateSchedule(ctx *gin.Context) {
 	edu, err := getEducationViaPasswordRequest(ctx)
 	if checkError(err) {
-		message(ctx, "error", err.Error(), 418)
+		errorMessage(ctx, err.Error())
 		return
 	}
 
