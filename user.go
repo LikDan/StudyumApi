@@ -31,7 +31,7 @@ func getUserFromDbViaCookies(ctx *gin.Context) (bson.M, error) {
 func getLogin(ctx *gin.Context) {
 	user, err := getUserFromDbViaCookies(ctx)
 	if checkError(err) {
-		message(ctx, "error", err.Error(), 418)
+		errorMessage(ctx, err.Error())
 		return
 	}
 
@@ -49,12 +49,12 @@ func createUser(ctx *gin.Context) {
 	stay, err := strconv.ParseBool(ctx.DefaultQuery("stay", "false"))
 
 	if login == "" || password == "" || type_ == "" || name == "" || studyPlaceId == "" || len(password) < 8 {
-		message(ctx, "error", "provide all params", 418)
+		errorMessage(ctx, "provide all params")
 		return
 	}
 
 	if err != nil {
-		message(ctx, "error", "not valid params", 418)
+		errorMessage(ctx, "not valid params")
 		return
 	}
 
@@ -62,7 +62,7 @@ func createUser(ctx *gin.Context) {
 
 	_, err = usersCollection.InsertOne(nil, bson.D{{"login", login}, {"password_hash", password}, {"type", type_}, {"name", name}, {"studyPlaceId", studyPlaceId}})
 	if err != nil {
-		message(ctx, "error", err.Error(), 418)
+		errorMessage(ctx, err.Error())
 		return
 	}
 
@@ -76,7 +76,7 @@ func createUser(ctx *gin.Context) {
 func editUser(ctx *gin.Context) {
 	user, err := getUserFromDbViaCookies(ctx)
 	if checkError(err) {
-		message(ctx, "error", err.Error(), 418)
+		errorMessage(ctx, err.Error())
 		return
 	}
 
@@ -85,13 +85,13 @@ func editUser(ctx *gin.Context) {
 	studyPlaceId, err := strconv.Atoi(ctx.DefaultQuery("studyPlaceId", strconv.Itoa(int(user["studyPlaceId"].(int32)))))
 
 	if err != nil {
-		message(ctx, "error", "not valid params", 418)
+		errorMessage(ctx, "not valid params")
 		return
 	}
 
 	_, err = usersCollection.UpdateByID(nil, user["_id"], bson.D{{"$set", bson.D{{"type", type_}, {"name", name}, {"studyPlaceId", studyPlaceId}}}})
 	if err != nil {
-		message(ctx, "error", err.Error(), 418)
+		errorMessage(ctx, err.Error())
 		return
 	}
 
@@ -101,13 +101,13 @@ func editUser(ctx *gin.Context) {
 func deleteUser(ctx *gin.Context) {
 	user, err := getUserFromDbViaCookies(ctx)
 	if err != nil {
-		message(ctx, "error", err.Error(), 418)
+		errorMessage(ctx, err.Error())
 		return
 	}
 
 	_, err = usersCollection.DeleteOne(nil, user)
 	if err != nil {
-		message(ctx, "error", err.Error(), 418)
+		errorMessage(ctx, err.Error())
 		return
 	}
 
@@ -119,7 +119,7 @@ func loginUser(ctx *gin.Context) {
 	password := ctx.Query("password")
 
 	if login == "" || password == "" {
-		message(ctx, "error", "provide all params", 418)
+		errorMessage(ctx, "provide all params")
 		return
 	}
 
@@ -131,7 +131,7 @@ func loginUser(ctx *gin.Context) {
 	err := userResult.Decode(&user)
 
 	if checkError(err) {
-		message(ctx, "error", "wrong user or password", 418)
+		errorMessage(ctx, "wrong user or password")
 		return
 	}
 
@@ -151,7 +151,7 @@ func logoutUser(ctx *gin.Context) {
 func getUserSchedule(ctx *gin.Context) {
 	user, err := getUserFromDbViaCookies(ctx)
 	if checkError(err) {
-		message(ctx, "error", err.Error(), 418)
+		errorMessage(ctx, err.Error())
 		return
 	}
 
