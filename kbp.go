@@ -3,6 +3,7 @@ package main
 import (
 	htmlParser "github.com/PuerkitoBio/goquery"
 	"strings"
+	"time"
 )
 
 var KBP = education{
@@ -10,7 +11,6 @@ var KBP = education{
 	scheduleUpdateCronPattern:        "0 0-59/30 * * * MON-FRI",
 	primaryScheduleUpdateCronPattern: "@every 5m",
 	primaryCronStartTimePattern:      "0 0 11 * * MON-FRI",
-	generalScheduleUpdate:            UpdateGeneralSchedule,
 	scheduleUpdate:                   UpdateScheduleKbp,
 	scheduleStatesUpdate:             UpdateStateKbp,
 	scheduleAvailableTypeUpdate:      UpdateAccessibleTypesKbp,
@@ -19,9 +19,11 @@ var KBP = education{
 	password:                         "kbp-corn-pass",
 }
 
-func UpdateScheduleKbp(url string, states []StateInfo) []SubjectFull {
+func UpdateScheduleKbp(url string, states []StateInfo, isGeneral bool) []SubjectFull {
 	document, err := htmlParser.NewDocument("http://kbp.by/rasp/timetable/view_beta_kbp/" + url)
 	checkError(err)
+
+	time_ := time.Now().AddDate(0, 0, -int(time.Now().Weekday()))
 
 	weeks := document.Find("tbody")
 	if weeks == nil {
@@ -33,8 +35,17 @@ func UpdateScheduleKbp(url string, states []StateInfo) []SubjectFull {
 	weeks.Each(func(tableIndex int, table *htmlParser.Selection) {
 		table.Find("tr").Each(func(rowIndex int, row *htmlParser.Selection) {
 			rowIndex -= 2
+			if rowIndex < 0 {
+				return
+			}
+
 			row.Find("td").Each(func(columnIndex int, column *htmlParser.Selection) {
 				columnIndex -= 1
+				if columnIndex < 0 || columnIndex > 5 {
+					return
+				}
+
+				time_ = time_.AddDate(0, 0, 1)
 				column.Find(".pair").Each(func(_ int, div *htmlParser.Selection) {
 					var type_ string
 
@@ -61,13 +72,18 @@ func UpdateScheduleKbp(url string, states []StateInfo) []SubjectFull {
 							weekIndex:        tableIndex,
 							type_:            type_,
 							educationPlaceId: 0,
+							date:             time_,
 						}
 
-						subjects = append(subjects, subject)
+						if (!isGeneral && states[tableIndex*6+columnIndex].State == Updated) || (isGeneral && type_ != "ADDED") {
+							subjects = append(subjects, subject)
+						}
 					})
 				})
 			})
+			time_ = time_.AddDate(0, 0, -6)
 		})
+		time_ = time_.AddDate(0, 0, 7)
 	})
 
 	return subjects
@@ -119,18 +135,4 @@ func UpdateAccessibleTypesKbp() []string {
 		}
 	})
 	return urls
-}
-
-func UpdateGeneralSchedule(url string, states []StateInfo) []SubjectFull {
-	subjectFull := UpdateScheduleKbp(url, states)
-
-	var subjects []SubjectFull
-
-	for _, subject := range subjectFull {
-		if subject.type_ != "ADDED" {
-			subjects = append(subjects, subject)
-		}
-	}
-
-	return subjects
 }

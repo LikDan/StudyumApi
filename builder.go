@@ -12,14 +12,13 @@ import (
 var Educations = [1]*education{&KBP}
 
 func UpdateDbSchedule(edu *education) {
-	log.Println("Schedule was updated")
 	lastStates := edu.states
 	send := !EqualStateInfo(edu.states, edu.scheduleStatesUpdate(edu.availableTypes[0]))
 	edu.availableTypes = edu.scheduleAvailableTypeUpdate()
 	edu.states = edu.scheduleStatesUpdate(edu.availableTypes[0])
 	var subjects []SubjectFull
 	for _, availableType := range edu.availableTypes {
-		subjects = append(subjects, edu.scheduleUpdate(availableType, edu.states)...)
+		subjects = append(subjects, edu.scheduleUpdate(availableType, edu.states, false)...)
 	}
 	var subjectsBSON []interface{}
 	for _, subject := range subjects {
@@ -35,7 +34,7 @@ func UpdateDbSchedule(edu *education) {
 	checkError(err)
 	_, err = subjectsCollection.InsertMany(nil, subjectsBSON)
 	checkError(err)
-	err = stateCollection.Drop(nil)
+	_, err = stateCollection.DeleteMany(nil, bson.D{{"educationPlaceId", edu.id}})
 	checkError(err)
 	_, err = stateCollection.InsertMany(nil, stateBSON)
 	checkError(err)
@@ -125,13 +124,21 @@ func Launch() {
 		}
 		edu.generalCron.Start()
 
-		generalSubjects := edu.generalScheduleUpdate(edu.availableTypes[0], edu.states)
+		var generalSubjects []SubjectFull
+
+		for _, availableType := range edu.availableTypes {
+			generalSubjects = append(generalSubjects, edu.scheduleUpdate(availableType, edu.states, true)...)
+		}
+
 		var generalSubjectsBson []interface{}
 		for _, subject := range generalSubjects {
 			generalSubjectsBson = append(generalSubjectsBson, subjectToBsonWithoutType(subject))
 		}
 
-		generalSubjectsCollection.DeleteMany(nil, bson.D{{"educationPlaceId", 0}})
+		_, err = generalSubjectsCollection.DeleteMany(nil, bson.D{{"educationPlaceId", edu.id}})
+		if checkError(err) {
+			continue
+		}
 		_, err = generalSubjectsCollection.InsertMany(nil, generalSubjectsBson)
 		if checkError(err) {
 			continue

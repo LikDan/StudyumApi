@@ -1,46 +1,23 @@
 package main
 
 import (
-	"strconv"
-	"strings"
+	"time"
 )
 
 type Lesson struct {
-	subjects    []Subject
-	columnIndex int32
-	rowIndex    int32
-	weekIndex   int32
+	Id          int       `bson:"_id" json:"-"`
+	Subjects    []Subject `bson:"subjects" json:"subjects"`
+	ColumnIndex int32     `bson:"columnIndex" json:"columnIndex"`
+	RowIndex    int32     `bson:"rowIndex" json:"rowIndex"`
+	WeekIndex   int32     `bson:"weekIndex" json:"weekIndex"`
+	Date        time.Time `bson:"date" json:"-"`
+	IsStay      bool      `bson:"isStay" json:"isStay"`
 }
 
 type Subject struct {
-	subject string
-	teacher string
-	group   string
-	room    string
-	type_   string
-}
-
-func (l Lesson) toJson() string {
-	isStay := "true"
-	var subjects []string
-	for _, subject := range l.subjects {
-		if subject.type_ != "STAY" && isStay == "true" {
-			isStay = "false"
-		}
-		subjects = append(subjects, subject.toJson())
-	}
-
-	return "{\"weekIndex\": " + strconv.Itoa(int(l.weekIndex)) +
-		", \"columnIndex\": " + strconv.Itoa(int(l.columnIndex)) +
-		", \"rowIndex\": " + strconv.Itoa(int(l.rowIndex)) +
-		", \"isStay\": " + isStay +
-		", \"subjects\": [" + strings.Join(subjects, ", ") + "]}"
-}
-
-func (s Subject) toJson() string {
-	return "{\"subject\": \"" + s.subject +
-		"\", \"teacher\": \"" + s.teacher +
-		"\", \"group\": \"" + s.group +
-		"\", \"room\": \"" + s.room +
-		"\", \"type\": \"" + s.type_ + "\"}"
+	Subject string `bson:"subject" json:"subject"`
+	Teacher string `bson:"teacher" json:"teacher"`
+	Group   string `bson:"group" json:"group"`
+	Room    string `bson:"room" json:"room"`
+	Type_   string `bson:"type" json:"type"`
 }
