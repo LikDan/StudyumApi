@@ -16,7 +16,7 @@ type StateInfo struct {
 	State        State `json:"state"`
 	WeekIndex    int   `json:"weekIndex"`
 	DayIndex     int   `json:"dayIndex"`
-	StudyPlaceId int   `json:"studyPlaceId"`
+	StudyPlaceId int   `json:"-"`
 }
 
 func stateToBson(info StateInfo) bson.D {

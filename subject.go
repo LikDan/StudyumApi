@@ -1,6 +1,9 @@
 package main
 
-import "go.mongodb.org/mongo-driver/bson"
+import (
+	"go.mongodb.org/mongo-driver/bson"
+	"time"
+)
 
 type SubjectFull struct {
 	subject          string
@@ -12,10 +15,12 @@ type SubjectFull struct {
 	weekIndex        int
 	type_            string
 	educationPlaceId int
+	date             time.Time
 }
 
 func subjectToBson(subject SubjectFull) bson.D {
 	return bson.D{
+		{"date", subject.date},
 		{"columnIndex", subject.columnIndex},
 		{"rowIndex", subject.rowIndex},
 		{"weekIndex", subject.weekIndex},

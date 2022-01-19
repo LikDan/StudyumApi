@@ -8,6 +8,13 @@ import (
 	"strings"
 )
 
+type StudyPlace struct {
+	WeeksQuantity    int    `bson:"weeksCount"`
+	DaysQuantity     int    `bson:"daysCount"`
+	SubjectsQuantity int    `bson:"subjectsCount"`
+	Name             string `bson:"name"`
+}
+
 func getStudyPlaces(ctx *gin.Context) {
 	var res []string
 

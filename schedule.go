@@ -40,21 +40,12 @@ func getSchedule(ctx *gin.Context) {
 		return
 	}
 
-	var educationPlace bson.M
+	var studyPlace StudyPlace
 
-	educationPlaceResult := studyPlacesCollection.FindOne(nil, bson.M{"_id": educationPlaceId})
-	err = educationPlaceResult.Decode(&educationPlace)
-	checkError(err)
-
-	if educationPlace == nil {
-		errorMessage(ctx, "no such study place with id")
-		return
+	err = studyPlacesCollection.FindOne(nil, bson.M{"_id": educationPlaceId}).Decode(&studyPlace)
+	if err != nil {
+		println(err.Error())
 	}
-
-	educationPlaceName := educationPlace["name"].(string)
-	weeksAmount := educationPlace["weeksCount"].(int32)
-	daysAmount := educationPlace["daysCount"].(int32)
-	subjectsAmount := educationPlace["subjectsCount"].(int32)
 
 	stateCursor, err := stateCollection.Find(
 		nil,
@@ -81,120 +72,65 @@ func getSchedule(ctx *gin.Context) {
 	}
 
 	lessonsCursor, err := subjectsCollection.Aggregate(nil, mongo.Pipeline{
-		bson.D{{"$match", bson.D{{type_, name}, {"educationPlaceId", educationPlaceId}}}},
-		bson.D{{"$group", bson.D{
-			{"_id", bson.D{{"weekIndex", "$weekIndex"}, {"columnIndex", "$columnIndex"}, {"rowIndex", "$rowIndex"}}},
-			{"subjects", bson.D{{"$addToSet", bson.D{{"subject", "$subject"}, {"group", "$group"}, {"teacher", "$teacher"}, {"room", "$room"}, {"type", "$type"}}}}},
+		bson.D{{"$match", bson.M{type_: name, "educationPlaceId": educationPlaceId}}},
+		bson.D{{"$group", bson.M{
+			"_id":         bson.M{"$sum": bson.A{bson.M{"$multiply": bson.A{"$weekIndex", studyPlace.DaysQuantity, studyPlace.SubjectsQuantity}}, bson.M{"$multiply": bson.A{"$columnIndex", studyPlace.SubjectsQuantity}}, "$rowIndex"}},
+			"weekIndex":   bson.M{"$first": "$weekIndex"},
+			"columnIndex": bson.M{"$first": "$columnIndex"},
+			"rowIndex":    bson.M{"$first": "$rowIndex"},
+			"date":        bson.M{"$first": "$date"},
+			"subjects":    bson.M{"$addToSet": bson.M{"subject": "$subject", "group": "$group", "teacher": "$teacher", "room": "$room", "type": "$type"}},
 		}}},
-		bson.D{{"$sort", bson.D{{"_id.weekIndex", 1}, {"_id.columnIndex", 1}, {"_id.rowIndex", 1}}}},
+		bson.D{{"$sort", bson.M{"_id": 1}}},
 	})
-	checkError(err)
 
-	if !lessonsCursor.TryNext(nil) {
-		errorMessage(ctx, "not subjects provided")
-		return
-	}
-
-	currentRowIndex := int32(-1)
-	currentColumnIndex := int32(0)
-	currentWeekIndex := int32(0)
-
-	add := func() {
-		currentRowIndex++
-		if currentRowIndex >= subjectsAmount {
-			currentRowIndex = 0
-			currentColumnIndex++
-		}
-		if currentColumnIndex >= daysAmount {
-			currentColumnIndex = 0
-			currentWeekIndex++
-		}
+	if err != nil {
+		println(err.Error())
 	}
 
 	var lessons []*Lesson
 
-	for true {
-		var subjects []Subject
+	err = lessonsCursor.All(nil, &lessons)
+	if err != nil {
+		println(err.Error())
+	}
 
-		lessonRaw := lessonsCursor.Current
-
-		add()
-
-		weekIndex := lessonRaw.Lookup("_id", "weekIndex").Int32()
-		columnIndex := lessonRaw.Lookup("_id", "columnIndex").Int32()
-		rowIndex := lessonRaw.Lookup("_id", "rowIndex").Int32()
-
-		for currentRowIndex != rowIndex || currentColumnIndex != columnIndex || currentWeekIndex != weekIndex {
-			add()
+	for i := 0; i < studyPlace.SubjectsQuantity*studyPlace.DaysQuantity*studyPlace.WeeksQuantity; i++ {
+		if len(lessons) <= i {
 			lessons = append(lessons, nil)
-		}
-
-		subjectsRaw, _ := lessonRaw.Lookup("subjects").Array().Values()
-		for _, subjectRaw := range subjectsRaw {
-			subjectDoc := subjectRaw.Document()
-
-			subjectName := subjectDoc.Lookup("subject").StringValue()
-			teacher := subjectDoc.Lookup("teacher").StringValue()
-			group := subjectDoc.Lookup("group").StringValue()
-			room := subjectDoc.Lookup("room").StringValue()
-			type_ := subjectDoc.Lookup("type").StringValue()
-
-			subject := Subject{
-				subject: subjectName,
-				teacher: teacher,
-				group:   group,
-				room:    room,
-				type_:   type_,
-			}
-
-			subjects = append(subjects, subject)
-		}
-
-		lesson := &Lesson{
-			subjects:    subjects,
-			columnIndex: columnIndex,
-			rowIndex:    rowIndex,
-			weekIndex:   weekIndex,
-		}
-
-		lessons = append(lessons, lesson)
-
-		if !lessonsCursor.TryNext(nil) {
-			break
-		}
-	}
-
-	for currentRowIndex != subjectsAmount-1 || currentColumnIndex != daysAmount-1 || currentWeekIndex != weeksAmount-1 {
-		add()
-		lessons = append(lessons, nil)
-	}
-
-	var lessonsJson []string
-	var statesJson []string
-
-	for _, lesson := range lessons {
-		if lesson == nil {
-			lessonsJson = append(lessonsJson, "null")
 			continue
 		}
-		lessonsJson = append(lessonsJson, lesson.toJson())
+
+		if lessons[i].Id == i {
+			lessons[i].IsStay = true
+
+			for _, subject := range lessons[i].Subjects {
+				if subject.Type_ != "STAY" {
+					lessons[i].IsStay = false
+					break
+				}
+			}
+
+			continue
+		}
+
+		lessons = append(lessons[:i+1], lessons[i:]...)
+		lessons[i] = nil
 	}
 
-	for _, state := range states {
-		statesJson = append(statesJson, state.toJsonWithoutId())
-	}
-
-	_, err = fmt.Fprintln(ctx.Writer, "{\"status\": ["+strings.Join(statesJson, ", ")+
-		"], \"subjects\": ["+strings.Join(lessonsJson, ", ")+
-		"], \"info\": {"+
-		"\"weeksCount\": "+strconv.Itoa(int(weeksAmount))+
-		", \"daysCount\": "+strconv.Itoa(int(daysAmount))+
-		", \"subjectsCount\": "+strconv.Itoa(int(subjectsAmount))+
-		", \"type\": \""+type_+
-		"\", \"name\": \""+name+
-		"\", \"studyPlaceId\": "+studyPlaceIdStr+
-		", \"studyPlaceName\": \""+educationPlaceName+"\"}}")
-	checkError(err)
+	ctx.JSON(200, gin.H{
+		"status":   states,
+		"subjects": lessons,
+		"info": gin.H{
+			"weeksCount":     studyPlace.WeeksQuantity,
+			"daysCount":      studyPlace.DaysQuantity,
+			"subjectsCount":  studyPlace.SubjectsQuantity,
+			"type_":          type_,
+			"name":           name,
+			"studyPlaceId":   educationPlaceId,
+			"studyPlaceName": studyPlace.Name,
+		},
+	})
 }
 
 func getScheduleTypes(ctx *gin.Context) {
