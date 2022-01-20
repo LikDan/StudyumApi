@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func getSchedule(ctx *gin.Context) {
@@ -43,8 +44,8 @@ func getSchedule(ctx *gin.Context) {
 	var studyPlace StudyPlace
 
 	err = studyPlacesCollection.FindOne(nil, bson.M{"_id": educationPlaceId}).Decode(&studyPlace)
-	if err != nil {
-		println(err.Error())
+	if checkError(err) {
+		return
 	}
 
 	stateCursor, err := stateCollection.Find(
@@ -55,20 +56,9 @@ func getSchedule(ctx *gin.Context) {
 	checkError(err)
 
 	var states []StateInfo
-
-	for stateCursor.TryNext(nil) {
-		weekIndex := stateCursor.Current.Lookup("weekIndex").Int32()
-		dayIndex := stateCursor.Current.Lookup("dayIndex").Int32()
-		state := State(stateCursor.Current.Lookup("status").StringValue())
-
-		stateInfo := StateInfo{
-			State:        state,
-			WeekIndex:    int(weekIndex),
-			DayIndex:     int(dayIndex),
-			StudyPlaceId: educationPlaceId,
-		}
-
-		states = append(states, stateInfo)
+	err = stateCursor.All(nil, &states)
+	if checkError(err) {
+		return
 	}
 
 	lessonsCursor, err := subjectsCollection.Aggregate(nil, mongo.Pipeline{
@@ -84,16 +74,52 @@ func getSchedule(ctx *gin.Context) {
 		bson.D{{"$sort", bson.M{"_id": 1}}},
 	})
 
-	if err != nil {
-		println(err.Error())
+	if checkError(err) {
+		return
 	}
 
 	var lessons []*Lesson
 
 	err = lessonsCursor.All(nil, &lessons)
-	if err != nil {
-		println(err.Error())
+	if checkError(err) {
+		return
 	}
+
+	lastLesson := lessons[len(lessons)-1]
+
+	_, currentWeekIndex := time.Now().ISOWeek()
+	currentWeekIndex %= studyPlace.WeeksQuantity
+
+	lessonsCursor, err = generalSubjectsCollection.Aggregate(nil, mongo.Pipeline{
+		bson.D{{"$match", bson.M{type_: name, "educationPlaceId": educationPlaceId, "$or": bson.A{bson.M{"weekIndex": bson.M{"$ne": currentWeekIndex}}, bson.M{"$and": bson.A{bson.M{"weekIndex": bson.M{"$eq": lastLesson.WeekIndex}}, bson.M{"columnIndex": bson.M{"$gt": lastLesson.ColumnIndex}}}}}}}},
+		bson.D{{"$group", bson.M{
+			"_id":         bson.M{"$sum": bson.A{bson.M{"$multiply": bson.A{bson.M{"$sum": bson.A{"$weekIndex", currentWeekIndex}}, studyPlace.DaysQuantity, studyPlace.SubjectsQuantity}}, bson.M{"$multiply": bson.A{"$columnIndex", studyPlace.SubjectsQuantity}}, "$rowIndex"}},
+			"weekIndex":   bson.M{"$first": "$weekIndex"},
+			"columnIndex": bson.M{"$first": "$columnIndex"},
+			"rowIndex":    bson.M{"$first": "$rowIndex"},
+			"date":        bson.M{"$first": "$date"},
+			"subjects":    bson.M{"$addToSet": bson.M{"subject": "$subject", "group": "$group", "teacher": "$teacher", "room": "$room", "type": "$type"}},
+		}}},
+		bson.D{{"$sort", bson.M{"_id": 1}}},
+	})
+	if checkError(err) {
+		return
+	}
+
+	var generalLessons []*Lesson
+	err = lessonsCursor.All(nil, &generalLessons)
+	if checkError(err) {
+		return
+	}
+
+	for i, lesson := range generalLessons {
+		if lesson.WeekIndex > int32(currentWeekIndex) {
+			generalLessons = append(generalLessons[i:], generalLessons[:i-1]...)
+			break
+		}
+	}
+
+	lessons = append(lessons, generalLessons...)
 
 	for i := 0; i < studyPlace.SubjectsQuantity*studyPlace.DaysQuantity*studyPlace.WeeksQuantity; i++ {
 		if len(lessons) <= i {
@@ -105,9 +131,13 @@ func getSchedule(ctx *gin.Context) {
 			lessons[i].IsStay = true
 
 			for _, subject := range lessons[i].Subjects {
+				if subject.Type_ == "" {
+					subject.Type_ = "STAY"
+					continue
+				}
+
 				if subject.Type_ != "STAY" {
 					lessons[i].IsStay = false
-					break
 				}
 			}
 
@@ -125,7 +155,7 @@ func getSchedule(ctx *gin.Context) {
 			"weeksCount":     studyPlace.WeeksQuantity,
 			"daysCount":      studyPlace.DaysQuantity,
 			"subjectsCount":  studyPlace.SubjectsQuantity,
-			"type_":          type_,
+			"type":           type_,
 			"name":           name,
 			"studyPlaceId":   educationPlaceId,
 			"studyPlaceName": studyPlace.Name,
