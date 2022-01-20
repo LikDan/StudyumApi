@@ -13,10 +13,10 @@ const (
 )
 
 type StateInfo struct {
-	State        State `json:"state"`
-	WeekIndex    int   `json:"weekIndex"`
-	DayIndex     int   `json:"dayIndex"`
-	StudyPlaceId int   `json:"-"`
+	State        State `bson:"status" json:"status"`
+	WeekIndex    int   `bson:"weekIndex" json:"weekIndex"`
+	DayIndex     int   `bson:"dayIndex" json:"dayIndex"`
+	StudyPlaceId int   `bson:"educationPlaceId" json:"-"`
 }
 
 func stateToBson(info StateInfo) bson.D {
