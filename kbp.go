@@ -25,7 +25,7 @@ func UpdateScheduleKbp(url string, states []StateInfo, isGeneral bool) []Subject
 
 	time_ := time.Now().AddDate(0, 0, -int(time.Now().Weekday()))
 
-	weeks := document.Find("tbody")
+	weeks := document.Find(".find_block").Children().Last().Children()
 	if weeks == nil {
 		return nil
 	}
@@ -33,6 +33,14 @@ func UpdateScheduleKbp(url string, states []StateInfo, isGeneral bool) []Subject
 	var subjects []SubjectFull
 
 	weeks.Each(func(tableIndex int, table *htmlParser.Selection) {
+		var weekIndex int
+
+		if table.Find(".today").First().Text() == "первая неделя" {
+			weekIndex = 1
+		} else {
+			weekIndex = 0
+		}
+
 		table.Find("tr").Each(func(rowIndex int, row *htmlParser.Selection) {
 			rowIndex -= 2
 			if rowIndex < 0 {
@@ -69,7 +77,7 @@ func UpdateScheduleKbp(url string, states []StateInfo, isGeneral bool) []Subject
 							room:             div.Find(".place").Text(),
 							columnIndex:      columnIndex,
 							rowIndex:         rowIndex,
-							weekIndex:        tableIndex,
+							weekIndex:        weekIndex,
 							type_:            type_,
 							educationPlaceId: 0,
 							date:             time_,
