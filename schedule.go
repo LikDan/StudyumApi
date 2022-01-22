@@ -93,7 +93,7 @@ func getSchedule(ctx *gin.Context) {
 	lessonsCursor, err = generalSubjectsCollection.Aggregate(nil, mongo.Pipeline{
 		bson.D{{"$match", bson.M{type_: name, "educationPlaceId": educationPlaceId, "$or": bson.A{bson.M{"weekIndex": bson.M{"$ne": currentWeekIndex}}, bson.M{"$and": bson.A{bson.M{"weekIndex": bson.M{"$eq": lastLesson.WeekIndex}}, bson.M{"columnIndex": bson.M{"$gt": lastLesson.ColumnIndex}}}}}}}},
 		bson.D{{"$group", bson.M{
-			"_id":         bson.M{"$sum": bson.A{bson.M{"$multiply": bson.A{bson.M{"$sum": bson.A{"$weekIndex", currentWeekIndex}}, studyPlace.DaysQuantity, studyPlace.SubjectsQuantity}}, bson.M{"$multiply": bson.A{"$columnIndex", studyPlace.SubjectsQuantity}}, "$rowIndex"}},
+			"_id":         bson.M{"$sum": bson.A{bson.M{"$multiply": bson.A{"$weekIndex", studyPlace.DaysQuantity, studyPlace.SubjectsQuantity}}, bson.M{"$multiply": bson.A{"$columnIndex", studyPlace.SubjectsQuantity}}, "$rowIndex"}},
 			"weekIndex":   bson.M{"$first": "$weekIndex"},
 			"columnIndex": bson.M{"$first": "$columnIndex"},
 			"rowIndex":    bson.M{"$first": "$rowIndex"},
@@ -112,45 +112,43 @@ func getSchedule(ctx *gin.Context) {
 		return
 	}
 
-	for i, lesson := range generalLessons {
-		if lesson.WeekIndex > int32(currentWeekIndex) {
-			generalLessons = append(generalLessons[i:], generalLessons[:i-1]...)
-			break
-		}
-	}
-
-	lessons = append(lessons, generalLessons...)
-
 	for i := 0; i < studyPlace.SubjectsQuantity*studyPlace.DaysQuantity*studyPlace.WeeksQuantity; i++ {
-		if len(lessons) <= i {
-			lessons = append(lessons, nil)
+		if len(generalLessons) <= i {
+			generalLessons = append(generalLessons, nil)
 			continue
 		}
 
-		if lessons[i].Id == i {
-			lessons[i].IsStay = true
+		if generalLessons[i].Id == i {
+			generalLessons[i].IsStay = true
 
-			for _, subject := range lessons[i].Subjects {
-				if subject.Type_ == "" {
-					subject.Type_ = "STAY"
-					continue
-				}
-
-				if subject.Type_ != "STAY" {
-					lessons[i].IsStay = false
-				}
+			for _, subject := range generalLessons[i].Subjects {
+				subject.Type_ = "STAY"
 			}
 
 			continue
 		}
-
-		lessons = append(lessons[:i+1], lessons[i:]...)
-		lessons[i] = nil
+		generalLessons = append(generalLessons[:i+1], generalLessons[i:]...)
+		generalLessons[i] = nil
 	}
+
+	for _, lesson := range lessons {
+		generalLessons[lesson.Id] = lesson
+
+		lesson.IsStay = true
+		for _, subject := range lesson.Subjects {
+			if subject.Type_ != "STAY" {
+				lesson.IsStay = false
+				break
+			}
+		}
+	}
+
+	currentWeekStartIndex := currentWeekIndex * studyPlace.DaysQuantity * studyPlace.SubjectsQuantity
+	generalLessons = append(generalLessons[currentWeekStartIndex:], generalLessons[:currentWeekStartIndex]...)
 
 	ctx.JSON(200, gin.H{
 		"status":   states,
-		"subjects": lessons,
+		"subjects": generalLessons,
 		"info": gin.H{
 			"weeksCount":     studyPlace.WeeksQuantity,
 			"daysCount":      studyPlace.DaysQuantity,

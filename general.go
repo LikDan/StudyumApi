@@ -9,6 +9,7 @@ import (
 )
 
 type StudyPlace struct {
+	Id               int32  `bson:"_id"`
 	WeeksQuantity    int    `bson:"weeksCount"`
 	DaysQuantity     int    `bson:"daysCount"`
 	SubjectsQuantity int    `bson:"subjectsCount"`
