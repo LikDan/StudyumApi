@@ -8,6 +8,9 @@ jobs:
   setup-build-publish-deploy:
     name: Setup, Build, Publish, and Deploy
     runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: study-helper
+      PROJECT_ID: studyhelper-340116
     steps:
     - name: Checkout
       uses: actions/checkout@master
@@ -16,7 +19,7 @@ jobs:
     - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
       with:
         service_account_email: ${{ secrets.GCP_EMAIL }}
-        service_account_key: ${{ secrets.GCP_CREDENTIALS }}
+        project_id: ${{ env.PROJECT_ID }}
         export_default_credentials: true
     
     # Configure Docker with Credentials
