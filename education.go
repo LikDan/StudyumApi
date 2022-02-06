@@ -3,28 +3,30 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron"
+	"time"
 )
 
 type education struct {
 	id                               int
-	scheduleUpdateCronPattern        string
-	primaryScheduleUpdateCronPattern string
-	primaryCronStartTimePattern      string
+	ScheduleUpdateCronPattern        string
+	PrimaryScheduleUpdateCronPattern string
+	PrimaryCronStartTimePattern      string
 	scheduleUpdate                   func(string, []StateInfo, bool) []SubjectFull
 	scheduleStatesUpdate             func(string) []StateInfo
 	scheduleAvailableTypeUpdate      func() []string
-	availableTypes                   []string
-	states                           []StateInfo
+	AvailableTypes                   []string
+	States                           []StateInfo
 	password                         string
 
 	primaryCron       *cron.Cron
 	generalCron       *cron.Cron
-	launchPrimaryCron bool
+	LaunchPrimaryCron bool
+	LastUpdateTime    time.Time
 }
 
 func (e education) statesJSON() []gin.H {
 	var statesJSON []gin.H
-	for _, state := range e.states {
+	for _, state := range e.States {
 		stateJSON := gin.H{
 			"weekIndex": state.WeekIndex,
 			"dayIndex":  state.DayIndex,
