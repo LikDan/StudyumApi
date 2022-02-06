@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -37,8 +38,8 @@ func getInfo(ctx *gin.Context) {
 			"id":                    studyPlace.id,
 			"states":                studyPlace.states,
 			"availableTypes":        studyPlace.availableTypes,
-			"isPrimaryCronLaunched": studyPlace.primaryCron.IsRunning(),
-			"isGeneralCronLaunched": studyPlace.generalCron.IsRunning(),
+			"isPrimaryCronLaunched": reflect.ValueOf(studyPlace.primaryCron).Elem().FieldByName("running").Bool(),
+			"isGeneralCronLaunched": reflect.ValueOf(studyPlace.generalCron).Elem().FieldByName("running").Bool(),
 		}
 
 		info = append(info, i)
