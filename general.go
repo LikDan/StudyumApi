@@ -42,5 +42,8 @@ func getInfo(ctx *gin.Context) {
 		info = append(info, i)
 	}
 
-	ctx.JSON(200, info)
+	ctx.JSON(200, gin.H{
+		"info":    info,
+		"version": 0.1,
+	})
 }
