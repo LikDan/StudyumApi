@@ -5,6 +5,22 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/**",
+        "run": {
+          "serviceId": "study-helper",
+          "region": "europe-central2"
+        }
+      },
+      {
+        "source": "/api",
+        "run": {
+          "serviceId": "study-helper",
+          "region": "europe-central2"
+        }
+      }
     ]
   }
 }
