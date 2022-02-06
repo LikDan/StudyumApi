@@ -68,10 +68,6 @@ func (s byTime) Less(i, j int) bool {
 	return s[i].Next.Before(s[j].Next)
 }
 
-func (c *Cron) IsRunning() bool {
-	return c.running
-}
-
 // New returns a new Cron job runner, in the Local time zone.
 func New() *Cron {
 	return NewWithLocation(time.Now().Location())

@@ -7,18 +7,19 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"strconv"
+	"time"
 )
 
 var Educations = [1]*education{&KBP}
 
 func UpdateDbSchedule(edu *education) {
-	lastStates := edu.states
-	send := !EqualStateInfo(edu.states, edu.scheduleStatesUpdate(edu.availableTypes[0]))
-	edu.availableTypes = edu.scheduleAvailableTypeUpdate()
-	edu.states = edu.scheduleStatesUpdate(edu.availableTypes[0])
+	lastStates := edu.States
+	send := !EqualStateInfo(edu.States, edu.scheduleStatesUpdate(edu.AvailableTypes[0]))
+	edu.AvailableTypes = edu.scheduleAvailableTypeUpdate()
+	edu.States = edu.scheduleStatesUpdate(edu.AvailableTypes[0])
 	var subjects []SubjectFull
-	for _, availableType := range edu.availableTypes {
-		subjects = append(subjects, edu.scheduleUpdate(availableType, edu.states, false)...)
+	for _, availableType := range edu.AvailableTypes {
+		subjects = append(subjects, edu.scheduleUpdate(availableType, edu.States, false)...)
 	}
 	var subjectsBSON []interface{}
 	for _, subject := range subjects {
@@ -26,7 +27,7 @@ func UpdateDbSchedule(edu *education) {
 	}
 
 	var stateBSON []interface{}
-	for _, state := range edu.states {
+	for _, state := range edu.States {
 		stateBSON = append(stateBSON, stateToBson(state))
 	}
 
@@ -39,6 +40,8 @@ func UpdateDbSchedule(edu *education) {
 	_, err = stateCollection.InsertMany(nil, stateBSON)
 	checkError(err)
 
+	edu.LastUpdateTime = time.Now()
+
 	if send {
 		lastStatesString := ""
 		currentStatesString := ""
@@ -47,7 +50,7 @@ func UpdateDbSchedule(edu *education) {
 			lastStatesString += state.toJsonWithoutId()
 		}
 
-		for _, state := range edu.states {
+		for _, state := range edu.States {
 			currentStatesString += state.toJsonWithoutId()
 		}
 
@@ -59,8 +62,8 @@ func UpdateDbSchedule(edu *education) {
 
 func Launch() {
 	for _, edu := range Educations {
-		edu.availableTypes = edu.scheduleAvailableTypeUpdate()
-		if len(edu.availableTypes) <= 0 {
+		edu.AvailableTypes = edu.scheduleAvailableTypeUpdate()
+		if len(edu.AvailableTypes) <= 0 {
 			fmt.Printf("edu place with id: %s wasn't launched\n", strconv.Itoa(edu.id))
 			continue
 		}
@@ -90,13 +93,13 @@ func Launch() {
 			states = append(states, state)
 		}
 
-		edu.states = states
+		edu.States = states
 
 		edu.generalCron = cron.New()
 		edu.primaryCron = cron.New()
 
-		err = edu.primaryCron.AddFunc(edu.primaryScheduleUpdateCronPattern, func() {
-			if !EqualStateInfo(edu.states, edu.scheduleStatesUpdate(edu.availableTypes[0])) {
+		err = edu.primaryCron.AddFunc(edu.PrimaryScheduleUpdateCronPattern, func() {
+			if !EqualStateInfo(edu.States, edu.scheduleStatesUpdate(edu.AvailableTypes[0])) {
 				UpdateDbSchedule(edu)
 				edu.primaryCron.Stop()
 			} else {
@@ -106,14 +109,14 @@ func Launch() {
 		if checkError(err) {
 			continue
 		}
-		err = edu.generalCron.AddFunc(edu.scheduleUpdateCronPattern, func() {
+		err = edu.generalCron.AddFunc(edu.ScheduleUpdateCronPattern, func() {
 			UpdateDbSchedule(edu)
 		})
 		if checkError(err) {
 			continue
 		}
-		err = edu.generalCron.AddFunc(edu.primaryCronStartTimePattern, func() {
-			if !edu.launchPrimaryCron {
+		err = edu.generalCron.AddFunc(edu.PrimaryCronStartTimePattern, func() {
+			if !edu.LaunchPrimaryCron {
 				return
 			}
 
@@ -126,8 +129,8 @@ func Launch() {
 
 		var generalSubjects []SubjectFull
 
-		for _, availableType := range edu.availableTypes {
-			generalSubjects = append(generalSubjects, edu.scheduleUpdate(availableType, edu.states, true)...)
+		for _, availableType := range edu.AvailableTypes {
+			generalSubjects = append(generalSubjects, edu.scheduleUpdate(availableType, edu.States, true)...)
 		}
 
 		var generalSubjectsBson []interface{}

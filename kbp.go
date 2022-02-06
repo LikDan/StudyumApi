@@ -8,14 +8,14 @@ import (
 
 var KBP = education{
 	id:                               0,
-	scheduleUpdateCronPattern:        "@every 30m",
-	primaryScheduleUpdateCronPattern: "@every 5m",
-	primaryCronStartTimePattern:      "0 0 11 * * MON-FRI",
+	ScheduleUpdateCronPattern:        "@every 30m",
+	PrimaryScheduleUpdateCronPattern: "@every 5m",
+	PrimaryCronStartTimePattern:      "0 0 11 * * MON-FRI",
 	scheduleUpdate:                   UpdateScheduleKbp,
 	scheduleStatesUpdate:             UpdateStateKbp,
 	scheduleAvailableTypeUpdate:      UpdateAccessibleTypesKbp,
-	availableTypes:                   []string{},
-	states:                           []StateInfo{},
+	AvailableTypes:                   []string{},
+	States:                           []StateInfo{},
 	password:                         "kbp-corn-pass",
 }
 

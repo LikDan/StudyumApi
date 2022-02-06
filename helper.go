@@ -2,7 +2,9 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/robfig/cron"
 	"log"
+	"reflect"
 )
 
 func checkError(err error) bool {
@@ -33,4 +35,8 @@ func errorMessage(ctx *gin.Context, value string) {
 	ctx.Header("error", value)
 	ctx.Header("cookie", "")
 	ctx.JSON(204, gin.H{})
+}
+
+func isCronRunning(c *cron.Cron) bool {
+	return reflect.ValueOf(c).Elem().FieldByName("running").Bool()
 }

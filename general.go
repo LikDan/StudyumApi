@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
-	"reflect"
 	"strconv"
 	"strings"
 )
@@ -35,11 +34,9 @@ func getInfo(ctx *gin.Context) {
 
 	for _, studyPlace := range Educations {
 		i := gin.H{
-			"id":                    studyPlace.id,
-			"states":                studyPlace.states,
-			"availableTypes":        studyPlace.availableTypes,
-			"isPrimaryCronLaunched": reflect.ValueOf(studyPlace.primaryCron).Elem().FieldByName("running").Bool(),
-			"isGeneralCronLaunched": reflect.ValueOf(studyPlace.generalCron).Elem().FieldByName("running").Bool(),
+			"info":                  studyPlace,
+			"isPrimaryCronLaunched": isCronRunning(studyPlace.primaryCron),
+			"isGeneralCronLaunched": isCronRunning(studyPlace.generalCron),
 		}
 
 		info = append(info, i)

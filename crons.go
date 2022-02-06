@@ -35,7 +35,7 @@ func stopPrimaryCron(ctx *gin.Context) {
 		return
 	}
 	edu.primaryCron.Stop()
-	edu.launchPrimaryCron = false
+	edu.LaunchPrimaryCron = false
 }
 
 func launchPrimaryCron(ctx *gin.Context) {
@@ -45,5 +45,5 @@ func launchPrimaryCron(ctx *gin.Context) {
 		return
 	}
 	edu.primaryCron.Start()
-	edu.launchPrimaryCron = true
+	edu.LaunchPrimaryCron = true
 }
