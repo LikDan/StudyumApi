@@ -24,16 +24,14 @@ jobs:
       - name: Build Docker Image
         run: docker build -t $IMAGE_NAME:latest .
 
-        # Build the Docker image
       - name: Build & Publish
         run: |
           gcloud config set project ${{ env.PROJECT_ID }}
           gcloud builds submit --tag gcr.io/${{ env.PROJECT_ID }}/study-helper
           gcloud config set run/region europe-central2
 
-        # Deploy the Docker image to the GKE cluster
       - name: Deploy
         run: |
-          gcloud run deploy study-helper --image gcr.io/studyhelper-340116/study-helper \
+          gcloud run deploy study-helper --image gcr.io/${{ env.PROJECT_ID }}/${{ env.IMAGE_NAME }} \
           --platform managed \
           --allow-unauthenticated
