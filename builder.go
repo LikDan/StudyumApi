@@ -19,7 +19,7 @@ func UpdateDbSchedule(edu *education) {
 	edu.States = edu.scheduleStatesUpdate(edu.AvailableTypes[0])
 	var subjects []SubjectFull
 	for _, availableType := range edu.AvailableTypes {
-		subjects = append(subjects, edu.scheduleUpdate(availableType, edu.States, false)...)
+		subjects = append(subjects, edu.scheduleUpdate(availableType, edu.States, lastStates, false)...)
 	}
 	var subjectsBSON []interface{}
 	for _, subject := range subjects {
@@ -31,11 +31,9 @@ func UpdateDbSchedule(edu *education) {
 		stateBSON = append(stateBSON, stateToBson(state))
 	}
 
-	_, err := subjectsCollection.DeleteMany(nil, bson.D{{"educationPlaceId", edu.id}})
+	_, err := subjectsCollection.InsertMany(nil, subjectsBSON)
 	checkError(err)
-	_, err = subjectsCollection.InsertMany(nil, subjectsBSON)
-	checkError(err)
-	_, err = stateCollection.DeleteMany(nil, bson.D{{"educationPlaceId", edu.id}})
+	_, err = stateCollection.DeleteMany(nil, bson.M{"educationPlaceId": edu.id})
 	checkError(err)
 	_, err = stateCollection.InsertMany(nil, stateBSON)
 	checkError(err)
@@ -98,7 +96,7 @@ func Launch() {
 		edu.generalCron = cron.New()
 		edu.primaryCron = cron.New()
 
-		err = edu.primaryCron.AddFunc(edu.PrimaryScheduleUpdateCronPattern, func() {
+		edu.primaryCron.AddFunc(edu.PrimaryScheduleUpdateCronPattern, func() {
 			if !EqualStateInfo(edu.States, edu.scheduleStatesUpdate(edu.AvailableTypes[0])) {
 				UpdateDbSchedule(edu)
 				edu.primaryCron.Stop()
@@ -106,31 +104,22 @@ func Launch() {
 				log.Println("No updates")
 			}
 		})
-		if checkError(err) {
-			continue
-		}
-		err = edu.generalCron.AddFunc(edu.ScheduleUpdateCronPattern, func() {
+		edu.generalCron.AddFunc(edu.ScheduleUpdateCronPattern, func() {
 			UpdateDbSchedule(edu)
 		})
-		if checkError(err) {
-			continue
-		}
-		err = edu.generalCron.AddFunc(edu.PrimaryCronStartTimePattern, func() {
+		edu.generalCron.AddFunc(edu.PrimaryCronStartTimePattern, func() {
 			if !edu.LaunchPrimaryCron {
 				return
 			}
 
 			edu.primaryCron.Start()
 		})
-		if checkError(err) {
-			continue
-		}
 		edu.generalCron.Start()
 
 		var generalSubjects []SubjectFull
 
 		for _, availableType := range edu.AvailableTypes {
-			generalSubjects = append(generalSubjects, edu.scheduleUpdate(availableType, edu.States, true)...)
+			generalSubjects = append(generalSubjects, edu.scheduleUpdate(availableType, edu.States, edu.States, true)...)
 		}
 
 		var generalSubjectsBson []interface{}
