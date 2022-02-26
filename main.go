@@ -21,6 +21,8 @@ func indexHandler(ctx *gin.Context) {
 func main() {
 	time.Local = time.FixedZone("GMT", 3*3600)
 
+	print(time.Now().AddDate(0, 0, -1).Date())
+
 	client, err := mongo.NewClient(options.Client().ApplyURI(getDbUrl()))
 	if err != nil {
 		log.Fatal(err)
@@ -46,10 +48,13 @@ func main() {
 	api := r.Group("/api")
 
 	userGroup := api.Group("/user")
+	journalGroup := api.Group("/journal")
 
 	api.GET("/schedule", getSchedule)
 	api.GET("/schedule/types", getScheduleTypes)
 	api.GET("/schedule/update", updateSchedule)
+
+	api.GET("/user", getUserInfo)
 
 	userGroup.GET("/login", loginUser)
 	userGroup.GET("/logout", logoutUser)
@@ -58,13 +63,15 @@ func main() {
 	userGroup.GET("/delete", deleteUser)
 	userGroup.GET("/getLogin", getLogin)
 
-	userGroup.GET("/schedule", getUserSchedule)
-
 	api.GET("/studyPlaces", getStudyPlaces)
 	api.GET("/info", getInfo)
 
 	api.GET("/stopPrimaryUpdates", stopPrimaryCron)
 	api.GET("/launchPrimaryUpdates", launchPrimaryCron)
+
+	journalTeacherGroup := journalGroup.Group("/teachers")
+	journalTeacherGroup.GET("/types", getTeacherJournalTypes)
+	journalTeacherGroup.GET("/dates", getTeacherJournalSubjects)
 
 	err = r.Run()
 	checkError(err)
