@@ -19,11 +19,11 @@ var KBP = education{
 	password:                         "kbp-corn-pass",
 }
 
-func UpdateScheduleKbp(url string, states []StateInfo, isGeneral bool) []SubjectFull {
+func UpdateScheduleKbp(url string, states []StateInfo, oldStates []StateInfo, isGeneral bool) []SubjectFull {
 	document, err := htmlParser.NewDocument("http://kbp.by/rasp/timetable/view_beta_kbp/" + url)
 	checkError(err)
 
-	time_ := time.Now().AddDate(0, 0, -int(time.Now().Weekday()))
+	time_ := time.Now().AddDate(0, 0, -int(time.Now().Weekday())).Round(0)
 
 	weeks := document.Find(".find_block").Children().Last().Children()
 	if weeks == nil {
@@ -71,19 +71,19 @@ func UpdateScheduleKbp(url string, states []StateInfo, isGeneral bool) []Subject
 						}
 
 						subject := SubjectFull{
-							subject:          div.Find(".subject").Text(),
-							teacher:          teacherDiv.Text(),
-							group:            div.Find(".group").Text(),
-							room:             div.Find(".place").Text(),
-							columnIndex:      columnIndex,
-							rowIndex:         rowIndex,
-							weekIndex:        weekIndex,
-							type_:            type_,
-							educationPlaceId: 0,
-							date:             time_,
+							Subject:          div.Find(".subject").Text(),
+							Teacher:          teacherDiv.Text(),
+							Group:            div.Find(".group").Text(),
+							Room:             div.Find(".place").Text(),
+							ColumnIndex:      columnIndex,
+							RowIndex:         rowIndex,
+							WeekIndex:        weekIndex,
+							Type_:            type_,
+							EducationPlaceId: 0,
+							Date:             time_,
 						}
 
-						if (!isGeneral && states[tableIndex*6+columnIndex].State == Updated) || (isGeneral && type_ != "ADDED") {
+						if (!isGeneral && states[tableIndex*6+columnIndex].State == Updated && oldStates[tableIndex*6+columnIndex].State == NotUpdated) || (isGeneral && type_ != "ADDED") {
 							subjects = append(subjects, subject)
 						}
 					})
