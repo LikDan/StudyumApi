@@ -20,13 +20,13 @@ func getSchedule(ctx *gin.Context) {
 
 	if err == nil {
 		if type_ == "" {
-			type_ = user["type"].(string)
+			type_ = user.Type
 		}
 		if name == "" {
-			name = user["name"].(string)
+			name = user.Name
 		}
 		if studyPlaceIdStr == "" {
-			studyPlaceIdStr = strconv.Itoa(int(user["studyPlaceId"].(int32)))
+			studyPlaceIdStr = strconv.Itoa(user.StudyPlaceId)
 		}
 	}
 
