@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"strconv"
 )
 
-func getUserFromDbViaCookies(ctx *gin.Context) (bson.M, error) {
+func getUserFromDbViaCookies(ctx *gin.Context) (*User, error) {
 	login, loginErr := ctx.Cookie("login")
 	token, tokenErr := ctx.Cookie("token")
 
@@ -17,7 +18,7 @@ func getUserFromDbViaCookies(ctx *gin.Context) (bson.M, error) {
 		return nil, errors.New("not authorized")
 	}
 
-	var user bson.M
+	var user User
 
 	userResult := usersCollection.FindOne(nil, bson.M{"login": login, "token": token})
 	err := userResult.Decode(&user)
@@ -25,7 +26,7 @@ func getUserFromDbViaCookies(ctx *gin.Context) (bson.M, error) {
 		return nil, errors.New("not authorized")
 	}
 
-	return user, nil
+	return &user, nil
 }
 
 func getLogin(ctx *gin.Context) {
@@ -35,7 +36,7 @@ func getLogin(ctx *gin.Context) {
 		return
 	}
 
-	message(ctx, "login", user["login"].(string), 200)
+	message(ctx, "login", user.Login, 200)
 }
 
 func createUser(ctx *gin.Context) {
@@ -80,16 +81,16 @@ func editUser(ctx *gin.Context) {
 		return
 	}
 
-	type_ := ctx.DefaultQuery("type", user["type"].(string))
-	name := ctx.DefaultQuery("name", user["name"].(string))
-	studyPlaceId, err := strconv.Atoi(ctx.DefaultQuery("studyPlaceId", strconv.Itoa(int(user["studyPlaceId"].(int32)))))
+	type_ := ctx.DefaultQuery("type", user.Type)
+	name := ctx.DefaultQuery("name", user.Name)
+	studyPlaceId, err := strconv.Atoi(ctx.DefaultQuery("studyPlaceId", strconv.Itoa(user.StudyPlaceId)))
 
 	if err != nil {
 		errorMessage(ctx, "not valid params")
 		return
 	}
 
-	_, err = usersCollection.UpdateByID(nil, user["_id"], bson.D{{"$set", bson.D{{"type", type_}, {"name", name}, {"studyPlaceId", studyPlaceId}}}})
+	_, err = usersCollection.UpdateByID(nil, user.Id, bson.D{{"$set", bson.D{{"type", type_}, {"name", name}, {"studyPlaceId", studyPlaceId}}}})
 	if err != nil {
 		errorMessage(ctx, err.Error())
 		return
@@ -148,19 +149,21 @@ func logoutUser(ctx *gin.Context) {
 	message(ctx, "message", "successful", 200)
 }
 
-func getUserSchedule(ctx *gin.Context) {
+func getUserInfo(ctx *gin.Context) {
 	user, err := getUserFromDbViaCookies(ctx)
 	if checkError(err) {
-		errorMessage(ctx, err.Error())
 		return
 	}
 
-	response := gin.H{
-		"type":         user["type"],
-		"name":         user["name"],
-		"studyPlaceId": user["studyPlaceId"],
-		"rights":       user["rights"],
-	}
+	ctx.JSON(200, user)
+}
 
-	ctx.JSON(200, response)
+type User struct {
+	Id           primitive.ObjectID `bson:"_id" json:"id"`
+	Login        string             `json:"login"`
+	Type         string             `json:"type" bson:"type"`
+	Name         string             `json:"name"`
+	FullName     string             `json:"fullName"`
+	Permissions  []string           `json:"permissions"`
+	StudyPlaceId int                `json:"studyPlaceId"`
 }
