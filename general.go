@@ -34,8 +34,6 @@ func getInfo(ctx *gin.Context) {
 	var info []gin.H
 
 	for _, studyPlace := range Educations {
-		studyPlace.primaryCron.Start()
-
 		i := gin.H{
 			"info":                  studyPlace,
 			"isPrimaryCronLaunched": isCronRunning(studyPlace.primaryCron),
