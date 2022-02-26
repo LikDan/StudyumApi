@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type StudyPlace struct {
@@ -47,5 +48,6 @@ func getInfo(ctx *gin.Context) {
 	ctx.JSON(200, gin.H{
 		"info":    info,
 		"version": 0.1,
+		"time":    time.Now(),
 	})
 }
