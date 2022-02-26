@@ -6,42 +6,42 @@ import (
 )
 
 type SubjectFull struct {
-	subject          string
-	teacher          string
-	group            string
-	room             string
-	columnIndex      int
-	rowIndex         int
-	weekIndex        int
-	type_            string
-	educationPlaceId int
-	date             time.Time
+	Subject          string    `json:"subject"`
+	Teacher          string    `json:"teacher"`
+	Group            string    `json:"group"`
+	Room             string    `json:"room"`
+	ColumnIndex      int       `json:"columnIndex"`
+	RowIndex         int       `json:"rowIndex"`
+	WeekIndex        int       `json:"weekIndex"`
+	Type_            string    `json:"type" bson:"type"`
+	EducationPlaceId int       `json:"educationPlaceId"`
+	Date             time.Time `json:"date"`
 }
 
 func subjectToBson(subject SubjectFull) bson.D {
 	return bson.D{
-		{"date", subject.date},
-		{"columnIndex", subject.columnIndex},
-		{"rowIndex", subject.rowIndex},
-		{"weekIndex", subject.weekIndex},
-		{"subject", subject.subject},
-		{"teacher", subject.teacher},
-		{"group", subject.group},
-		{"room", subject.room},
-		{"type", subject.type_},
-		{"educationPlaceId", subject.educationPlaceId},
+		{"date", subject.Date},
+		{"columnIndex", subject.ColumnIndex},
+		{"rowIndex", subject.RowIndex},
+		{"weekIndex", subject.WeekIndex},
+		{"subject", subject.Subject},
+		{"teacher", subject.Teacher},
+		{"group", subject.Group},
+		{"room", subject.Room},
+		{"type", subject.Type_},
+		{"educationPlaceId", subject.EducationPlaceId},
 	}
 }
 
 func subjectToBsonWithoutType(subject SubjectFull) bson.D {
 	return bson.D{
-		{"columnIndex", subject.columnIndex},
-		{"rowIndex", subject.rowIndex},
-		{"weekIndex", subject.weekIndex},
-		{"subject", subject.subject},
-		{"teacher", subject.teacher},
-		{"group", subject.group},
-		{"room", subject.room},
-		{"educationPlaceId", subject.educationPlaceId},
+		{"columnIndex", subject.ColumnIndex},
+		{"rowIndex", subject.RowIndex},
+		{"weekIndex", subject.WeekIndex},
+		{"subject", subject.Subject},
+		{"teacher", subject.Teacher},
+		{"group", subject.Group},
+		{"room", subject.Room},
+		{"educationPlaceId", subject.EducationPlaceId},
 	}
 }
