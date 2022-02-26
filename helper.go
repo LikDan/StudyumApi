@@ -40,3 +40,12 @@ func errorMessage(ctx *gin.Context, value string) {
 func isCronRunning(c *cron.Cron) bool {
 	return reflect.ValueOf(c).Elem().FieldByName("running").Bool()
 }
+
+func sliceContains[T any](slice []T, element T) bool {
+	for _, t := range slice {
+		if reflect.DeepEqual(element, t) {
+			return true
+		}
+	}
+	return false
+}
