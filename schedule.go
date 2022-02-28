@@ -61,8 +61,10 @@ func getSchedule(ctx *gin.Context) {
 		return
 	}
 
+	startDate := Date().AddDate(0, 0, 1-int(time.Now().Weekday()))
+
 	lessonsCursor, err := subjectsCollection.Aggregate(nil, mongo.Pipeline{
-		bson.D{{"$match", bson.M{type_: name, "educationPlaceId": educationPlaceId}}},
+		bson.D{{"$match", bson.M{"date": bson.M{"$gte": startDate}, type_: name, "educationPlaceId": educationPlaceId}}},
 		bson.D{{"$group", bson.M{
 			"_id":         bson.M{"$sum": bson.A{bson.M{"$multiply": bson.A{"$weekIndex", studyPlace.DaysQuantity, studyPlace.SubjectsQuantity}}, bson.M{"$multiply": bson.A{"$columnIndex", studyPlace.SubjectsQuantity}}, "$rowIndex"}},
 			"weekIndex":   bson.M{"$first": "$weekIndex"},
