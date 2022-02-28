@@ -5,6 +5,7 @@ import (
 	"github.com/robfig/cron"
 	"log"
 	"reflect"
+	"time"
 )
 
 func checkError(err error) bool {
@@ -48,4 +49,9 @@ func sliceContains[T any](slice []T, element T) bool {
 		}
 	}
 	return false
+}
+
+func Date() time.Time {
+	year, month, day := time.Now().Date()
+	return time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 }
