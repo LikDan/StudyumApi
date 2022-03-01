@@ -55,3 +55,12 @@ func Date() time.Time {
 	year, month, day := time.Now().Date()
 	return time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 }
+
+func ToInterfaceSlice[T any](slice []T) []interface{} {
+	var interface_ []interface{}
+	for _, element := range slice {
+		interface_ = append(interface_, element)
+	}
+
+	return interface_
+}
