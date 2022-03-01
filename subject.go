@@ -10,27 +10,12 @@ type SubjectFull struct {
 	Teacher          string    `json:"teacher"`
 	Group            string    `json:"group"`
 	Room             string    `json:"room"`
-	ColumnIndex      int       `json:"columnIndex"`
-	RowIndex         int       `json:"rowIndex"`
-	WeekIndex        int       `json:"weekIndex"`
+	ColumnIndex      int       `json:"columnIndex" bson:"columnIndex"`
+	RowIndex         int       `json:"rowIndex" bson:"rowIndex"`
+	WeekIndex        int       `json:"weekIndex" bson:"weekIndex"`
 	Type_            string    `json:"type" bson:"type"`
-	EducationPlaceId int       `json:"educationPlaceId"`
+	EducationPlaceId int       `json:"educationPlaceId" bson:"educationPlaceId"`
 	Date             time.Time `json:"date"`
-}
-
-func subjectToBson(subject SubjectFull) bson.D {
-	return bson.D{
-		{"date", subject.Date},
-		{"columnIndex", subject.ColumnIndex},
-		{"rowIndex", subject.RowIndex},
-		{"weekIndex", subject.WeekIndex},
-		{"subject", subject.Subject},
-		{"teacher", subject.Teacher},
-		{"group", subject.Group},
-		{"room", subject.Room},
-		{"type", subject.Type_},
-		{"educationPlaceId", subject.EducationPlaceId},
-	}
 }
 
 func subjectToBsonWithoutType(subject SubjectFull) bson.D {
