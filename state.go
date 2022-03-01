@@ -1,7 +1,6 @@
 package main
 
 import (
-	"go.mongodb.org/mongo-driver/bson"
 	"strconv"
 )
 
@@ -17,15 +16,6 @@ type StateInfo struct {
 	WeekIndex    int   `bson:"weekIndex" json:"weekIndex"`
 	DayIndex     int   `bson:"dayIndex" json:"dayIndex"`
 	StudyPlaceId int   `bson:"educationPlaceId" json:"-"`
-}
-
-func stateToBson(info StateInfo) bson.D {
-	return bson.D{
-		{"weekIndex", info.WeekIndex},
-		{"dayIndex", info.DayIndex},
-		{"status", info.State},
-		{"educationPlaceId", info.StudyPlaceId},
-	}
 }
 
 func (s StateInfo) toJsonWithoutId() string {
