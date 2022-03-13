@@ -137,7 +137,7 @@ func loginUser(ctx *gin.Context) {
 	}
 
 	ctx.SetCookie("login", user["login"].(string), 0, "", "", false, false)
-	ctx.SetCookie("token", user["token"].(string), 0, "", "", true, false)
+	ctx.SetCookie("token", user["token"].(string), 0, "", "", false, false)
 
 	message(ctx, "message", "successful", 200)
 }

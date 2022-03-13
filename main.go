@@ -13,6 +13,7 @@ var subjectsCollection *mongo.Collection
 var stateCollection *mongo.Collection
 var studyPlacesCollection *mongo.Collection
 var usersCollection *mongo.Collection
+var marksCollection *mongo.Collection
 
 func indexHandler(ctx *gin.Context) {
 	message(ctx, "message", "hi", 200)
@@ -37,6 +38,8 @@ func main() {
 	subjectsCollection = client.Database("Schedule").Collection("Subjects")
 	generalSubjectsCollection = client.Database("Schedule").Collection("General")
 	stateCollection = client.Database("Schedule").Collection("States")
+
+	marksCollection = client.Database("Schedule").Collection("Marks")
 
 	initFirebaseApp()
 	Launch()
@@ -72,6 +75,11 @@ func main() {
 	journalTeacherGroup := journalGroup.Group("/teachers")
 	journalTeacherGroup.GET("/types", getTeacherJournalTypes)
 	journalTeacherGroup.GET("/dates", getTeacherJournalSubjects)
+	journalTeacherGroup.GET("/groupMembers", getGroupMembers)
+
+	journalTeacherGroup.GET("/addMark", addMark)
+	journalTeacherGroup.GET("/getMark", getMark)
+	journalTeacherGroup.GET("/editMark", editMark)
 
 	err = r.Run()
 	checkError(err)
