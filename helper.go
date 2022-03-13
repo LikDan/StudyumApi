@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron"
+	"go.mongodb.org/mongo-driver/bson"
 	"log"
 	"reflect"
 	"time"
@@ -52,7 +53,11 @@ func sliceContains[T any](slice []T, element T) bool {
 }
 
 func Date() time.Time {
-	year, month, day := time.Now().Date()
+	return ToDateWithoutTime(time.Now())
+}
+
+func ToDateWithoutTime(date time.Time) time.Time {
+	year, month, day := date.Date()
 	return time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 }
 
@@ -63,4 +68,8 @@ func ToInterfaceSlice[T any](slice []T) []interface{} {
 	}
 
 	return interface_
+}
+
+func EqualDateWithoutTime(date time.Time) bson.M {
+	return bson.M{"$gte": ToDateWithoutTime(date), "$lt": ToDateWithoutTime(date.AddDate(0, 0, 1))}
 }
