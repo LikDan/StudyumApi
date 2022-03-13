@@ -2,6 +2,7 @@ package main
 
 import (
 	htmlParser "github.com/PuerkitoBio/goquery"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"strings"
 	"time"
 )
@@ -71,6 +72,7 @@ func UpdateScheduleKbp(url string, states []StateInfo, oldStates []StateInfo, is
 						}
 
 						subject := SubjectFull{
+							Id:               primitive.NewObjectID(),
 							Subject:          div.Find(".subject").Text(),
 							Teacher:          teacherDiv.Text(),
 							Group:            div.Find(".group").Text(),
