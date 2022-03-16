@@ -122,7 +122,13 @@ func addMark(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(200, mark)
+	marks := getMarksViaId(userObjectId, subjectObjectId)
+
+	if len(marks) != 1 {
+		errorMessage(ctx, "wrong response")
+	}
+
+	ctx.JSON(200, marks[0])
 }
 
 func getMark(ctx *gin.Context) {
@@ -148,7 +154,7 @@ func getMark(ctx *gin.Context) {
 		return
 	}
 
-	marks := getMarks(userId, group, teacher, subject, user.StudyPlaceId, nil)
+	marks := getMarks(userId, group, teacher, subject, user.StudyPlaceId)
 
 	ctx.JSON(200, marks)
 }
@@ -166,13 +172,10 @@ func editMark(ctx *gin.Context) {
 
 	mark_ := ctx.Query("mark")
 	markId := ctx.Query("markId")
-	group := ctx.Query("group")
-	subject := ctx.Query("subject")
 	userIdHex := ctx.Query("userId")
 	subjectId := ctx.Query("subjectId")
-	teacher := user.FullName
 
-	if mark_ == "" || markId == "" || group == "" || subject == "" || userIdHex == "" || subjectId == "" {
+	if mark_ == "" || markId == "" || userIdHex == "" || subjectId == "" {
 		errorMessage(ctx, "provide valid params")
 		return
 	}
@@ -203,7 +206,7 @@ func editMark(ctx *gin.Context) {
 		return
 	}
 
-	marks := getMarks(userId, group, teacher, subject, user.StudyPlaceId, &subjectObjectId)
+	marks := getMarksViaId(userId, subjectObjectId)
 
 	if len(marks) != 1 {
 		errorMessage(ctx, "wrong response")
@@ -270,14 +273,35 @@ type MarkFull struct {
 	Marks            []Mark             `json:"marks" bson:"marks"`
 }
 
-func getMarks(userId primitive.ObjectID, group, teacher, subject string, studyPlaceId int, id *primitive.ObjectID) []MarkFull {
+func getMarksViaId(userId primitive.ObjectID, id primitive.ObjectID) []MarkFull {
+	var marks []MarkFull
+
+	lessonsCursor, err := subjectsCollection.Aggregate(nil, mongo.Pipeline{
+		bson.D{{"$lookup", bson.M{
+			"from":         "Marks",
+			"localField":   "_id",
+			"foreignField": "subjectId",
+			"pipeline": mongo.Pipeline{
+				bson.D{{"$match", bson.M{"userId": userId}}},
+			},
+			"as": "marks",
+		}}},
+		bson.D{{"$match", bson.M{"_id": id}}},
+		bson.D{{"$sort", bson.M{"date": 1}}},
+	})
+
+	err = lessonsCursor.All(nil, &marks)
+	if checkError(err) {
+		return marks
+	}
+
+	return marks
+}
+
+func getMarks(userId primitive.ObjectID, group, teacher, subject string, studyPlaceId int) []MarkFull {
 	var marks []MarkFull
 
 	match := bson.M{"group": group, "teacher": teacher, "subject": subject, "educationPlaceId": studyPlaceId}
-
-	if id != nil {
-		match["_id"] = id
-	}
 
 	lessonsCursor, err := subjectsCollection.Aggregate(nil, mongo.Pipeline{
 		bson.D{{"$lookup", bson.M{
