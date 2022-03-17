@@ -80,6 +80,7 @@ func main() {
 	journalTeacherGroup.GET("/addMark", addMark)
 	journalTeacherGroup.GET("/getMark", getMark)
 	journalTeacherGroup.GET("/editMark", editMark)
+	journalTeacherGroup.GET("/removeMark", removeMark)
 
 	err = r.Run()
 	checkError(err)
