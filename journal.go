@@ -215,6 +215,61 @@ func editMark(ctx *gin.Context) {
 	ctx.JSON(200, marks[0])
 }
 
+func removeMark(ctx *gin.Context) {
+	user, err := getUserFromDbViaCookies(ctx)
+	if checkError(err) {
+		errorMessage(ctx, err.Error())
+		return
+	}
+	if !sliceContains(user.Permissions, "editJournal") {
+		errorMessage(ctx, "no permission")
+		return
+	}
+
+	markId := ctx.Query("markId")
+	userIdHex := ctx.Query("userId")
+	subjectId := ctx.Query("subjectId")
+
+	if markId == "" || userIdHex == "" || subjectId == "" {
+		errorMessage(ctx, "provide valid params")
+		return
+	}
+
+	userId, err := primitive.ObjectIDFromHex(userIdHex)
+	if checkError(err) {
+		errorMessage(ctx, err.Error())
+		return
+	}
+
+	markObjectId, err := primitive.ObjectIDFromHex(markId)
+
+	if checkError(err) {
+		errorMessage(ctx, "provide valid params")
+		return
+	}
+
+	subjectObjectId, err := primitive.ObjectIDFromHex(subjectId)
+
+	if checkError(err) {
+		errorMessage(ctx, "provide valid params")
+		return
+	}
+
+	_, err = marksCollection.DeleteOne(nil, bson.M{"_id": markObjectId, "subjectId": subjectObjectId})
+	if checkError(err) {
+		errorMessage(ctx, err.Error())
+		return
+	}
+
+	marks := getMarksViaId(userId, subjectObjectId)
+
+	if len(marks) != 1 {
+		errorMessage(ctx, "wrong response")
+	}
+
+	ctx.JSON(200, marks[0])
+}
+
 func getGroupMembers(ctx *gin.Context) {
 	user, err := getUserFromDbViaCookies(ctx)
 	if checkError(err) {
