@@ -18,6 +18,9 @@ type SubjectFull struct {
 	Type_            string             `json:"type" bson:"type"`
 	EducationPlaceId int                `json:"educationPlaceId" bson:"educationPlaceId"`
 	Date             time.Time          `json:"date"`
+	Homework         string             `json:"homework"`
+	SmallDescription string             `json:"smallDescription"`
+	Description      string             `json:"description"`
 }
 
 func subjectToBsonWithoutType(subject SubjectFull) bson.D {
