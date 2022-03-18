@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	"reflect"
 	"time"
@@ -72,4 +73,22 @@ func ToInterfaceSlice[T any](slice []T) []interface{} {
 
 func EqualDateWithoutTime(date time.Time) bson.M {
 	return bson.M{"$gte": ToDateWithoutTime(date), "$lt": ToDateWithoutTime(date.AddDate(0, 0, 1))}
+}
+
+func getObjectId(ctx *gin.Context, key string) *primitive.ObjectID {
+	id, err := primitive.ObjectIDFromHex(ctx.Query(key))
+	if err != nil {
+		return nil
+	}
+
+	return &id
+}
+
+func checkNotEmpty(strings ...string) bool {
+	for _, s := range strings {
+		if s == "" {
+			return false
+		}
+	}
+	return true
 }
