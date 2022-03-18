@@ -299,6 +299,43 @@ func getGroupMembers(ctx *gin.Context) {
 	ctx.JSON(200, members)
 }
 
+func editInfo(ctx *gin.Context) {
+	user, err := getUserFromDbViaCookies(ctx)
+	if checkError(err) {
+		errorMessage(ctx, err.Error())
+		return
+	}
+
+	if !sliceContains(user.Permissions, "editJournal") {
+		errorMessage(ctx, "no permission")
+		return
+	}
+
+	lessonId := getObjectId(ctx, "lessonId")
+	homework := ctx.Query("homework")
+	smallDescription := ctx.Query("smallDescription")
+	description := ctx.Query("description")
+
+	if lessonId == nil {
+		errorMessage(ctx, "provide valid params")
+		return
+	}
+
+	_, err = subjectsCollection.UpdateOne(nil, bson.M{"_id": lessonId}, bson.M{"$set": bson.M{"homework": homework, "smallDescription": smallDescription, "description": description}})
+	if checkError(err) {
+		errorMessage(ctx, err.Error())
+		return
+	}
+
+	lesson, err := getLesson(lessonId)
+	if checkError(err) {
+		errorMessage(ctx, err.Error())
+		return
+	}
+
+	ctx.JSON(200, lesson)
+}
+
 type JournalTeacherType struct {
 	Teacher string `json:"teacher"`
 	Subject string `json:"subject"`
@@ -378,4 +415,15 @@ func getMarks(userId primitive.ObjectID, group, teacher, subject string, studyPl
 	}
 
 	return marks
+}
+
+func getLesson(lessonId *primitive.ObjectID) (*SubjectFull, error) {
+	var subject SubjectFull
+
+	err := subjectsCollection.FindOne(nil, bson.M{"_id": lessonId}).Decode(&subject)
+	if err != nil {
+		return nil, err
+	}
+
+	return &subject, nil
 }
