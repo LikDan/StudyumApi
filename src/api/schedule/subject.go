@@ -1,4 +1,4 @@
-package main
+package schedule
 
 import (
 	"go.mongodb.org/mongo-driver/bson"

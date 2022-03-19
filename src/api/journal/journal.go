@@ -1,57 +1,61 @@
-package main
+package journal
 
 import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	h "studyium/api"
+	"studyium/api/schedule"
+	userApi "studyium/api/user"
+	"studyium/db"
 	"time"
 )
 
-func getTeacherJournalSubjects(ctx *gin.Context) {
-	user, err := getUserFromDbViaCookies(ctx)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+func GetTeacherJournalSubjects(ctx *gin.Context) {
+	user, err := userApi.GetUserFromDbViaCookies(ctx)
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
 	group := ctx.Query("group")
 	subject := ctx.Query("subject")
 
-	var subjects []SubjectFull
+	var subjects []schedule.SubjectFull
 
-	find, err := subjectsCollection.Find(nil, bson.M{"teacher": user.FullName, "group": group, "subject": subject})
+	find, err := db.SubjectsCollection.Find(nil, bson.M{"teacher": user.FullName, "group": group, "subject": subject})
 	err = find.All(nil, &subjects)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
 	if subjects == nil {
-		errorMessage(ctx, "no such subjects")
+		h.ErrorMessage(ctx, "no such subjects")
 		return
 	}
 
 	ctx.JSON(200, subjects)
 }
 
-func getTeacherJournalTypes(ctx *gin.Context) {
-	user, err := getUserFromDbViaCookies(ctx)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+func GetTeacherJournalTypes(ctx *gin.Context) {
+	user, err := userApi.GetUserFromDbViaCookies(ctx)
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
-	find, err := generalSubjectsCollection.Find(nil, bson.M{"teacher": user.FullName})
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	find, err := db.GeneralSubjectsCollection.Find(nil, bson.M{"teacher": user.FullName})
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
-	var subjects []SubjectFull
+	var subjects []schedule.SubjectFull
 	err = find.All(nil, &subjects)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
@@ -64,7 +68,7 @@ func getTeacherJournalTypes(ctx *gin.Context) {
 			Group:   subject.Group,
 		}
 
-		if sliceContains(types, type_) {
+		if h.SliceContains(types, type_) {
 			continue
 		}
 
@@ -74,14 +78,14 @@ func getTeacherJournalTypes(ctx *gin.Context) {
 	ctx.JSON(200, types)
 }
 
-func addMark(ctx *gin.Context) {
-	user, err := getUserFromDbViaCookies(ctx)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+func AddMark(ctx *gin.Context) {
+	user, err := userApi.GetUserFromDbViaCookies(ctx)
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
-	if !sliceContains(user.Permissions, "editJournal") {
-		errorMessage(ctx, "no permission")
+	if !h.SliceContains(user.Permissions, "editJournal") {
+		h.ErrorMessage(ctx, "no permission")
 		return
 	}
 
@@ -90,21 +94,21 @@ func addMark(ctx *gin.Context) {
 	subjectId := ctx.Query("subjectId")
 
 	if mark_ == "" || userId == "" || subjectId == "" {
-		errorMessage(ctx, "provide valid params")
+		h.ErrorMessage(ctx, "provide valid params")
 		return
 	}
 
 	userObjectId, err := primitive.ObjectIDFromHex(userId)
 
-	if checkError(err) {
-		errorMessage(ctx, "provide valid params")
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, "provide valid params")
 		return
 	}
 
 	subjectObjectId, err := primitive.ObjectIDFromHex(subjectId)
 
-	if checkError(err) {
-		errorMessage(ctx, "provide valid params")
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, "provide valid params")
 		return
 	}
 
@@ -116,25 +120,25 @@ func addMark(ctx *gin.Context) {
 		StudyPlaceId: user.StudyPlaceId,
 	}
 
-	_, err = marksCollection.InsertOne(nil, mark)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	_, err = db.MarksCollection.InsertOne(nil, mark)
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
 	marks := getMarksViaId(userObjectId, subjectObjectId)
 
 	if len(marks) != 1 {
-		errorMessage(ctx, "wrong response")
+		h.ErrorMessage(ctx, "wrong response")
 	}
 
 	ctx.JSON(200, marks[0])
 }
 
-func getMark(ctx *gin.Context) {
-	user, err := getUserFromDbViaCookies(ctx)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+func GetMark(ctx *gin.Context) {
+	user, err := userApi.GetUserFromDbViaCookies(ctx)
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
@@ -144,13 +148,13 @@ func getMark(ctx *gin.Context) {
 	teacher := user.FullName
 
 	if group == "" || subject == "" || userIdHex == "" {
-		errorMessage(ctx, "provide valid params")
+		h.ErrorMessage(ctx, "provide valid params")
 		return
 	}
 
 	userId, err := primitive.ObjectIDFromHex(userIdHex)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
@@ -159,14 +163,14 @@ func getMark(ctx *gin.Context) {
 	ctx.JSON(200, marks)
 }
 
-func editMark(ctx *gin.Context) {
-	user, err := getUserFromDbViaCookies(ctx)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+func EditMark(ctx *gin.Context) {
+	user, err := userApi.GetUserFromDbViaCookies(ctx)
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
-	if !sliceContains(user.Permissions, "editJournal") {
-		errorMessage(ctx, "no permission")
+	if !h.SliceContains(user.Permissions, "editJournal") {
+		h.ErrorMessage(ctx, "no permission")
 		return
 	}
 
@@ -176,53 +180,53 @@ func editMark(ctx *gin.Context) {
 	subjectId := ctx.Query("subjectId")
 
 	if mark_ == "" || markId == "" || userIdHex == "" || subjectId == "" {
-		errorMessage(ctx, "provide valid params")
+		h.ErrorMessage(ctx, "provide valid params")
 		return
 	}
 
 	userId, err := primitive.ObjectIDFromHex(userIdHex)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
 	markObjectId, err := primitive.ObjectIDFromHex(markId)
 
-	if checkError(err) {
-		errorMessage(ctx, "provide valid params")
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, "provide valid params")
 		return
 	}
 
 	subjectObjectId, err := primitive.ObjectIDFromHex(subjectId)
 
-	if checkError(err) {
-		errorMessage(ctx, "provide valid params")
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, "provide valid params")
 		return
 	}
 
-	_, err = marksCollection.UpdateOne(nil, bson.M{"_id": markObjectId, "subjectId": subjectObjectId}, bson.M{"$set": bson.M{"mark": mark_}})
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	_, err = db.MarksCollection.UpdateOne(nil, bson.M{"_id": markObjectId, "subjectId": subjectObjectId}, bson.M{"$set": bson.M{"mark": mark_}})
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
 	marks := getMarksViaId(userId, subjectObjectId)
 
 	if len(marks) != 1 {
-		errorMessage(ctx, "wrong response")
+		h.ErrorMessage(ctx, "wrong response")
 	}
 
 	ctx.JSON(200, marks[0])
 }
 
-func removeMark(ctx *gin.Context) {
-	user, err := getUserFromDbViaCookies(ctx)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+func RemoveMark(ctx *gin.Context) {
+	user, err := userApi.GetUserFromDbViaCookies(ctx)
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
-	if !sliceContains(user.Permissions, "editJournal") {
-		errorMessage(ctx, "no permission")
+	if !h.SliceContains(user.Permissions, "editJournal") {
+		h.ErrorMessage(ctx, "no permission")
 		return
 	}
 
@@ -231,105 +235,105 @@ func removeMark(ctx *gin.Context) {
 	subjectId := ctx.Query("subjectId")
 
 	if markId == "" || userIdHex == "" || subjectId == "" {
-		errorMessage(ctx, "provide valid params")
+		h.ErrorMessage(ctx, "provide valid params")
 		return
 	}
 
 	userId, err := primitive.ObjectIDFromHex(userIdHex)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
 	markObjectId, err := primitive.ObjectIDFromHex(markId)
 
-	if checkError(err) {
-		errorMessage(ctx, "provide valid params")
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, "provide valid params")
 		return
 	}
 
 	subjectObjectId, err := primitive.ObjectIDFromHex(subjectId)
 
-	if checkError(err) {
-		errorMessage(ctx, "provide valid params")
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, "provide valid params")
 		return
 	}
 
-	_, err = marksCollection.DeleteOne(nil, bson.M{"_id": markObjectId, "subjectId": subjectObjectId})
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	_, err = db.MarksCollection.DeleteOne(nil, bson.M{"_id": markObjectId, "subjectId": subjectObjectId})
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
 	marks := getMarksViaId(userId, subjectObjectId)
 
 	if len(marks) != 1 {
-		errorMessage(ctx, "wrong response")
+		h.ErrorMessage(ctx, "wrong response")
 	}
 
 	ctx.JSON(200, marks[0])
 }
 
-func getGroupMembers(ctx *gin.Context) {
-	user, err := getUserFromDbViaCookies(ctx)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+func GetGroupMembers(ctx *gin.Context) {
+	user, err := userApi.GetUserFromDbViaCookies(ctx)
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
-	if !sliceContains(user.Permissions, "editJournal") {
-		errorMessage(ctx, "no permission")
+	if !h.SliceContains(user.Permissions, "editJournal") {
+		h.ErrorMessage(ctx, "no permission")
 		return
 	}
 
 	group := ctx.Query("group")
-	var members []User
+	var members []userApi.User
 
-	groupsCursor, err := usersCollection.Find(nil, bson.M{"studyPlaceId": user.StudyPlaceId, "type": "group", "name": group})
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	groupsCursor, err := db.UsersCollection.Find(nil, bson.M{"studyPlaceId": user.StudyPlaceId, "type": "group", "name": group})
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 	err = groupsCursor.All(nil, &members)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
 	ctx.JSON(200, members)
 }
 
-func editInfo(ctx *gin.Context) {
-	user, err := getUserFromDbViaCookies(ctx)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+func EditInfo(ctx *gin.Context) {
+	user, err := userApi.GetUserFromDbViaCookies(ctx)
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
-	if !sliceContains(user.Permissions, "editJournal") {
-		errorMessage(ctx, "no permission")
+	if !h.SliceContains(user.Permissions, "editJournal") {
+		h.ErrorMessage(ctx, "no permission")
 		return
 	}
 
-	lessonId := getObjectId(ctx, "lessonId")
+	lessonId := h.GetObjectId(ctx, "lessonId")
 	homework := ctx.Query("homework")
 	smallDescription := ctx.Query("smallDescription")
 	description := ctx.Query("description")
 
 	if lessonId == nil {
-		errorMessage(ctx, "provide valid params")
+		h.ErrorMessage(ctx, "provide valid params")
 		return
 	}
 
-	_, err = subjectsCollection.UpdateOne(nil, bson.M{"_id": lessonId}, bson.M{"$set": bson.M{"homework": homework, "smallDescription": smallDescription, "description": description}})
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	_, err = db.SubjectsCollection.UpdateOne(nil, bson.M{"_id": lessonId}, bson.M{"$set": bson.M{"homework": homework, "smallDescription": smallDescription, "description": description}})
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
 	lesson, err := getLesson(lessonId)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
@@ -368,7 +372,7 @@ type MarkFull struct {
 func getMarksViaId(userId primitive.ObjectID, id primitive.ObjectID) []MarkFull {
 	var marks []MarkFull
 
-	lessonsCursor, err := subjectsCollection.Aggregate(nil, mongo.Pipeline{
+	lessonsCursor, err := db.SubjectsCollection.Aggregate(nil, mongo.Pipeline{
 		bson.D{{"$lookup", bson.M{
 			"from":         "Marks",
 			"localField":   "_id",
@@ -383,7 +387,7 @@ func getMarksViaId(userId primitive.ObjectID, id primitive.ObjectID) []MarkFull 
 	})
 
 	err = lessonsCursor.All(nil, &marks)
-	if checkError(err) {
+	if h.CheckError(err) {
 		return marks
 	}
 
@@ -395,7 +399,7 @@ func getMarks(userId primitive.ObjectID, group, teacher, subject string, studyPl
 
 	match := bson.M{"group": group, "teacher": teacher, "subject": subject, "educationPlaceId": studyPlaceId}
 
-	lessonsCursor, err := subjectsCollection.Aggregate(nil, mongo.Pipeline{
+	lessonsCursor, err := db.SubjectsCollection.Aggregate(nil, mongo.Pipeline{
 		bson.D{{"$lookup", bson.M{
 			"from":         "Marks",
 			"localField":   "_id",
@@ -410,17 +414,17 @@ func getMarks(userId primitive.ObjectID, group, teacher, subject string, studyPl
 	})
 
 	err = lessonsCursor.All(nil, &marks)
-	if checkError(err) {
+	if h.CheckError(err) {
 		return marks
 	}
 
 	return marks
 }
 
-func getLesson(lessonId *primitive.ObjectID) (*SubjectFull, error) {
-	var subject SubjectFull
+func getLesson(lessonId *primitive.ObjectID) (*schedule.SubjectFull, error) {
+	var subject schedule.SubjectFull
 
-	err := subjectsCollection.FindOne(nil, bson.M{"_id": lessonId}).Decode(&subject)
+	err := db.SubjectsCollection.FindOne(nil, bson.M{"_id": lessonId}).Decode(&subject)
 	if err != nil {
 		return nil, err
 	}

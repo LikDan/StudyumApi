@@ -1,4 +1,4 @@
-package main
+package user
 
 import (
 	"crypto/sha256"
@@ -8,21 +8,23 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"strconv"
+	h "studyium/api"
+	"studyium/db"
 )
 
-func getUserFromDbViaCookies(ctx *gin.Context) (*User, error) {
+func GetUserFromDbViaCookies(ctx *gin.Context) (*User, error) {
 	login, loginErr := ctx.Cookie("login")
 	token, tokenErr := ctx.Cookie("token")
 
-	if checkError(loginErr) || checkError(tokenErr) {
+	if h.CheckError(loginErr) || h.CheckError(tokenErr) {
 		return nil, errors.New("not authorized")
 	}
 
 	var user User
 
-	userResult := usersCollection.FindOne(nil, bson.M{"login": login, "token": token})
+	userResult := db.UsersCollection.FindOne(nil, bson.M{"login": login, "token": token})
 	err := userResult.Decode(&user)
-	if checkError(err) {
+	if h.CheckError(err) {
 		return nil, errors.New("not authorized")
 	}
 
@@ -30,13 +32,13 @@ func getUserFromDbViaCookies(ctx *gin.Context) (*User, error) {
 }
 
 func getLogin(ctx *gin.Context) {
-	user, err := getUserFromDbViaCookies(ctx)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	user, err := GetUserFromDbViaCookies(ctx)
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
-	message(ctx, "login", user.Login, 200)
+	h.Message(ctx, "login", user.Login, 200)
 }
 
 func createUser(ctx *gin.Context) {
@@ -50,20 +52,20 @@ func createUser(ctx *gin.Context) {
 	stay, err := strconv.ParseBool(ctx.DefaultQuery("stay", "false"))
 
 	if login == "" || password == "" || type_ == "" || name == "" || studyPlaceId == "" || len(password) < 8 {
-		errorMessage(ctx, "provide all params")
+		h.ErrorMessage(ctx, "provide all params")
 		return
 	}
 
 	if err != nil {
-		errorMessage(ctx, "not valid params")
+		h.ErrorMessage(ctx, "not valid params")
 		return
 	}
 
 	password = fmt.Sprintf("%x", sha256.Sum256([]byte(password)))
 
-	_, err = usersCollection.InsertOne(nil, bson.D{{"login", login}, {"password_hash", password}, {"type", type_}, {"name", name}, {"studyPlaceId", studyPlaceId}})
+	_, err = db.UsersCollection.InsertOne(nil, bson.D{{"login", login}, {"password_hash", password}, {"type", type_}, {"name", name}, {"studyPlaceId", studyPlaceId}})
 	if err != nil {
-		errorMessage(ctx, err.Error())
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
@@ -71,13 +73,13 @@ func createUser(ctx *gin.Context) {
 		loginUser(ctx)
 	}
 
-	message(ctx, "message", "successful", 200)
+	h.Message(ctx, "h.Message", "successful", 200)
 }
 
 func editUser(ctx *gin.Context) {
-	user, err := getUserFromDbViaCookies(ctx)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	user, err := GetUserFromDbViaCookies(ctx)
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
@@ -86,29 +88,29 @@ func editUser(ctx *gin.Context) {
 	studyPlaceId, err := strconv.Atoi(ctx.DefaultQuery("studyPlaceId", strconv.Itoa(user.StudyPlaceId)))
 
 	if err != nil {
-		errorMessage(ctx, "not valid params")
+		h.ErrorMessage(ctx, "not valid params")
 		return
 	}
 
-	_, err = usersCollection.UpdateByID(nil, user.Id, bson.D{{"$set", bson.D{{"type", type_}, {"name", name}, {"studyPlaceId", studyPlaceId}}}})
+	_, err = db.UsersCollection.UpdateByID(nil, user.Id, bson.D{{"$set", bson.D{{"type", type_}, {"name", name}, {"studyPlaceId", studyPlaceId}}}})
 	if err != nil {
-		errorMessage(ctx, err.Error())
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
-	message(ctx, "message", "successful", 200)
+	h.Message(ctx, "h.Message", "successful", 200)
 }
 
 func deleteUser(ctx *gin.Context) {
-	user, err := getUserFromDbViaCookies(ctx)
+	user, err := GetUserFromDbViaCookies(ctx)
 	if err != nil {
-		errorMessage(ctx, err.Error())
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
-	_, err = usersCollection.DeleteOne(nil, user)
+	_, err = db.UsersCollection.DeleteOne(nil, user)
 	if err != nil {
-		errorMessage(ctx, err.Error())
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
@@ -120,7 +122,7 @@ func loginUser(ctx *gin.Context) {
 	password := ctx.Query("password")
 
 	if login == "" || password == "" {
-		errorMessage(ctx, "provide all params")
+		h.ErrorMessage(ctx, "provide all params")
 		return
 	}
 
@@ -128,30 +130,30 @@ func loginUser(ctx *gin.Context) {
 
 	var user bson.M
 
-	userResult := usersCollection.FindOne(nil, bson.M{"login": login, "password_hash": password})
+	userResult := db.UsersCollection.FindOne(nil, bson.M{"login": login, "password_hash": password})
 	err := userResult.Decode(&user)
 
-	if checkError(err) {
-		errorMessage(ctx, "wrong user or password")
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, "wrong user or password")
 		return
 	}
 
 	ctx.SetCookie("login", user["login"].(string), 0, "", "", false, false)
 	ctx.SetCookie("token", user["token"].(string), 0, "", "", false, false)
 
-	message(ctx, "message", "successful", 200)
+	h.Message(ctx, "h.Message", "successful", 200)
 }
 
 func logoutUser(ctx *gin.Context) {
 	ctx.SetCookie("login", "", -1, "", "", false, false)
 	ctx.SetCookie("token", "", -1, "", "", true, false)
 
-	message(ctx, "message", "successful", 200)
+	h.Message(ctx, "h.Message", "successful", 200)
 }
 
 func getUserInfo(ctx *gin.Context) {
-	user, err := getUserFromDbViaCookies(ctx)
-	if checkError(err) {
+	user, err := GetUserFromDbViaCookies(ctx)
+	if h.CheckError(err) {
 		return
 	}
 
@@ -166,4 +168,15 @@ type User struct {
 	FullName     string             `json:"fullName"`
 	Permissions  []string           `json:"permissions"`
 	StudyPlaceId int                `json:"studyPlaceId"`
+}
+
+func BuildRequests(api *gin.RouterGroup) {
+	api.GET("", getUserInfo)
+
+	api.GET("/login", loginUser)
+	api.GET("/logout", logoutUser)
+	api.GET("/edit", editUser)
+	api.GET("/create", createUser)
+	api.GET("/delete", deleteUser)
+	api.GET("/getLogin", getLogin)
 }

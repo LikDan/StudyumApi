@@ -1,4 +1,4 @@
-package main
+package schedule
 
 import (
 	"fmt"
@@ -6,7 +6,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"strconv"
 	"strings"
-	"time"
+	h "studyium/api"
+	"studyium/db"
 )
 
 type StudyPlace struct {
@@ -20,32 +21,12 @@ type StudyPlace struct {
 func getStudyPlaces(ctx *gin.Context) {
 	var res []string
 
-	types, _ := studyPlacesCollection.Find(nil, bson.D{})
+	types, _ := db.StudyPlacesCollection.Find(nil, bson.D{})
 
 	for types.TryNext(nil) {
 		res = append(res, "{ \"id\": "+strconv.Itoa(int(types.Current.Lookup("_id").Int32()))+", \"name\": \""+types.Current.Lookup("name").StringValue()+"\"}")
 	}
 
 	_, err := fmt.Fprintf(ctx.Writer, "[%s]", strings.Join(res, ", "))
-	checkError(err)
-}
-
-func getInfo(ctx *gin.Context) {
-	var info []gin.H
-
-	for _, studyPlace := range Educations {
-		i := gin.H{
-			"info":                  studyPlace,
-			"isPrimaryCronLaunched": isCronRunning(studyPlace.primaryCron),
-			"isGeneralCronLaunched": isCronRunning(studyPlace.generalCron),
-		}
-
-		info = append(info, i)
-	}
-
-	ctx.JSON(200, gin.H{
-		"info":    info,
-		"version": 0.1,
-		"time":    time.Now(),
-	})
+	h.CheckError(err)
 }
