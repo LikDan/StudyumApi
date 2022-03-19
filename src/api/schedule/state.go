@@ -1,4 +1,4 @@
-package main
+package schedule
 
 import (
 	"strconv"
@@ -18,7 +18,7 @@ type StateInfo struct {
 	StudyPlaceId int   `bson:"educationPlaceId" json:"-"`
 }
 
-func (s StateInfo) toJsonWithoutId() string {
+func (s StateInfo) ToJsonWithoutId() string {
 	return "{\"status\": \"" + string(s.State) +
 		"\", \"weekIndex\": " + strconv.Itoa(s.WeekIndex) +
 		", \"dayIndex\": " + strconv.Itoa(s.DayIndex) + "}"

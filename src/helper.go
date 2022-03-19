@@ -7,10 +7,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	"reflect"
+	"studyium/api/schedule"
 	"time"
 )
 
-func checkError(err error) bool {
+func CheckError(err error) bool {
 	if err != nil {
 		log.Println(err)
 		return true
@@ -18,7 +19,7 @@ func checkError(err error) bool {
 	return false
 }
 
-func EqualStateInfo(a, b []StateInfo) bool {
+func EqualStateInfo(a, b []schedule.StateInfo) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -34,7 +35,7 @@ func message(ctx *gin.Context, name string, value string, code int) {
 	ctx.JSON(code, gin.H{name: value})
 }
 
-func errorMessage(ctx *gin.Context, value string) {
+func ErrorMessage(ctx *gin.Context, value string) {
 	ctx.Header("error", value)
 	ctx.Header("cookie", "")
 	ctx.JSON(204, gin.H{})
@@ -44,7 +45,7 @@ func isCronRunning(c *cron.Cron) bool {
 	return reflect.ValueOf(c).Elem().FieldByName("running").Bool()
 }
 
-func sliceContains[T any](slice []T, element T) bool {
+func SliceContains[T any](slice []T, element T) bool {
 	for _, t := range slice {
 		if reflect.DeepEqual(element, t) {
 			return true
@@ -75,7 +76,7 @@ func EqualDateWithoutTime(date time.Time) bson.M {
 	return bson.M{"$gte": ToDateWithoutTime(date), "$lt": ToDateWithoutTime(date.AddDate(0, 0, 1))}
 }
 
-func getObjectId(ctx *gin.Context, key string) *primitive.ObjectID {
+func GetObjectId(ctx *gin.Context, key string) *primitive.ObjectID {
 	id, err := primitive.ObjectIDFromHex(ctx.Query(key))
 	if err != nil {
 		return nil
