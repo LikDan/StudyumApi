@@ -1,21 +1,22 @@
-package main
+package parser
 
 import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	h "studyium/api"
 )
 
-func getEducationViaPasswordRequest(ctx *gin.Context) (*education, error) {
+func getEducationViaPasswordRequest(ctx *gin.Context) (*Education, error) {
 	password := ctx.Query("password")
 	if password == "" {
 		return nil, errors.New("provide all params")
 	}
 
-	var confirmedEducation *education
+	var confirmedEducation *Education
 
 	for _, edu := range Educations {
-		if edu.password == password {
+		if edu.Password == password {
 			confirmedEducation = edu
 			break
 		}
@@ -28,22 +29,22 @@ func getEducationViaPasswordRequest(ctx *gin.Context) (*education, error) {
 	return confirmedEducation, nil
 }
 
-func stopPrimaryCron(ctx *gin.Context) {
+func StopPrimaryCron(ctx *gin.Context) {
 	edu, err := getEducationViaPasswordRequest(ctx)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
-	edu.primaryCron.Stop()
+	edu.PrimaryCron.Stop()
 	edu.LaunchPrimaryCron = false
 }
 
-func launchPrimaryCron(ctx *gin.Context) {
+func LaunchPrimaryCron(ctx *gin.Context) {
 	edu, err := getEducationViaPasswordRequest(ctx)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
-	edu.primaryCron.Start()
+	edu.PrimaryCron.Start()
 	edu.LaunchPrimaryCron = true
 }

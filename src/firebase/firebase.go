@@ -1,4 +1,4 @@
-package main
+package firebase
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 
 var firebaseApp *firebase.App
 
-func sendNotification(topic string, title string, body string, url string) {
+func SendNotification(topic string, title string, body string, url string) {
 	ctx := context.Background()
 	client, err := firebaseApp.Messaging(ctx)
 	if err != nil {
@@ -34,7 +34,7 @@ func sendNotification(topic string, title string, body string, url string) {
 	log.Println(topic, response)
 }
 
-func initFirebaseApp() {
+func InitFirebaseApp() {
 	opt := option.WithCredentialsFile("credentials_firebase.json")
 	var err error
 	firebaseApp, err = firebase.NewApp(context.Background(), nil, opt)

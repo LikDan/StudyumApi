@@ -1,28 +1,30 @@
-package main
+package parser
 
 import (
 	htmlParser "github.com/PuerkitoBio/goquery"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"strings"
+	h "studyium/api"
+	"studyium/api/schedule"
 	"time"
 )
 
-var KBP = education{
-	id:                               0,
+var KBP = Education{
+	Id:                               0,
 	ScheduleUpdateCronPattern:        "@every 30m",
 	PrimaryScheduleUpdateCronPattern: "@every 5m",
 	PrimaryCronStartTimePattern:      "0 0 11 * * MON-FRI",
-	scheduleUpdate:                   UpdateScheduleKbp,
-	scheduleStatesUpdate:             UpdateStateKbp,
-	scheduleAvailableTypeUpdate:      UpdateAccessibleTypesKbp,
+	ScheduleUpdate:                   UpdateScheduleKbp,
+	ScheduleStatesUpdate:             UpdateStateKbp,
+	ScheduleAvailableTypeUpdate:      UpdateAccessibleTypesKbp,
 	AvailableTypes:                   []string{},
-	States:                           []StateInfo{},
-	password:                         "kbp-corn-pass",
+	States:                           []schedule.StateInfo{},
+	Password:                         "kbp-corn-pass",
 }
 
-func UpdateScheduleKbp(url string, states []StateInfo, oldStates []StateInfo, isGeneral bool) []SubjectFull {
+func UpdateScheduleKbp(url string, states []schedule.StateInfo, oldStates []schedule.StateInfo, isGeneral bool) []schedule.SubjectFull {
 	document, err := htmlParser.NewDocument("http://kbp.by/rasp/timetable/view_beta_kbp/" + url)
-	checkError(err)
+	h.CheckError(err)
 
 	time_ := time.Now().AddDate(0, 0, -int(time.Now().Weekday())).Round(0)
 
@@ -31,7 +33,7 @@ func UpdateScheduleKbp(url string, states []StateInfo, oldStates []StateInfo, is
 		return nil
 	}
 
-	var subjects []SubjectFull
+	var subjects []schedule.SubjectFull
 
 	weeks.Each(func(tableIndex int, table *htmlParser.Selection) {
 		var weekIndex int
@@ -60,7 +62,7 @@ func UpdateScheduleKbp(url string, states []StateInfo, oldStates []StateInfo, is
 
 					if div.HasClass("added") {
 						type_ = "ADDED"
-					} else if div.HasClass("removed") && states[tableIndex*6+columnIndex].State == Updated {
+					} else if div.HasClass("removed") && states[tableIndex*6+columnIndex].State == schedule.Updated {
 						type_ = "REMOVED"
 					} else {
 						type_ = "STAY"
@@ -71,7 +73,7 @@ func UpdateScheduleKbp(url string, states []StateInfo, oldStates []StateInfo, is
 							return
 						}
 
-						subject := SubjectFull{
+						subject := schedule.SubjectFull{
 							Id:               primitive.NewObjectID(),
 							Subject:          div.Find(".subject").Text(),
 							Teacher:          teacherDiv.Text(),
@@ -85,7 +87,7 @@ func UpdateScheduleKbp(url string, states []StateInfo, oldStates []StateInfo, is
 							Date:             time_,
 						}
 
-						if (!isGeneral && states[tableIndex*6+columnIndex].State == Updated && oldStates[tableIndex*6+columnIndex].State == NotUpdated) || (isGeneral && type_ != "ADDED") {
+						if (!isGeneral && states[tableIndex*6+columnIndex].State == schedule.Updated && oldStates[tableIndex*6+columnIndex].State == schedule.NotUpdated) || (isGeneral && type_ != "ADDED") {
 							subjects = append(subjects, subject)
 						}
 					})
@@ -99,11 +101,11 @@ func UpdateScheduleKbp(url string, states []StateInfo, oldStates []StateInfo, is
 	return subjects
 }
 
-func UpdateStateKbp(url string) []StateInfo {
+func UpdateStateKbp(url string) []schedule.StateInfo {
 	document, err := htmlParser.NewDocument("http://kbp.by/rasp/timetable/view_beta_kbp/" + url)
-	checkError(err)
+	h.CheckError(err)
 
-	var states []StateInfo
+	var states []schedule.StateInfo
 
 	document.Find(".zamena").Each(func(trIndex int, tr *htmlParser.Selection) {
 		tr.Find("th").Each(func(thIndex int, th *htmlParser.Selection) {
@@ -111,7 +113,7 @@ func UpdateStateKbp(url string) []StateInfo {
 				return
 			}
 
-			stateInfo := StateInfo{
+			stateInfo := schedule.StateInfo{
 				WeekIndex:    trIndex,
 				DayIndex:     thIndex - 1,
 				StudyPlaceId: 0,
@@ -119,9 +121,9 @@ func UpdateStateKbp(url string) []StateInfo {
 
 			state := strings.Trim(th.Text(), "\n\t ")
 			if state == "" {
-				stateInfo.State = NotUpdated
+				stateInfo.State = schedule.NotUpdated
 			} else {
-				stateInfo.State = Updated
+				stateInfo.State = schedule.Updated
 			}
 
 			states = append(states, stateInfo)
@@ -134,7 +136,7 @@ func UpdateStateKbp(url string) []StateInfo {
 func UpdateAccessibleTypesKbp() []string {
 	var urls []string
 	document, err := htmlParser.NewDocument("https://kbp.by/rasp/timetable/view_beta_kbp/?q=")
-	checkError(err)
+	h.CheckError(err)
 
 	document.Find(".block_back").Find("div").Each(func(ix int, div *htmlParser.Selection) {
 		if div.Find("span").Text() == "группа" {

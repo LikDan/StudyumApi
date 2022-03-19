@@ -1,4 +1,4 @@
-package main
+package schedule
 
 import (
 	"fmt"
@@ -8,11 +8,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"strconv"
 	"strings"
+	h "studyium/api"
+	userApi "studyium/api/user"
+	"studyium/db"
 	"time"
 )
 
 func getSchedule(ctx *gin.Context) {
-	user, err := getUserFromDbViaCookies(ctx)
+	user, err := userApi.GetUserFromDbViaCookies(ctx)
 
 	type_ := ctx.Query("type")
 	name := ctx.Query("name")
@@ -31,39 +34,39 @@ func getSchedule(ctx *gin.Context) {
 	}
 
 	if type_ == "" || name == "" || studyPlaceIdStr == "" {
-		errorMessage(ctx, "not authorized")
+		h.ErrorMessage(ctx, "not authorized")
 		return
 	}
 
 	educationPlaceId, err := strconv.Atoi(studyPlaceIdStr)
-	if checkError(err) {
-		errorMessage(ctx, "not valid params")
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, "not valid params")
 		return
 	}
 
 	var studyPlace StudyPlace
 
-	err = studyPlacesCollection.FindOne(nil, bson.M{"_id": educationPlaceId}).Decode(&studyPlace)
-	if checkError(err) {
+	err = db.StudyPlacesCollection.FindOne(nil, bson.M{"_id": educationPlaceId}).Decode(&studyPlace)
+	if h.CheckError(err) {
 		return
 	}
 
-	stateCursor, err := stateCollection.Find(
+	stateCursor, err := db.StateCollection.Find(
 		nil,
 		bson.D{{"educationPlaceId", educationPlaceId}},
 		options.Find().SetSort(bson.D{{"weekIndex", 1}, {"dayIndex", 1}}),
 	)
-	checkError(err)
+	h.CheckError(err)
 
 	var states []StateInfo
 	err = stateCursor.All(nil, &states)
-	if checkError(err) {
+	if h.CheckError(err) {
 		return
 	}
 
-	startDate := Date().AddDate(0, 0, 1-int(time.Now().Weekday()))
+	startDate := h.Date().AddDate(0, 0, 1-int(time.Now().Weekday()))
 
-	lessonsCursor, err := subjectsCollection.Aggregate(nil, mongo.Pipeline{
+	lessonsCursor, err := db.SubjectsCollection.Aggregate(nil, mongo.Pipeline{
 		bson.D{{"$match", bson.M{"date": bson.M{"$gte": startDate}, type_: name, "educationPlaceId": educationPlaceId}}},
 		bson.D{{"$group", bson.M{
 			"_id":         bson.M{"$sum": bson.A{bson.M{"$multiply": bson.A{"$weekIndex", studyPlace.DaysQuantity, studyPlace.SubjectsQuantity}}, bson.M{"$multiply": bson.A{"$columnIndex", studyPlace.SubjectsQuantity}}, "$rowIndex"}},
@@ -76,14 +79,14 @@ func getSchedule(ctx *gin.Context) {
 		bson.D{{"$sort", bson.M{"_id": 1}}},
 	})
 
-	if checkError(err) {
+	if h.CheckError(err) {
 		return
 	}
 
 	var lessons []*Lesson
 
 	err = lessonsCursor.All(nil, &lessons)
-	if checkError(err) {
+	if h.CheckError(err) {
 		return
 	}
 
@@ -92,7 +95,7 @@ func getSchedule(ctx *gin.Context) {
 	_, currentWeekIndex := time.Now().ISOWeek()
 	currentWeekIndex %= studyPlace.WeeksQuantity
 
-	lessonsCursor, err = generalSubjectsCollection.Aggregate(nil, mongo.Pipeline{
+	lessonsCursor, err = db.GeneralSubjectsCollection.Aggregate(nil, mongo.Pipeline{
 		bson.D{{"$match", bson.M{type_: name, "educationPlaceId": educationPlaceId, "$or": bson.A{bson.M{"weekIndex": bson.M{"$ne": currentWeekIndex}}, bson.M{"$and": bson.A{bson.M{"weekIndex": bson.M{"$eq": lastLesson.WeekIndex}}, bson.M{"columnIndex": bson.M{"$gt": lastLesson.ColumnIndex}}}}}}}},
 		bson.D{{"$group", bson.M{
 			"_id":         bson.M{"$sum": bson.A{bson.M{"$multiply": bson.A{"$weekIndex", studyPlace.DaysQuantity, studyPlace.SubjectsQuantity}}, bson.M{"$multiply": bson.A{"$columnIndex", studyPlace.SubjectsQuantity}}, "$rowIndex"}},
@@ -104,13 +107,13 @@ func getSchedule(ctx *gin.Context) {
 		}}},
 		bson.D{{"$sort", bson.M{"_id": 1}}},
 	})
-	if checkError(err) {
+	if h.CheckError(err) {
 		return
 	}
 
 	var generalLessons []*Lesson
 	err = lessonsCursor.All(nil, &generalLessons)
-	if checkError(err) {
+	if h.CheckError(err) {
 		return
 	}
 
@@ -168,16 +171,16 @@ func getScheduleTypes(ctx *gin.Context) {
 
 	educationPlaceIdStr := ctx.Query("studyPlaceId")
 	if educationPlaceIdStr == "" {
-		errorMessage(ctx, "provide all params")
+		h.ErrorMessage(ctx, "provide all params")
 		return
 	}
 
 	educationPlaceId, err := strconv.Atoi(educationPlaceIdStr)
-	checkError(err)
+	h.CheckError(err)
 
 	var toJson = func(type_ string) {
 		var filter = bson.D{{type_, bson.D{{"$not", bson.D{{"$eq", ""}}}}}, {"educationPlaceId", bson.D{{"$eq", educationPlaceId}}}}
-		types, _ := subjectsCollection.Distinct(nil, type_, filter)
+		types, _ := db.SubjectsCollection.Distinct(nil, type_, filter)
 
 		for _, response := range types {
 			res = append(res, "{\"type\": \""+type_+"\", \"name\": \""+response.(string)+"\"}")
@@ -190,15 +193,27 @@ func getScheduleTypes(ctx *gin.Context) {
 	toJson("subject")
 
 	_, err = fmt.Fprintf(ctx.Writer, "[%s]", strings.Join(res, ", "))
-	checkError(err)
+	h.CheckError(err)
 }
+
+func BuildRequests(api *gin.RouterGroup, api2 *gin.RouterGroup) {
+	api.GET("", getSchedule)
+	api.GET("/types", getScheduleTypes)
+	//todo api.GET("/update", updateSchedule)
+
+	api2.GET("/studyPlaces", getStudyPlaces)
+}
+
+//todo
+/*
 
 func updateSchedule(ctx *gin.Context) {
 	edu, err := getEducationViaPasswordRequest(ctx)
-	if checkError(err) {
-		errorMessage(ctx, err.Error())
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
 	UpdateDbSchedule(edu)
 }
+*/

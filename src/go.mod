@@ -1,4 +1,4 @@
-module awe
+module studyium
 
 go 1.18
 
