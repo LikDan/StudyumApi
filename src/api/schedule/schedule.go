@@ -183,7 +183,7 @@ func getScheduleTypes(ctx *gin.Context) {
 		types, _ := db.SubjectsCollection.Distinct(nil, type_, filter)
 
 		for _, response := range types {
-			res = append(res, "{\"type\": \""+type_+"\", \"name\": \""+response.(string)+"\"}")
+			res = append(res, "{\"type\": \""+type_+"\",\"name\": \""+response.(string)+"\"}")
 		}
 	}
 
@@ -199,21 +199,6 @@ func getScheduleTypes(ctx *gin.Context) {
 func BuildRequests(api *gin.RouterGroup, api2 *gin.RouterGroup) {
 	api.GET("", getSchedule)
 	api.GET("/types", getScheduleTypes)
-	//todo api.GET("/update", updateSchedule)
 
 	api2.GET("/studyPlaces", getStudyPlaces)
 }
-
-//todo
-/*
-
-func updateSchedule(ctx *gin.Context) {
-	edu, err := getEducationViaPasswordRequest(ctx)
-	if h.CheckError(err) {
-		h.ErrorMessage(ctx, err.Error())
-		return
-	}
-
-	UpdateDbSchedule(edu)
-}
-*/
