@@ -1,4 +1,4 @@
-package parser
+package studyPlace
 
 import (
 	"github.com/gin-gonic/gin"
