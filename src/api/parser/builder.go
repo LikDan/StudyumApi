@@ -19,6 +19,7 @@ import (
 var Educations = [1]*studyPlace.Education{&app.KBP}
 
 func UpdateDbSchedule(edu *studyPlace.Education) {
+	return //only for dev
 	lastStates := edu.States
 	send := !h.EqualStateInfo(edu.States, edu.ScheduleStatesUpdate(edu.AvailableTypes[0]))
 	edu.AvailableTypes = edu.ScheduleAvailableTypeUpdate()
