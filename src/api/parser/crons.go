@@ -8,7 +8,7 @@ import (
 	"studyium/api/parser/studyPlace"
 )
 
-func getEducationViaPasswordRequest(ctx *gin.Context) (*studyPlace.Education, error) {
+func GetEducationViaPasswordRequest(ctx *gin.Context) (*studyPlace.Education, error) {
 	password := ctx.Query("password")
 	if password == "" {
 		return nil, errors.New("provide all params")
@@ -31,7 +31,7 @@ func getEducationViaPasswordRequest(ctx *gin.Context) (*studyPlace.Education, er
 }
 
 func StopPrimaryCron(ctx *gin.Context) {
-	edu, err := getEducationViaPasswordRequest(ctx)
+	edu, err := GetEducationViaPasswordRequest(ctx)
 	if h.CheckError(err) {
 		h.ErrorMessage(ctx, err.Error())
 		return
@@ -41,7 +41,7 @@ func StopPrimaryCron(ctx *gin.Context) {
 }
 
 func LaunchPrimaryCron(ctx *gin.Context) {
-	edu, err := getEducationViaPasswordRequest(ctx)
+	edu, err := GetEducationViaPasswordRequest(ctx)
 	if h.CheckError(err) {
 		h.ErrorMessage(ctx, err.Error())
 		return

@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func GetTeacherJournalSubjects(ctx *gin.Context) {
+func getTeacherJournalSubjects(ctx *gin.Context) {
 	user, err := userApi.GetUserFromDbViaCookies(ctx)
 	if h.CheckError(err) {
 		h.ErrorMessage(ctx, err.Error())
@@ -39,7 +39,7 @@ func GetTeacherJournalSubjects(ctx *gin.Context) {
 	ctx.JSON(200, subjects)
 }
 
-func GetTeacherJournalTypes(ctx *gin.Context) {
+func getTeacherJournalTypes(ctx *gin.Context) {
 	user, err := userApi.GetUserFromDbViaCookies(ctx)
 	if h.CheckError(err) {
 		h.ErrorMessage(ctx, err.Error())
@@ -78,7 +78,7 @@ func GetTeacherJournalTypes(ctx *gin.Context) {
 	ctx.JSON(200, types)
 }
 
-func AddMark(ctx *gin.Context) {
+func addMark(ctx *gin.Context) {
 	user, err := userApi.GetUserFromDbViaCookies(ctx)
 	if h.CheckError(err) {
 		h.ErrorMessage(ctx, err.Error())
@@ -135,7 +135,7 @@ func AddMark(ctx *gin.Context) {
 	ctx.JSON(200, marks[0])
 }
 
-func GetMark(ctx *gin.Context) {
+func getMark(ctx *gin.Context) {
 	user, err := userApi.GetUserFromDbViaCookies(ctx)
 	if h.CheckError(err) {
 		h.ErrorMessage(ctx, err.Error())
@@ -163,7 +163,7 @@ func GetMark(ctx *gin.Context) {
 	ctx.JSON(200, marks)
 }
 
-func EditMark(ctx *gin.Context) {
+func editMark(ctx *gin.Context) {
 	user, err := userApi.GetUserFromDbViaCookies(ctx)
 	if h.CheckError(err) {
 		h.ErrorMessage(ctx, err.Error())
@@ -219,7 +219,7 @@ func EditMark(ctx *gin.Context) {
 	ctx.JSON(200, marks[0])
 }
 
-func RemoveMark(ctx *gin.Context) {
+func removeMark(ctx *gin.Context) {
 	user, err := userApi.GetUserFromDbViaCookies(ctx)
 	if h.CheckError(err) {
 		h.ErrorMessage(ctx, err.Error())
@@ -274,7 +274,7 @@ func RemoveMark(ctx *gin.Context) {
 	ctx.JSON(200, marks[0])
 }
 
-func GetGroupMembers(ctx *gin.Context) {
+func getGroupMembers(ctx *gin.Context) {
 	user, err := userApi.GetUserFromDbViaCookies(ctx)
 	if h.CheckError(err) {
 		h.ErrorMessage(ctx, err.Error())
@@ -303,7 +303,7 @@ func GetGroupMembers(ctx *gin.Context) {
 	ctx.JSON(200, members)
 }
 
-func EditInfo(ctx *gin.Context) {
+func editInfo(ctx *gin.Context) {
 	user, err := userApi.GetUserFromDbViaCookies(ctx)
 	if h.CheckError(err) {
 		h.ErrorMessage(ctx, err.Error())
@@ -430,4 +430,17 @@ func getLesson(lessonId *primitive.ObjectID) (*schedule.SubjectFull, error) {
 	}
 
 	return &subject, nil
+}
+
+func BuildRequests(api *gin.RouterGroup) {
+	api.GET("/types", getTeacherJournalTypes)
+	api.GET("/dates", getTeacherJournalSubjects)
+	api.GET("/groupMembers", getGroupMembers)
+
+	api.GET("/addMark", addMark)
+	api.GET("/getMark", getMark)
+	api.GET("/editMark", editMark)
+	api.GET("/removeMark", removeMark)
+
+	api.GET("/editInfo", editInfo)
 }
