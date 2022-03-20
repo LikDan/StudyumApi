@@ -1,15 +1,16 @@
-package parser
+package app
 
 import (
 	htmlParser "github.com/PuerkitoBio/goquery"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"strings"
 	h "studyium/api"
+	"studyium/api/parser/studyPlace"
 	"studyium/api/schedule"
 	"time"
 )
 
-var KBP = Education{
+var KBP = studyPlace.Education{
 	Id:                               0,
 	ScheduleUpdateCronPattern:        "@every 30m",
 	PrimaryScheduleUpdateCronPattern: "@every 5m",

@@ -8,15 +8,17 @@ import (
 	"log"
 	"strconv"
 	h "studyium/api"
+	"studyium/api/parser/app"
+	"studyium/api/parser/studyPlace"
 	"studyium/api/schedule"
 	"studyium/db"
 	"studyium/firebase"
 	"time"
 )
 
-var Educations = [1]*Education{&KBP}
+var Educations = [1]*studyPlace.Education{&app.KBP}
 
-func UpdateDbSchedule(edu *Education) {
+func UpdateDbSchedule(edu *studyPlace.Education) {
 	lastStates := edu.States
 	send := !h.EqualStateInfo(edu.States, edu.ScheduleStatesUpdate(edu.AvailableTypes[0]))
 	edu.AvailableTypes = edu.ScheduleAvailableTypeUpdate()

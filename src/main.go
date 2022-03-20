@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"log"
 	"studyium/api/journal"
 	"studyium/api/parser"
 	"studyium/api/schedule"
@@ -12,7 +13,7 @@ import (
 )
 
 func indexHandler(ctx *gin.Context) {
-	message(ctx, "message", "hi", 200)
+	ctx.JSON(200, gin.H{"message": "hi"})
 }
 
 func main() {
@@ -54,5 +55,7 @@ func main() {
 	journalTeacherGroup.GET("/editInfo", journal.EditInfo)
 
 	err := r.Run()
-	CheckError(err)
+	if err != nil {
+		log.Fatalf("Error launching server %s", err.Error())
+	}
 }
