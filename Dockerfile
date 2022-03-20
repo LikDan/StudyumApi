@@ -1,11 +1,9 @@
-FROM golang:1.17 as builder
+FROM golang:1.18 as builder
 
 WORKDIR /app
 
-COPY go.* ./
+COPY src ./
 RUN go mod download
-
-COPY .. ./
 
 RUN CGO_ENABLED=0 GOOS=linux go build -mod=readonly -v -o server
 
