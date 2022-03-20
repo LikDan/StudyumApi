@@ -1,7 +1,6 @@
 package schedule
 
 import (
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
@@ -21,17 +20,4 @@ type SubjectFull struct {
 	Homework         string             `json:"homework"`
 	SmallDescription string             `json:"smallDescription"`
 	Description      string             `json:"description"`
-}
-
-func subjectToBsonWithoutType(subject SubjectFull) bson.D {
-	return bson.D{
-		{"columnIndex", subject.ColumnIndex},
-		{"rowIndex", subject.RowIndex},
-		{"weekIndex", subject.WeekIndex},
-		{"subject", subject.Subject},
-		{"teacher", subject.Teacher},
-		{"group", subject.Group},
-		{"room", subject.Room},
-		{"educationPlaceId", subject.EducationPlaceId},
-	}
 }

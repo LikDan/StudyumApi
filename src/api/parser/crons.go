@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	h "studyium/api"
+	"studyium/api/parser/studyPlace"
 )
 
-func getEducationViaPasswordRequest(ctx *gin.Context) (*Education, error) {
+func getEducationViaPasswordRequest(ctx *gin.Context) (*studyPlace.Education, error) {
 	password := ctx.Query("password")
 	if password == "" {
 		return nil, errors.New("provide all params")
 	}
 
-	var confirmedEducation *Education
+	var confirmedEducation *studyPlace.Education
 
 	for _, edu := range Educations {
 		if edu.Password == password {
