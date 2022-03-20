@@ -33,26 +33,16 @@ func main() {
 	userGroup := api.Group("/user")
 	journalGroup := api.Group("/journal")
 	scheduleGroup := api.Group("/schedule")
+	journalTeacherGroup := journalGroup.Group("/teachers")
 
 	user.BuildRequests(userGroup)
 	schedule.BuildRequests(scheduleGroup, api)
+	journal.BuildRequests(journalTeacherGroup)
 
 	api.GET("/stopPrimaryUpdates", parser.StopPrimaryCron)
 	api.GET("/launchPrimaryUpdates", parser.LaunchPrimaryCron)
-
 	api.GET("/info", parser.GetInfo)
-
-	journalTeacherGroup := journalGroup.Group("/teachers")
-	journalTeacherGroup.GET("/types", journal.GetTeacherJournalTypes)
-	journalTeacherGroup.GET("/dates", journal.GetTeacherJournalSubjects)
-	journalTeacherGroup.GET("/groupMembers", journal.GetGroupMembers)
-
-	journalTeacherGroup.GET("/addMark", journal.AddMark)
-	journalTeacherGroup.GET("/getMark", journal.GetMark)
-	journalTeacherGroup.GET("/editMark", journal.EditMark)
-	journalTeacherGroup.GET("/removeMark", journal.RemoveMark)
-
-	journalTeacherGroup.GET("/editInfo", journal.EditInfo)
+	scheduleGroup.GET("/update", parser.UpdateSchedule)
 
 	err := r.Run()
 	if err != nil {

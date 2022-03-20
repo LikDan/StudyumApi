@@ -1,32 +1,29 @@
 package schedule
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
-	"strconv"
-	"strings"
 	h "studyium/api"
 	"studyium/db"
 )
 
 type StudyPlace struct {
-	Id               int32  `bson:"_id"`
-	WeeksQuantity    int    `bson:"weeksCount"`
-	DaysQuantity     int    `bson:"daysCount"`
-	SubjectsQuantity int    `bson:"subjectsCount"`
-	Name             string `bson:"name"`
+	Id               int32  `json:"id" bson:"_id"`
+	WeeksQuantity    int    `json:"weeksQuantity" bson:"weeksCount"`
+	DaysQuantity     int    `json:"daysQuantity" bson:"daysCount"`
+	SubjectsQuantity int    `json:"subjectsQuantity" bson:"subjectsCount"`
+	Name             string `json:"name" bson:"name"`
 }
 
 func getStudyPlaces(ctx *gin.Context) {
-	var res []string
+	var places []StudyPlace
 
 	types, _ := db.StudyPlacesCollection.Find(nil, bson.D{})
-
-	for types.TryNext(nil) {
-		res = append(res, "{ \"id\": "+strconv.Itoa(int(types.Current.Lookup("_id").Int32()))+", \"name\": \""+types.Current.Lookup("name").StringValue()+"\"}")
+	err := types.All(nil, &places)
+	if h.CheckError(err) {
+		h.ErrorMessage(ctx, err.Error())
+		return
 	}
 
-	_, err := fmt.Fprintf(ctx.Writer, "[%s]", strings.Join(res, ", "))
-	h.CheckError(err)
+	ctx.JSON(200, places)
 }
