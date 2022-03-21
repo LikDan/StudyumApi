@@ -175,8 +175,9 @@ func BuildRequests(api *gin.RouterGroup) {
 
 	api.GET("/login", loginUser)
 	api.GET("/logout", logoutUser)
-	api.GET("/edit", editUser)
-	api.GET("/create", createUser)
-	api.GET("/delete", deleteUser)
+
+	api.PUT("/edit", editUser)
+	api.POST("/create", createUser)
+	api.DELETE("/delete", deleteUser)
 	api.GET("/getLogin", getLogin)
 }
