@@ -437,10 +437,10 @@ func BuildRequests(api *gin.RouterGroup) {
 	api.GET("/dates", getTeacherJournalSubjects)
 	api.GET("/groupMembers", getGroupMembers)
 
-	api.GET("/addMark", addMark)
-	api.GET("/getMark", getMark)
-	api.GET("/editMark", editMark)
-	api.GET("/removeMark", removeMark)
+	api.POST("/mark", addMark)
+	api.GET("/mark", getMark)
+	api.PUT("/mark", editMark)
+	api.DELETE("/mark", removeMark)
 
 	api.GET("/editInfo", editInfo)
 }
