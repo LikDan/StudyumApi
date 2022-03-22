@@ -1,10 +1,12 @@
 package api
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"io"
 	"log"
 	"reflect"
 	"time"
@@ -91,4 +93,22 @@ func checkNotEmpty(strings ...string) bool {
 		}
 	}
 	return true
+}
+
+func DecodeJsonLines[T any](r io.Reader, results *[]T) {
+	d := json.NewDecoder(r)
+
+	for {
+		var l T
+		err := d.Decode(&l)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			print(err.Error())
+			continue
+		}
+
+		*results = append(*results, l)
+	}
 }
