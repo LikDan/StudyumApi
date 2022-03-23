@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"github.com/robfig/cron"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
@@ -19,8 +20,10 @@ import (
 var Educations = [1]*studyPlace.Education{&app.KBP}
 
 func UpdateDbSchedule(edu *studyPlace.Education) {
+	logrus.Infof("Update schedule for %s", edu.Name)
 	lastStates := edu.States
 	send := !h.EqualStateInfo(edu.States, edu.ScheduleStatesUpdate(edu.AvailableTypes[0]))
+	logrus.Info("Updated with notification")
 	edu.AvailableTypes = edu.ScheduleAvailableTypeUpdate()
 	edu.States = edu.ScheduleStatesUpdate(edu.AvailableTypes[0])
 	var subjects []schedule.SubjectFull
@@ -96,6 +99,7 @@ func Launch() {
 
 		edu.PrimaryCron.AddFunc(edu.PrimaryScheduleUpdateCronPattern, func() {
 			if !h.EqualStateInfo(edu.States, edu.ScheduleStatesUpdate(edu.AvailableTypes[0])) {
+				logrus.Info("Updated from primary cron (and stop it)")
 				UpdateDbSchedule(edu)
 				edu.PrimaryCron.Stop()
 			} else {
@@ -110,6 +114,7 @@ func Launch() {
 				return
 			}
 
+			logrus.Info("Start primary cron")
 			edu.PrimaryCron.Start()
 		})
 		edu.GeneralCron.Start()

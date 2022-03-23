@@ -4,6 +4,7 @@ import (
 	"context"
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/api/option"
 	"log"
 )
@@ -11,6 +12,8 @@ import (
 var firebaseApp *firebase.App
 
 func SendNotification(topic string, title string, body string, url string) {
+	logrus.Info("Send notification")
+
 	ctx := context.Background()
 	client, err := firebaseApp.Messaging(ctx)
 	if err != nil {
