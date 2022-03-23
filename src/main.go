@@ -25,9 +25,12 @@ func main() {
 	firebase.InitFirebaseApp()
 	parser.Launch()
 
+	logApi.InitLog()
+
 	r := gin.Default()
 
 	r.GET("/api", indexHandler)
+	defer logApi.CloseLogFile()
 
 	api := r.Group("/api")
 
@@ -48,45 +51,10 @@ func main() {
 	api.GET("/info", parser.GetInfo)
 	scheduleGroup.GET("/update", parser.UpdateSchedule)
 
+	log.Info("Application launched")
+
 	err := r.Run()
 	if err != nil {
 		log.Fatalf("Error launching server %s", err.Error())
 	}
 }
-
-/*func main() {
-	log.SetFormatter(&log.JSONFormatter{})
-
-	f, err := os.OpenFile("testlogfile.jsonl", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
-	}
-	defer f.Close()
-
-	log.SetOutput(f)
-
-	log.Info("succeeded")
-	log.Warn("not correct")
-	log.Error("something error")
-
-	// A common pattern is to re-use fields between logging statements by re-using
-	// the log.Entry returned from WithFields()
-	contextLogger := log.WithFields(log.Fields{
-		"common": "this is a common field",
-		"other":  "I also should be logged always",
-	})
-
-	contextLogger.Info("I'll be logged with common and other field")
-	contextLogger.Info("Me too")
-
-	log.Trace("Something very low level.")
-	log.Debug("Useful debugging information.")
-	log.Info("Something noteworthy happened!")
-	log.Warn("You should probably take a look at this.")
-	log.Error("Something failed but I'm not quitting.")
-	// Calls os.Exit(1) after logging
-	log.Fatal("Bye.")
-	// Calls panic() after logging
-	log.Panic("I'm bailing.")
-}
-*/
