@@ -2,6 +2,7 @@ package log
 
 import (
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 	"os"
 	h "studyium/api"
 	"time"
@@ -13,13 +14,12 @@ type Log struct {
 	Time  time.Time `json:"time" time_format:"2006-01-02"`
 }
 
-func getLog(ctx *gin.Context) {
-	startTime, sErr := time.Parse("2006-01-02T15:04:05", ctx.Query("startTime"))
-	endTime, eErr := time.Parse("2006-01-02T15:04:05", ctx.Query("endTime"))
+var logFile *os.File
+var ginWriter *GinWriter
 
-	if sErr != nil || eErr != nil {
-		print("error")
-	}
+func getLog(ctx *gin.Context) {
+	startTime, _ := time.Parse("2006-01-02T15:04:05", ctx.Query("startTime"))
+	endTime, _ := time.Parse("2006-01-02T15:04:05", ctx.Query("endTime"))
 
 	if !startTime.IsZero() {
 		startTime = startTime.Add(time.Hour * -3)
@@ -28,7 +28,7 @@ func getLog(ctx *gin.Context) {
 		endTime = endTime.Add(time.Hour * -3)
 	}
 
-	r, err := os.Open("logs.jsonl")
+	r, err := os.Open(logFile.Name())
 	if err != nil {
 		print(err.Error())
 	}
@@ -46,15 +46,50 @@ func getLog(ctx *gin.Context) {
 	ctx.JSON(200, logs)
 }
 
-func deleteLog(ctx *gin.Context) {
-	err := os.Remove("log.jsonl")
-	if err != nil {
-		return
+func deleteLog(*gin.Context) {
+	CloseLogFile()
+
+	file, err := os.OpenFile("logs.jsonl", os.O_RDWR|os.O_CREATE|os.O_APPEND|os.O_TRUNC, 0666)
+	if !h.CheckError(err) {
+		logFile = file
+		log.SetOutput(file)
+	}
+
+	file, err = os.OpenFile("requests.jsonl", os.O_RDWR|os.O_CREATE|os.O_APPEND|os.O_TRUNC, 0666)
+	if !h.CheckError(err) {
+		ginWriter.File = file
+	}
+
+	log.Warning("Logs has been truncated")
+}
+
+func CloseLogFile() {
+	log.Warning("Application closed")
+	_ = logFile.Close()
+	_ = ginWriter.File.Close()
+}
+
+func InitLog() {
+	log.SetFormatter(&log.JSONFormatter{})
+	file, err := os.OpenFile("logs.jsonl", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if !h.CheckError(err) {
+		logFile = file
+		log.SetOutput(file)
+	}
+
+	file, err = os.OpenFile("requests.jsonl", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if !h.CheckError(err) {
+		ginWriter = &GinWriter{
+			File: file,
+		}
+
+		gin.DefaultWriter = ginWriter
 	}
 }
 
 func BuildRequests(api *gin.RouterGroup) {
 	api.GET("", getLog)
-
 	api.DELETE("", deleteLog)
+
+	api.GET("/requests", getRequests)
 }

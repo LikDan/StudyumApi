@@ -4,17 +4,17 @@ import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
-	"log"
 	"reflect"
 	"time"
 )
 
 func CheckError(err error) bool {
 	if err != nil {
-		log.Println(err)
+		logrus.Warning(err)
 		return true
 	}
 	return false
