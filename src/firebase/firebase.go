@@ -34,7 +34,7 @@ func SendNotification(topic string, title string, body string, url string) {
 		log.Fatalln(err)
 	}
 
-	log.Println(topic, response)
+	logrus.Info(topic, response)
 }
 
 func InitFirebaseApp() {
@@ -42,6 +42,6 @@ func InitFirebaseApp() {
 	var err error
 	firebaseApp, err = firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
-		log.Fatalf("error initializing firebaseApp: %v\n", err)
+		logrus.Errorf("error initializing firebaseApp: %v", err)
 	}
 }
