@@ -39,7 +39,7 @@ func getSchedule(ctx *gin.Context) {
 	}
 
 	educationPlaceId, err := strconv.Atoi(studyPlaceIdStr)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, "not valid params")
 		return
 	}
@@ -47,7 +47,7 @@ func getSchedule(ctx *gin.Context) {
 	var studyPlace StudyPlace
 
 	err = db.StudyPlacesCollection.FindOne(nil, bson.M{"_id": educationPlaceId}).Decode(&studyPlace)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		return
 	}
 
@@ -56,11 +56,11 @@ func getSchedule(ctx *gin.Context) {
 		bson.D{{"educationPlaceId", educationPlaceId}},
 		options.Find().SetSort(bson.D{{"weekIndex", 1}, {"dayIndex", 1}}),
 	)
-	h.CheckError(err)
+	h.CheckError(err, h.WARNING)
 
 	var states []StateInfo
 	err = stateCursor.All(nil, &states)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		return
 	}
 
@@ -79,14 +79,14 @@ func getSchedule(ctx *gin.Context) {
 		bson.D{{"$sort", bson.M{"_id": 1}}},
 	})
 
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		return
 	}
 
 	var lessons []*Lesson
 
 	err = lessonsCursor.All(nil, &lessons)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		return
 	}
 
@@ -107,13 +107,13 @@ func getSchedule(ctx *gin.Context) {
 		}}},
 		bson.D{{"$sort", bson.M{"_id": 1}}},
 	})
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		return
 	}
 
 	var generalLessons []*Lesson
 	err = lessonsCursor.All(nil, &generalLessons)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		return
 	}
 
@@ -176,7 +176,7 @@ func getScheduleTypes(ctx *gin.Context) {
 	}
 
 	educationPlaceId, err := strconv.Atoi(educationPlaceIdStr)
-	h.CheckError(err)
+	h.CheckError(err, h.UNDEFINED)
 
 	var toJson = func(type_ string) {
 		var filter = bson.D{{type_, bson.D{{"$not", bson.D{{"$eq", ""}}}}}, {"educationPlaceId", bson.D{{"$eq", educationPlaceId}}}}
@@ -193,7 +193,7 @@ func getScheduleTypes(ctx *gin.Context) {
 	toJson("subject")
 
 	_, err = fmt.Fprintf(ctx.Writer, "[%s]", strings.Join(res, ", "))
-	h.CheckError(err)
+	h.CheckError(err, h.WARNING)
 }
 
 func BuildRequests(api *gin.RouterGroup, api2 *gin.RouterGroup) {
