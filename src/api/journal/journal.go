@@ -14,7 +14,7 @@ import (
 
 func getTeacherJournalSubjects(ctx *gin.Context) {
 	user, err := userApi.GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -26,7 +26,7 @@ func getTeacherJournalSubjects(ctx *gin.Context) {
 
 	find, err := db.SubjectsCollection.Find(nil, bson.M{"teacher": user.FullName, "group": group, "subject": subject})
 	err = find.All(nil, &subjects)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -41,20 +41,20 @@ func getTeacherJournalSubjects(ctx *gin.Context) {
 
 func getTeacherJournalTypes(ctx *gin.Context) {
 	user, err := userApi.GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
 	find, err := db.GeneralSubjectsCollection.Find(nil, bson.M{"teacher": user.FullName})
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
 	var subjects []schedule.SubjectFull
 	err = find.All(nil, &subjects)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -80,7 +80,7 @@ func getTeacherJournalTypes(ctx *gin.Context) {
 
 func addMark(ctx *gin.Context) {
 	user, err := userApi.GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -91,7 +91,7 @@ func addMark(ctx *gin.Context) {
 
 	var mark Mark
 	err = ctx.BindJSON(&mark)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -104,7 +104,7 @@ func addMark(ctx *gin.Context) {
 	mark.Id = primitive.NewObjectID()
 
 	_, err = db.MarksCollection.InsertOne(nil, mark)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -120,7 +120,7 @@ func addMark(ctx *gin.Context) {
 
 func getMark(ctx *gin.Context) {
 	user, err := userApi.GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -136,7 +136,7 @@ func getMark(ctx *gin.Context) {
 	}
 
 	userId, err := primitive.ObjectIDFromHex(userIdHex)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -148,7 +148,7 @@ func getMark(ctx *gin.Context) {
 
 func editMark(ctx *gin.Context) {
 	user, err := userApi.GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -159,7 +159,7 @@ func editMark(ctx *gin.Context) {
 
 	var mark Mark
 	err = ctx.BindJSON(&mark)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -170,7 +170,7 @@ func editMark(ctx *gin.Context) {
 	}
 
 	_, err = db.MarksCollection.UpdateOne(nil, bson.M{"_id": mark.Id, "subjectId": mark.SubjectId}, bson.M{"$set": bson.M{"mark": mark.Mark}})
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -186,7 +186,7 @@ func editMark(ctx *gin.Context) {
 
 func removeMark(ctx *gin.Context) {
 	user, err := userApi.GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -205,27 +205,27 @@ func removeMark(ctx *gin.Context) {
 	}
 
 	userId, err := primitive.ObjectIDFromHex(userIdHex)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
 	markObjectId, err := primitive.ObjectIDFromHex(markId)
 
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, "provide valid params")
 		return
 	}
 
 	subjectObjectId, err := primitive.ObjectIDFromHex(subjectId)
 
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, "provide valid params")
 		return
 	}
 
 	_, err = db.MarksCollection.DeleteOne(nil, bson.M{"_id": markObjectId, "subjectId": subjectObjectId})
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -241,7 +241,7 @@ func removeMark(ctx *gin.Context) {
 
 func getGroupMembers(ctx *gin.Context) {
 	user, err := userApi.GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -255,12 +255,12 @@ func getGroupMembers(ctx *gin.Context) {
 	var members []userApi.User
 
 	groupsCursor, err := db.UsersCollection.Find(nil, bson.M{"studyPlaceId": user.StudyPlaceId, "type": "group", "name": group})
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 	err = groupsCursor.All(nil, &members)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -270,7 +270,7 @@ func getGroupMembers(ctx *gin.Context) {
 
 func editInfo(ctx *gin.Context) {
 	user, err := userApi.GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -291,13 +291,13 @@ func editInfo(ctx *gin.Context) {
 	}
 
 	_, err = db.SubjectsCollection.UpdateOne(nil, bson.M{"_id": lessonId}, bson.M{"$set": bson.M{"homework": homework, "smallDescription": smallDescription, "description": description}})
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
 	lesson, err := getLesson(lessonId)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -352,7 +352,7 @@ func getMarksViaId(userId primitive.ObjectID, id primitive.ObjectID) []MarkFull 
 	})
 
 	err = lessonsCursor.All(nil, &marks)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		return marks
 	}
 
@@ -379,7 +379,7 @@ func getMarks(userId primitive.ObjectID, group, teacher, subject string, studyPl
 	})
 
 	err = lessonsCursor.All(nil, &marks)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		return marks
 	}
 

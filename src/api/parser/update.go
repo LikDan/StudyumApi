@@ -7,7 +7,7 @@ import (
 
 func UpdateSchedule(ctx *gin.Context) {
 	edu, err := GetEducationViaPasswordRequest(ctx)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}

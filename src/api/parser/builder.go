@@ -32,11 +32,11 @@ func UpdateDbSchedule(edu *studyPlace.Education) {
 	}
 
 	_, err := db.SubjectsCollection.InsertMany(nil, h.ToInterfaceSlice(subjects))
-	h.CheckError(err)
+	h.CheckError(err, h.WARNING)
 	_, err = db.StateCollection.DeleteMany(nil, bson.M{"educationPlaceId": edu.Id})
-	h.CheckError(err)
+	h.CheckError(err, h.WARNING)
 	_, err = db.StateCollection.InsertMany(nil, h.ToInterfaceSlice(edu.States))
-	h.CheckError(err)
+	h.CheckError(err, h.WARNING)
 
 	edu.LastUpdateTime = time.Now()
 
@@ -45,11 +45,11 @@ func UpdateDbSchedule(edu *studyPlace.Education) {
 		firebase.SendNotification("schedule_update", "Schedule", "Schedule was updated", "")
 
 		lastStatesBytes, err := json.Marshal(lastStates)
-		if h.CheckError(err) {
+		if h.CheckError(err, h.WARNING) {
 			return
 		}
 		currentStatesBytes, err := json.Marshal(edu.States)
-		if h.CheckError(err) {
+		if h.CheckError(err, h.WARNING) {
 			return
 		}
 
@@ -71,7 +71,7 @@ func Launch() {
 			bson.M{"educationPlaceId": edu.Id},
 			options.Find().SetSort(bson.D{{"weekIndex", 1}, {"dayIndex", 1}}),
 		)
-		h.CheckError(err)
+		h.CheckError(err, h.WARNING)
 
 		var states []schedule.StateInfo
 
@@ -125,11 +125,11 @@ func Launch() {
 		}
 
 		_, err = db.GeneralSubjectsCollection.DeleteMany(nil, bson.D{{"educationPlaceId", edu.Id}})
-		if h.CheckError(err) {
+		if h.CheckError(err, h.WARNING) {
 			continue
 		}
 		_, err = db.GeneralSubjectsCollection.InsertMany(nil, h.ToInterfaceSlice(generalSubjects))
-		if h.CheckError(err) {
+		if h.CheckError(err, h.WARNING) {
 			continue
 		}
 	}

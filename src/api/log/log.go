@@ -50,13 +50,13 @@ func deleteLog(*gin.Context) {
 	CloseLogFile()
 
 	file, err := os.OpenFile("logs.jsonl", os.O_RDWR|os.O_CREATE|os.O_APPEND|os.O_TRUNC, 0666)
-	if !h.CheckError(err) {
+	if !h.CheckError(err, h.WARNING) {
 		logFile = file
 		log.SetOutput(file)
 	}
 
 	file, err = os.OpenFile("requests.jsonl", os.O_RDWR|os.O_CREATE|os.O_APPEND|os.O_TRUNC, 0666)
-	if !h.CheckError(err) {
+	if !h.CheckError(err, h.WARNING) {
 		ginWriter.File = file
 	}
 
@@ -72,13 +72,13 @@ func CloseLogFile() {
 func InitLog() {
 	log.SetFormatter(&log.JSONFormatter{})
 	file, err := os.OpenFile("logs.jsonl", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if !h.CheckError(err) {
+	if !h.CheckError(err, h.WARNING) {
 		logFile = file
 		log.SetOutput(file)
 	}
 
 	file, err = os.OpenFile("requests.jsonl", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if !h.CheckError(err) {
+	if !h.CheckError(err, h.WARNING) {
 		ginWriter = &GinWriter{
 			File: file,
 		}

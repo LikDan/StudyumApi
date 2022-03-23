@@ -20,7 +20,7 @@ func getStudyPlaces(ctx *gin.Context) {
 
 	types, _ := db.StudyPlacesCollection.Find(nil, bson.D{})
 	err := types.All(nil, &places)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}

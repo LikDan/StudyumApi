@@ -26,7 +26,7 @@ var KBP = studyPlace.Education{
 
 func UpdateScheduleKbp(url string, states []schedule.StateInfo, oldStates []schedule.StateInfo, isGeneral bool) []schedule.SubjectFull {
 	document, err := htmlParser.NewDocument("http://kbp.by/rasp/timetable/view_beta_kbp/" + url)
-	h.CheckError(err)
+	h.CheckError(err, h.WARNING)
 
 	time_ := time.Now().AddDate(0, 0, -int(time.Now().Weekday())).Round(0)
 
@@ -105,7 +105,7 @@ func UpdateScheduleKbp(url string, states []schedule.StateInfo, oldStates []sche
 
 func UpdateStateKbp(url string) []schedule.StateInfo {
 	document, err := htmlParser.NewDocument("http://kbp.by/rasp/timetable/view_beta_kbp/" + url)
-	h.CheckError(err)
+	h.CheckError(err, h.WARNING)
 
 	var states []schedule.StateInfo
 
@@ -138,7 +138,7 @@ func UpdateStateKbp(url string) []schedule.StateInfo {
 func UpdateAccessibleTypesKbp() []string {
 	var urls []string
 	document, err := htmlParser.NewDocument("https://kbp.by/rasp/timetable/view_beta_kbp/?q=")
-	h.CheckError(err)
+	h.CheckError(err, h.WARNING)
 
 	document.Find(".block_back").Find("div").Each(func(ix int, div *htmlParser.Selection) {
 		if div.Find("span").Text() == "группа" {
