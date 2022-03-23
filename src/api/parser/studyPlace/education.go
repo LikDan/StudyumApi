@@ -9,6 +9,7 @@ import (
 
 type Education struct {
 	Id                               int
+	Name                             string
 	ScheduleUpdateCronPattern        string
 	PrimaryScheduleUpdateCronPattern string
 	PrimaryCronStartTimePattern      string
