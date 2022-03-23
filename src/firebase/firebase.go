@@ -11,7 +11,6 @@ import (
 var firebaseApp *firebase.App
 
 func SendNotification(topic string, title string, body string, url string) {
-	return //only for dev
 	ctx := context.Background()
 	client, err := firebaseApp.Messaging(ctx)
 	if err != nil {
