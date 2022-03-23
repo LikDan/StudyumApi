@@ -1,12 +1,12 @@
 package parser
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
 	"strconv"
 	h "studyium/api"
 	"studyium/api/parser/app"
@@ -23,7 +23,6 @@ func UpdateDbSchedule(edu *studyPlace.Education) {
 	logrus.Infof("Update schedule for %s", edu.Name)
 	lastStates := edu.States
 	send := !h.EqualStateInfo(edu.States, edu.ScheduleStatesUpdate(edu.AvailableTypes[0]))
-	logrus.Info("Updated with notification")
 	edu.AvailableTypes = edu.ScheduleAvailableTypeUpdate()
 	edu.States = edu.ScheduleStatesUpdate(edu.AvailableTypes[0])
 	var subjects []schedule.SubjectFull
@@ -42,20 +41,20 @@ func UpdateDbSchedule(edu *studyPlace.Education) {
 	edu.LastUpdateTime = time.Now()
 
 	if send {
-		lastStatesString := ""
-		currentStatesString := ""
-
-		for _, state := range lastStates {
-			lastStatesString += state.ToJsonWithoutId()
-		}
-
-		for _, state := range edu.States {
-			currentStatesString += state.ToJsonWithoutId()
-		}
-
-		log.Printf("Schedule updated from\n" + lastStatesString + "\nto\n" + currentStatesString)
-
+		logrus.Info("Updated with notification")
 		firebase.SendNotification("schedule_update", "Schedule", "Schedule was updated", "")
+
+		lastStatesBytes, err := json.Marshal(lastStates)
+		if h.CheckError(err) {
+			return
+		}
+		currentStatesBytes, err := json.Marshal(edu.States)
+		if h.CheckError(err) {
+			return
+		}
+
+		logrus.Info("Schedule was updated")
+		logrus.Info("{\"lastStates\": \"" + string(lastStatesBytes) + "\", \"currentStates\": \"" + string(currentStatesBytes) + "\"}")
 	}
 }
 
@@ -103,7 +102,7 @@ func Launch() {
 				UpdateDbSchedule(edu)
 				edu.PrimaryCron.Stop()
 			} else {
-				log.Println("No updates")
+				logrus.Info("No updates at primary cron")
 			}
 		})
 		edu.GeneralCron.AddFunc(edu.ScheduleUpdateCronPattern, func() {
