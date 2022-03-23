@@ -12,6 +12,7 @@ import (
 
 var KBP = studyPlace.Education{
 	Id:                               0,
+	Name:                             "Kbp",
 	ScheduleUpdateCronPattern:        "@every 30m",
 	PrimaryScheduleUpdateCronPattern: "@every 5m",
 	PrimaryCronStartTimePattern:      "0 0 11 * * MON-FRI",
