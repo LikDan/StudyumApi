@@ -2,7 +2,7 @@
 name: Build and Push to Google Cloud Platform
 on:
   push:
-    branches: [master]
+    branches: [master, main]
 
 jobs:
   setup-build-publish-deploy:
