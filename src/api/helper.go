@@ -12,9 +12,32 @@ import (
 	"time"
 )
 
-func CheckError(err error) bool {
+type LogType int
+
+const (
+	INFO LogType = iota
+	WARNING
+	ERROR
+	UNDEFINED
+)
+
+func CheckError(err error, type_ LogType) bool {
 	if err != nil {
-		logrus.Warning(err)
+		if type_ == UNDEFINED {
+			return true
+		}
+
+		switch type_ {
+		case INFO:
+			logrus.Info(err.Error())
+			break
+		case WARNING:
+			logrus.Warning(err.Error())
+			break
+		case ERROR:
+			logrus.Error(err.Error())
+			break
+		}
 		return true
 	}
 	return false

@@ -32,7 +32,7 @@ func GetEducationViaPasswordRequest(ctx *gin.Context) (*studyPlace.Education, er
 
 func StopPrimaryCron(ctx *gin.Context) {
 	edu, err := GetEducationViaPasswordRequest(ctx)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -42,7 +42,7 @@ func StopPrimaryCron(ctx *gin.Context) {
 
 func LaunchPrimaryCron(ctx *gin.Context) {
 	edu, err := GetEducationViaPasswordRequest(ctx)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}

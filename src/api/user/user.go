@@ -16,7 +16,7 @@ func GetUserFromDbViaCookies(ctx *gin.Context) (*User, error) {
 	login, loginErr := ctx.Cookie("login")
 	token, tokenErr := ctx.Cookie("token")
 
-	if h.CheckError(loginErr) || h.CheckError(tokenErr) {
+	if h.CheckError(loginErr, h.UNDEFINED) || h.CheckError(tokenErr, h.UNDEFINED) {
 		return nil, errors.New("not authorized")
 	}
 
@@ -24,7 +24,7 @@ func GetUserFromDbViaCookies(ctx *gin.Context) (*User, error) {
 
 	userResult := db.UsersCollection.FindOne(nil, bson.M{"login": login, "token": token})
 	err := userResult.Decode(&user)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.UNDEFINED) {
 		return nil, errors.New("not authorized")
 	}
 
@@ -33,7 +33,7 @@ func GetUserFromDbViaCookies(ctx *gin.Context) (*User, error) {
 
 func getLogin(ctx *gin.Context) {
 	user, err := GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -78,7 +78,7 @@ func createUser(ctx *gin.Context) {
 
 func editUser(ctx *gin.Context) {
 	user, err := GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
@@ -133,7 +133,7 @@ func loginUser(ctx *gin.Context) {
 	userResult := db.UsersCollection.FindOne(nil, bson.M{"login": login, "password_hash": password})
 	err := userResult.Decode(&user)
 
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, "wrong user or password")
 		return
 	}
@@ -153,7 +153,7 @@ func logoutUser(ctx *gin.Context) {
 
 func getUserInfo(ctx *gin.Context) {
 	user, err := GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err) {
+	if h.CheckError(err, h.WARNING) {
 		return
 	}
 
