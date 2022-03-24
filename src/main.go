@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func indexHandler(ctx *gin.Context) {
+func uptimeHandler(ctx *gin.Context) {
 	ctx.JSON(200, gin.H{"message": "hi"})
 }
 
@@ -29,7 +29,7 @@ func main() {
 
 	r := gin.Default()
 
-	r.GET("/api", indexHandler)
+	r.HEAD("/api", uptimeHandler)
 	defer logApi.CloseLogFile()
 
 	api := r.Group("/api")

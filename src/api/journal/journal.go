@@ -78,6 +78,49 @@ func getTeacherJournalTypes(ctx *gin.Context) {
 	ctx.JSON(200, types)
 }
 
+func getStudentJournalTypes(ctx *gin.Context) {
+	user, err := userApi.GetUserFromDbViaCookies(ctx)
+	if h.CheckError(err, h.UNDEFINED) {
+		h.ErrorMessage(ctx, err.Error())
+		return
+	}
+
+	find, err := db.GeneralSubjectsCollection.Find(nil, bson.M{"group": user.Name})
+
+	//todo
+
+	if h.CheckError(err, h.WARNING) {
+		h.ErrorMessage(ctx, err.Error())
+		return
+	}
+
+	var subjects []schedule.SubjectFull
+	err = find.All(nil, &subjects)
+	if h.CheckError(err, h.WARNING) {
+		h.ErrorMessage(ctx, err.Error())
+		return
+	}
+
+	var types []JournalTeacherType
+
+	for _, subject := range subjects {
+		type_ := JournalTeacherType{
+			Teacher:  subject.Teacher,
+			Subject:  subject.Subject,
+			Group:    subject.Group,
+			Editable: h.SliceContains(user.Permissions, "editJournal"),
+		}
+
+		if h.SliceContains(types, type_) {
+			continue
+		}
+
+		types = append(types, type_)
+	}
+
+	ctx.JSON(200, types)
+}
+
 func addMark(ctx *gin.Context) {
 	user, err := userApi.GetUserFromDbViaCookies(ctx)
 	if h.CheckError(err, h.UNDEFINED) {
@@ -306,9 +349,10 @@ func editInfo(ctx *gin.Context) {
 }
 
 type JournalTeacherType struct {
-	Teacher string `json:"teacher"`
-	Subject string `json:"subject"`
-	Group   string `json:"group"`
+	Teacher  string `json:"teacher"`
+	Subject  string `json:"subject"`
+	Group    string `json:"group"`
+	Editable bool   `json:"editable"`
 }
 
 type Mark struct {
@@ -398,6 +442,8 @@ func getLesson(lessonId *primitive.ObjectID) (*schedule.SubjectFull, error) {
 }
 
 func BuildRequests(api *gin.RouterGroup) {
+	api.GET("availableOptions", getAvailableOptions)
+
 	api.GET("/types", getTeacherJournalTypes)
 	api.GET("/dates", getTeacherJournalSubjects)
 	api.GET("/groupMembers", getGroupMembers)
