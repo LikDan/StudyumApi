@@ -6,7 +6,6 @@ import (
 	"firebase.google.com/go/v4/messaging"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/option"
-	"log"
 )
 
 var firebaseApp *firebase.App
@@ -17,7 +16,8 @@ func SendNotification(topic string, title string, body string, url string) {
 	ctx := context.Background()
 	client, err := firebaseApp.Messaging(ctx)
 	if err != nil {
-		log.Fatalf("error getting Messaging client: %v\n", err)
+		logrus.Error("error getting Messaging client: %v", err)
+		return
 	}
 
 	messages := &messaging.Message{
@@ -31,7 +31,8 @@ func SendNotification(topic string, title string, body string, url string) {
 
 	response, err := client.Send(context.Background(), messages)
 	if err != nil {
-		log.Fatalln(err)
+		logrus.Error(err)
+		return
 	}
 
 	logrus.Info(topic, response)
