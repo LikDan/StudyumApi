@@ -31,16 +31,6 @@ func GetUserFromDbViaCookies(ctx *gin.Context) (*User, error) {
 	return &user, nil
 }
 
-func getLogin(ctx *gin.Context) {
-	user, err := GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err, h.WARNING) {
-		h.ErrorMessage(ctx, err.Error())
-		return
-	}
-
-	h.Message(ctx, "login", user.Login, 200)
-}
-
 func createUser(ctx *gin.Context) {
 	login := ctx.Query("login")
 	password := ctx.Query("password")
@@ -179,5 +169,4 @@ func BuildRequests(api *gin.RouterGroup) {
 	api.PUT("/edit", editUser)
 	api.POST("/create", createUser)
 	api.DELETE("/delete", deleteUser)
-	api.GET("/getLogin", getLogin)
 }
