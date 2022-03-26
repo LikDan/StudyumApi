@@ -1,0 +1,22 @@
+{"level":"warning","msg":"Logs has been truncated","time":"2022-03-23T14:10:29+03:00"}
+{"level":"info","msg":"Application launched","time":"2022-03-23T14:46:43+03:00"}
+{"level":"info","msg":"Application launched","time":"2022-03-23T14:49:44+03:00"}
+{"level":"warning","msg":"must provide at least one element in input slice","time":"2022-03-23T15:19:45+03:00"}
+{"level":"warning","msg":"Get \"http://kbp.by/rasp/timetable/view_beta_kbp/?cat=group\u0026id=46\": dial tcp: lookup kbp.by: no such host","time":"2022-03-23T15:49:27+03:00"}
+{"level":"info","msg":"Application launched","time":"2022-03-24T16:04:16+03:00"}
+{"level":"info","msg":"Application launched","time":"2022-03-24T16:32:59+03:00"}
+{"level":"info","msg":"Application launched","time":"2022-03-24T16:52:55+03:00"}
+{"level":"info","msg":"Application launched","time":"2022-03-24T16:54:52+03:00"}
+{"level":"info","msg":"Application launched","time":"2022-03-24T18:04:05+03:00"}
+{"level":"warning","msg":"not authorized","time":"2022-03-24T20:01:48+03:00"}
+{"level":"warning","msg":"not authorized","time":"2022-03-24T20:04:21+03:00"}
+{"level":"info","msg":"Application launched","time":"2022-03-25T16:08:34+03:00"}
+{"level":"info","msg":"Application launched","time":"2022-03-25T18:23:59+03:00"}
+{"level":"warning","msg":"error decoding key _id: cannot decode embedded document into an ObjectID","time":"2022-03-25T18:25:33+03:00"}
+{"level":"info","msg":"Application launched","time":"2022-03-25T18:26:43+03:00"}
+{"level":"info","msg":"Application launched","time":"2022-03-25T20:10:11+03:00"}
+{"level":"info","msg":"Application launched","time":"2022-03-25T20:12:10+03:00"}
+{"level":"info","msg":"Application launched","time":"2022-03-25T20:22:02+03:00"}
+{"level":"info","msg":"Application launched","time":"2022-03-25T20:24:19+03:00"}
+{"level":"info","msg":"Application launched","time":"2022-03-26T14:16:00+03:00"}
+{"level":"fatal","msg":"Error launching server listen tcp :8080: bind: Only one usage of each socket address (protocol/network address/port) is normally permitted.","time":"2022-03-26T14:16:00+03:00"}
