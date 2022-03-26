@@ -4,9 +4,9 @@ import (
 	htmlParser "github.com/PuerkitoBio/goquery"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"strings"
-	h "studyium/api"
-	"studyium/api/parser/studyPlace"
-	"studyium/api/schedule"
+	h "studyium/src/api"
+	"studyium/src/api/parser/studyPlace"
+	"studyium/src/api/schedule"
 	"time"
 )
 

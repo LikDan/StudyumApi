@@ -4,9 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	h "studyium/api"
-	userApi "studyium/api/user"
-	"studyium/db"
+	h "studyium/src/api"
+	userApi "studyium/src/api/user"
+	"studyium/src/db"
 )
 
 func addMark(ctx *gin.Context) {
