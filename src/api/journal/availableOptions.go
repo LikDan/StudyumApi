@@ -36,10 +36,10 @@ func getAvailableOptions(ctx *gin.Context) {
 		return
 	}
 
-	var types []JournalTeacherType
+	var types []AvailableOption
 
 	for _, subject := range subjects {
-		type_ := JournalTeacherType{
+		type_ := AvailableOption{
 			Teacher:  subject.Teacher,
 			Subject:  subject.Subject,
 			Group:    subject.Group,
@@ -54,4 +54,11 @@ func getAvailableOptions(ctx *gin.Context) {
 	}
 
 	ctx.JSON(200, types)
+}
+
+type AvailableOption struct {
+	Teacher  string `json:"teacher"`
+	Subject  string `json:"subject"`
+	Group    string `json:"group"`
+	Editable bool   `json:"editable"`
 }
