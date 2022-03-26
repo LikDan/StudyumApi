@@ -5,10 +5,8 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/option"
-	h "studyium/src/api"
 )
 
 var firebaseApp *firebase.App
@@ -47,14 +45,4 @@ func InitFirebaseApp() {
 	if err != nil {
 		logrus.Errorf("error initializing firebaseApp: %v", err)
 	}
-}
-
-func SendNotificationCtx(ctx *gin.Context) {
-	err := SendNotification("schedule_update", "Update", "Schedule was updated", "")
-	if h.CheckError(err, h.ERROR) {
-		ctx.JSON(200, err.Error())
-		return
-	}
-
-	ctx.JSON(200, "successful")
 }
