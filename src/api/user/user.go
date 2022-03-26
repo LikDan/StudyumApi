@@ -8,8 +8,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"strconv"
-	h "studyium/api"
-	"studyium/db"
+	h "studyium/src/api"
+	"studyium/src/db"
 )
 
 func GetUserFromDbViaCookies(ctx *gin.Context) (*User, error) {
