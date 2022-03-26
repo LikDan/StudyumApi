@@ -38,13 +38,12 @@ func main() {
 	userGroup := api.Group("/user")
 	journalGroup := api.Group("/journal")
 	scheduleGroup := api.Group("/schedule")
-	journalTeacherGroup := journalGroup.Group("/teachers")
 
 	logApi.BuildRequests(logGroup)
 
 	user.BuildRequests(userGroup)
 	schedule.BuildRequests(scheduleGroup, api)
-	journal.BuildRequests(journalTeacherGroup)
+	journal.BuildRequests(journalGroup)
 
 	api.GET("/stopPrimaryUpdates", parser.StopPrimaryCron)
 	api.GET("/launchPrimaryUpdates", parser.LaunchPrimaryCron)
