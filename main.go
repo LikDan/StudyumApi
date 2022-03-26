@@ -34,6 +34,8 @@ func main() {
 
 	api := r.Group("/api")
 
+	api.GET("/testNotification", firebase.SendNotificationCtx)
+
 	logGroup := api.Group("/log")
 	userGroup := api.Group("/user")
 	journalGroup := api.Group("/journal")
