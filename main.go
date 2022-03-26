@@ -3,13 +3,13 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
-	"studyium/api/journal"
-	logApi "studyium/api/log"
-	"studyium/api/parser"
-	"studyium/api/schedule"
-	"studyium/api/user"
-	"studyium/db"
-	"studyium/firebase"
+	"studyium/src/api/journal"
+	logApi "studyium/src/api/log"
+	"studyium/src/api/parser"
+	"studyium/src/api/schedule"
+	"studyium/src/api/user"
+	"studyium/src/db"
+	"studyium/src/firebase"
 	"time"
 )
 

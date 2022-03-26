@@ -3,7 +3,7 @@ package studyPlace
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron"
-	"studyium/api/schedule"
+	"studyium/src/api/schedule"
 	"time"
 )
 

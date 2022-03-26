@@ -8,12 +8,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"strconv"
-	h "studyium/api"
-	"studyium/api/parser/app"
-	"studyium/api/parser/studyPlace"
-	"studyium/api/schedule"
-	"studyium/db"
-	"studyium/firebase"
+	h "studyium/src/api"
+	"studyium/src/api/parser/app"
+	"studyium/src/api/parser/studyPlace"
+	"studyium/src/api/schedule"
+	"studyium/src/db"
+	"studyium/src/firebase"
 	"time"
 )
 

@@ -3,7 +3,7 @@ package log
 import (
 	"github.com/gin-gonic/gin"
 	"os"
-	h "studyium/api"
+	h "studyium/src/api"
 )
 
 func getRequests(ctx *gin.Context) {

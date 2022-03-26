@@ -5,10 +5,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	h "studyium/api"
-	"studyium/api/schedule"
-	userApi "studyium/api/user"
-	"studyium/db"
+	h "studyium/src/api"
+	"studyium/src/api/schedule"
+	userApi "studyium/src/api/user"
+	"studyium/src/db"
 	"time"
 )
 
