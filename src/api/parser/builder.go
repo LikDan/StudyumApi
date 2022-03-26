@@ -20,7 +20,6 @@ import (
 var Educations = [1]*studyPlace.Education{&app.KBP}
 
 func UpdateDbSchedule(edu *studyPlace.Education) {
-	return //only for dev
 	logrus.Infof("Update schedule for %s", edu.Name)
 	lastStates := edu.States
 	send := !h.EqualStateInfo(edu.States, edu.ScheduleStatesUpdate(edu.AvailableTypes[0]))

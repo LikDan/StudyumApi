@@ -12,7 +12,6 @@ import (
 var firebaseApp *firebase.App
 
 func SendNotification(topic string, title string, body string, url string) {
-	return //only for dev
 	logrus.Info("Send notification")
 
 	ctx := context.Background()
