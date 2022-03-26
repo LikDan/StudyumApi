@@ -20,3 +20,4 @@
 {"level":"info","msg":"Application launched","time":"2022-03-25T20:24:19+03:00"}
 {"level":"info","msg":"Application launched","time":"2022-03-26T14:16:00+03:00"}
 {"level":"fatal","msg":"Error launching server listen tcp :8080: bind: Only one usage of each socket address (protocol/network address/port) is normally permitted.","time":"2022-03-26T14:16:00+03:00"}
+{"level":"info","msg":"Application launched","time":"2022-03-26T14:24:32+03:00"}
