@@ -331,7 +331,7 @@ func getLesson(lessonId *primitive.ObjectID) (*schedule.SubjectFull, error) {
 func BuildRequests(api *gin.RouterGroup) {
 	teacherGroup := api.Group("/teachers")
 
-	api.GET("/availableOptions", getAvailableOptions)
+	api.GET("/options", getAvailableOptions)
 	api.GET("/dates", getLessonsDate)
 	api.GET("", getJournal)
 
