@@ -82,6 +82,10 @@ func Date() time.Time {
 	return ToDateWithoutTime(time.Now())
 }
 
+func DateEqual(a, b time.Time) bool {
+	return a.Year() == b.Year() && a.Month() == b.Month() && a.Day() == b.Day()
+}
+
 func ToDateWithoutTime(date time.Time) time.Time {
 	year, month, day := date.Date()
 	return time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
@@ -109,7 +113,7 @@ func GetObjectId(ctx *gin.Context, key string) *primitive.ObjectID {
 	return &id
 }
 
-func checkNotEmpty(strings ...string) bool {
+func CheckNotEmpty(strings ...string) bool {
 	for _, s := range strings {
 		if s == "" {
 			return false
@@ -134,4 +138,14 @@ func DecodeJsonLines[T any](r io.Reader, results *[]T) {
 
 		*results = append(*results, l)
 	}
+}
+
+func MapSlice[T any, V any](s []*V, f func(int, *V) T) []T {
+	var t []T
+
+	for i, v := range s {
+		t = append(t, f(i, v))
+	}
+
+	return t
 }
