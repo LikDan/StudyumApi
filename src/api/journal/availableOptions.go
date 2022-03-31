@@ -16,14 +16,17 @@ func getAvailableOptions(ctx *gin.Context) {
 		return
 	}
 
-	var filter bson.M
-	if user.Type == "teacher" {
-		filter = bson.M{"teacher": user.FullName}
-	} else {
-		filter = bson.M{"group": user.Name}
+	if user.Type == "group" {
+		ctx.JSON(200, []AvailableOption{{
+			Teacher:  "",
+			Subject:  "",
+			Group:    user.Name,
+			Editable: false,
+		}})
+		return
 	}
 
-	find, err := db.GeneralSubjectsCollection.Find(nil, filter)
+	find, err := db.GeneralSubjectsCollection.Find(nil, bson.M{"teacher": user.FullName})
 	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
