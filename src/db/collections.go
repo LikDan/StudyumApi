@@ -26,7 +26,8 @@ func Init() {
 	}
 
 	StudyPlacesCollection = client.Database("General").Collection("StudyPlaces")
-	UsersCollection = client.Database("General").Collection("Users")
+
+	UsersCollection = client.Database("Schedule").Collection("Users")
 
 	SubjectsCollection = client.Database("Schedule").Collection("Subjects")
 	GeneralSubjectsCollection = client.Database("Schedule").Collection("General")

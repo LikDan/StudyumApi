@@ -211,27 +211,24 @@ func editInfo(ctx *gin.Context) {
 		return
 	}
 
-	lessonId := h.GetObjectId(ctx, "lessonId")
-	homework := ctx.Query("homework")
-	smallDescription := ctx.Query("smallDescription")
-	description := ctx.Query("description")
-
-	if lessonId == nil {
-		h.ErrorMessage(ctx, "provide valid params")
+	var lesson Lesson
+	err = ctx.BindJSON(&lesson)
+	if h.CheckError(err, h.UNDEFINED) {
+		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
-	_, err = db.SubjectsCollection.UpdateOne(nil, bson.M{"_id": lessonId}, bson.M{"$set": bson.M{"homework": homework, "smallDescription": smallDescription, "description": description}})
+	_, err = db.SubjectsCollection.UpdateOne(nil, bson.M{"_id": lesson.Id}, bson.M{"$set": bson.M{"homework": lesson.Homework, "smallDescription": lesson.SmallDescription, "description": lesson.Description}})
 	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
-	lesson, err := getLesson(lessonId)
+	subject, err := getLesson(&lesson.Id)
 	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
 
-	ctx.JSON(200, lesson)
+	ctx.JSON(200, subject)
 }
