@@ -72,6 +72,13 @@ func Login(ctx *gin.Context) {
 	}
 
 	_, err = db.UsersCollection.InsertOne(nil, googleUser)
+	if err != nil {
+		_, err = db.UsersCollection.UpdateOne(nil, bson.M{"_id": googleUser.Id}, bson.M{"$set": googleUser})
+		if h.CheckError(err, h.WARNING) {
+			h.ErrorMessage(ctx, err.Error())
+			return
+		}
+	}
 
 	var user U
 	err = db.UsersCollection.FindOne(nil, bson.M{"_id": googleUser.Id}).Decode(&user)
