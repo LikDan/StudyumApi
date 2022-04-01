@@ -163,10 +163,14 @@ type User struct {
 func BuildRequests(api *gin.RouterGroup) {
 	api.GET("", getUserInfo)
 
-	api.GET("/login", loginUser)
-	api.GET("/logout", logoutUser)
+	api.GET("/loginUser", loginUser)
+	api.GET("/logoutUser", logoutUser)
 
 	api.PUT("/edit", editUser)
 	api.POST("/create", createUser)
 	api.DELETE("/delete", deleteUser)
+
+	api.GET("/auth", Authorization)
+	api.GET("/callback", CallbackHandler)
+	api.GET("/login", Login)
 }
