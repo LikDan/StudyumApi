@@ -11,67 +11,50 @@ import (
 	"studyium/src/db"
 )
 
-func GetUserFromDbViaCookies(ctx *gin.Context) (*User, error) {
-	login, loginErr := ctx.Cookie("info")
-	token, tokenErr := ctx.Cookie("token")
-
-	if h.CheckError(loginErr, h.UNDEFINED) || h.CheckError(tokenErr, h.UNDEFINED) {
-		return nil, errors.New("not authorized")
-	}
-
-	var user User
-
-	userResult := db.UsersCollection.FindOne(nil, bson.M{"info": login, "token": token})
-	err := userResult.Decode(&user)
-	if h.CheckError(err, h.UNDEFINED) {
-		return nil, errors.New("not authorized")
-	}
-
-	return &user, nil
-}
-
-func info(ctx *gin.Context) {
+func GetUserViaGoogle(ctx *gin.Context, user *User) error {
 	token, err := ctx.Cookie("authToken")
 
-	if err != nil || token == "" {
-		h.ErrorMessage(ctx, "not authorized")
-
-		return
+	if h.CheckError(err, h.UNDEFINED) {
+		return errors.New("not authorized")
 	}
 
 	response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token)
 	if h.CheckError(err, h.UNDEFINED) || response.StatusCode != 200 {
-		h.ErrorMessage(ctx, "not authorized")
-		return
+		return errors.New("not authorized")
 	}
 
 	defer response.Body.Close()
 
 	content, err := ioutil.ReadAll(response.Body)
 	if h.CheckError(err, h.WARNING) {
-		h.ErrorMessage(ctx, "bad callback")
-		return
+		return errors.New("bad callback")
 	}
 
 	var googleUser Google
 	err = json.Unmarshal(content, &googleUser)
-	if err != nil {
-		return
+	if h.CheckError(err, h.WARNING) {
+		return errors.New("bad callback")
 	}
 
 	_, err = db.UsersCollection.InsertOne(nil, googleUser)
 	if err != nil {
 		_, err = db.UsersCollection.UpdateOne(nil, bson.M{"_id": googleUser.Id}, bson.M{"$set": googleUser})
 		if h.CheckError(err, h.WARNING) {
-			h.ErrorMessage(ctx, err.Error())
-			return
+			return err
 		}
 	}
 
-	var user User
 	err = db.UsersCollection.FindOne(nil, bson.M{"_id": googleUser.Id}).Decode(&user)
 	if h.CheckError(err, h.WARNING) {
-		h.ErrorMessage(ctx, err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func getUser(ctx *gin.Context) {
+	var user User
+	if err := GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
 		return
 	}
 
@@ -81,7 +64,43 @@ func info(ctx *gin.Context) {
 func logout(ctx *gin.Context) {
 	ctx.SetCookie("authToken", "", -1, "", "", false, false)
 
-	h.Message(ctx, "message", "successful", 200)
+	h.Message(ctx, 200, "successful")
+}
+
+func updateUser(ctx *gin.Context) {
+	var user User
+	if err := GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
+		return
+	}
+
+	if user.Applied && !h.SliceContains(user.Permissions, "editInfo") {
+		h.ErrorMessage(ctx, "You don't have permission to edit information")
+		return
+	}
+
+	var userUpdate User
+	if err := ctx.Bind(&userUpdate); h.CheckAndMessage(ctx, 500, err, h.WARNING) {
+		return
+	}
+
+	user.StudyPlaceId = userUpdate.StudyPlaceId
+	user.Type = userUpdate.Type
+	user.TypeName = userUpdate.TypeName
+	user.Name = userUpdate.Name
+
+	user.Applied = false
+
+	_, err := db.UsersCollection.UpdateOne(nil, bson.M{"_id": user.Id}, bson.M{"$set": user})
+	if h.CheckAndMessage(ctx, 500, err, h.WARNING) {
+		return
+	}
+
+	err = db.UsersCollection.FindOne(nil, bson.M{"_id": user.Id}).Decode(&user)
+	if h.CheckAndMessage(ctx, 500, err, h.WARNING) {
+		return
+	}
+
+	ctx.JSON(200, user)
 }
 
 type User struct {
@@ -103,6 +122,8 @@ func BuildRequests(api *gin.RouterGroup) {
 	api.GET("/logout", logout)
 	api.GET("/callback", callbackHandler)
 
-	api.GET("", info)
+	api.PUT("", updateUser)
+
+	api.GET("", getUser)
 
 }

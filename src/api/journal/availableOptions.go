@@ -10,9 +10,8 @@ import (
 )
 
 func getAvailableOptions(ctx *gin.Context) {
-	user, err := userApi.GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err, h.UNDEFINED) {
-		h.ErrorMessage(ctx, err.Error())
+	var user userApi.User
+	if err := userApi.GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
 		return
 	}
 
