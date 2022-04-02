@@ -1,19 +1,18 @@
 package user
 
 import (
-	"crypto/sha256"
+	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"strconv"
+	"io/ioutil"
+	"net/http"
 	h "studyium/src/api"
 	"studyium/src/db"
 )
 
 func GetUserFromDbViaCookies(ctx *gin.Context) (*User, error) {
-	login, loginErr := ctx.Cookie("login")
+	login, loginErr := ctx.Cookie("info")
 	token, tokenErr := ctx.Cookie("token")
 
 	if h.CheckError(loginErr, h.UNDEFINED) || h.CheckError(tokenErr, h.UNDEFINED) {
@@ -22,7 +21,7 @@ func GetUserFromDbViaCookies(ctx *gin.Context) (*User, error) {
 
 	var user User
 
-	userResult := db.UsersCollection.FindOne(nil, bson.M{"login": login, "token": token})
+	userResult := db.UsersCollection.FindOne(nil, bson.M{"info": login, "token": token})
 	err := userResult.Decode(&user)
 	if h.CheckError(err, h.UNDEFINED) {
 		return nil, errors.New("not authorized")
@@ -31,146 +30,79 @@ func GetUserFromDbViaCookies(ctx *gin.Context) (*User, error) {
 	return &user, nil
 }
 
-func createUser(ctx *gin.Context) {
-	login := ctx.Query("login")
-	password := ctx.Query("password")
+func info(ctx *gin.Context) {
+	token, err := ctx.Cookie("authToken")
 
-	type_ := ctx.Query("type")
-	name := ctx.Query("name")
-	studyPlaceId := ctx.Query("studyPlaceId")
+	if err != nil || token == "" {
+		h.ErrorMessage(ctx, "not authorized")
 
-	stay, err := strconv.ParseBool(ctx.DefaultQuery("stay", "false"))
-
-	if login == "" || password == "" || type_ == "" || name == "" || studyPlaceId == "" || len(password) < 8 {
-		h.ErrorMessage(ctx, "provide all params")
 		return
 	}
 
+	response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token)
+	if h.CheckError(err, h.UNDEFINED) || response.StatusCode != 200 {
+		h.ErrorMessage(ctx, "not authorized")
+		return
+	}
+
+	defer response.Body.Close()
+
+	content, err := ioutil.ReadAll(response.Body)
+	if h.CheckError(err, h.WARNING) {
+		h.ErrorMessage(ctx, "bad callback")
+		return
+	}
+
+	var googleUser Google
+	err = json.Unmarshal(content, &googleUser)
 	if err != nil {
-		h.ErrorMessage(ctx, "not valid params")
 		return
 	}
 
-	password = fmt.Sprintf("%x", sha256.Sum256([]byte(password)))
-
-	_, err = db.UsersCollection.InsertOne(nil, bson.D{{"login", login}, {"password_hash", password}, {"type", type_}, {"name", name}, {"studyPlaceId", studyPlaceId}})
+	_, err = db.UsersCollection.InsertOne(nil, googleUser)
 	if err != nil {
-		h.ErrorMessage(ctx, err.Error())
-		return
+		_, err = db.UsersCollection.UpdateOne(nil, bson.M{"_id": googleUser.Id}, bson.M{"$set": googleUser})
+		if h.CheckError(err, h.WARNING) {
+			h.ErrorMessage(ctx, err.Error())
+			return
+		}
 	}
 
-	if stay {
-		loginUser(ctx)
-	}
-
-	h.Message(ctx, "h.Message", "successful", 200)
-}
-
-func editUser(ctx *gin.Context) {
-	user, err := GetUserFromDbViaCookies(ctx)
+	var user User
+	err = db.UsersCollection.FindOne(nil, bson.M{"_id": googleUser.Id}).Decode(&user)
 	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
-		return
-	}
-
-	type_ := ctx.DefaultQuery("type", user.Type)
-	name := ctx.DefaultQuery("name", user.Name)
-	studyPlaceId, err := strconv.Atoi(ctx.DefaultQuery("studyPlaceId", strconv.Itoa(user.StudyPlaceId)))
-
-	if err != nil {
-		h.ErrorMessage(ctx, "not valid params")
-		return
-	}
-
-	_, err = db.UsersCollection.UpdateByID(nil, user.Id, bson.D{{"$set", bson.D{{"type", type_}, {"name", name}, {"studyPlaceId", studyPlaceId}}}})
-	if err != nil {
-		h.ErrorMessage(ctx, err.Error())
-		return
-	}
-
-	h.Message(ctx, "h.Message", "successful", 200)
-}
-
-func deleteUser(ctx *gin.Context) {
-	user, err := GetUserFromDbViaCookies(ctx)
-	if err != nil {
-		h.ErrorMessage(ctx, err.Error())
-		return
-	}
-
-	_, err = db.UsersCollection.DeleteOne(nil, user)
-	if err != nil {
-		h.ErrorMessage(ctx, err.Error())
-		return
-	}
-
-	logoutUser(ctx)
-}
-
-func loginUser(ctx *gin.Context) {
-	login := ctx.Query("login")
-	password := ctx.Query("password")
-
-	if login == "" || password == "" {
-		h.ErrorMessage(ctx, "provide all params")
-		return
-	}
-
-	password = fmt.Sprintf("%x", sha256.Sum256([]byte(password)))
-
-	var user bson.M
-
-	userResult := db.UsersCollection.FindOne(nil, bson.M{"login": login, "password_hash": password})
-	err := userResult.Decode(&user)
-
-	if h.CheckError(err, h.WARNING) {
-		h.ErrorMessage(ctx, "wrong user or password")
-		return
-	}
-
-	ctx.SetCookie("login", user["login"].(string), 0, "", "", false, false)
-	ctx.SetCookie("token", user["token"].(string), 0, "", "", false, false)
-
-	h.Message(ctx, "h.Message", "successful", 200)
-}
-
-func logoutUser(ctx *gin.Context) {
-	ctx.SetCookie("login", "", -1, "", "", false, false)
-	ctx.SetCookie("token", "", -1, "", "", true, false)
-
-	h.Message(ctx, "h.Message", "successful", 200)
-}
-
-func getUserInfo(ctx *gin.Context) {
-	user, err := GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err, h.WARNING) {
 		return
 	}
 
 	ctx.JSON(200, user)
 }
 
+func logout(ctx *gin.Context) {
+	ctx.SetCookie("authToken", "", -1, "", "", false, false)
+
+	h.Message(ctx, "message", "successful", 200)
+}
+
 type User struct {
-	Id           primitive.ObjectID `bson:"_id" json:"id"`
-	Login        string             `json:"login"`
-	Type         string             `json:"type" bson:"type"`
-	Name         string             `json:"name"`
-	FullName     string             `json:"fullName"`
-	Permissions  []string           `json:"permissions"`
-	StudyPlaceId int                `json:"studyPlaceId"`
+	Id            string   `json:"id" bson:"_id"`
+	Email         string   `json:"email" bson:"email"`
+	VerifiedEmail bool     `json:"verifiedEmail" bson:"verifiedEmail"`
+	Login         string   `json:"login" bson:"login"`
+	Name          string   `json:"name" bson:"name"`
+	PictureUrl    string   `json:"picture" bson:"picture"`
+	Type          string   `json:"type" bson:"type"`
+	TypeName      string   `json:"typeName" bson:"typeName"`
+	StudyPlaceId  int      `json:"studyPlaceId" bson:"studyPlaceId"`
+	Permissions   []string `json:"permissions" bson:"permissions"`
+	Applied       bool     `json:"applied" bson:"applied"`
 }
 
 func BuildRequests(api *gin.RouterGroup) {
-	api.GET("", getUserInfo)
+	api.GET("/auth", authorization)
+	api.GET("/logout", logout)
+	api.GET("/callback", callbackHandler)
 
-	api.GET("/loginUser", loginUser)
-	api.GET("/logoutUser", logoutUser)
+	api.GET("", info)
 
-	api.PUT("/edit", editUser)
-	api.POST("/create", createUser)
-	api.DELETE("/delete", deleteUser)
-
-	api.GET("/auth", Authorization)
-	api.GET("/callback", CallbackHandler)
-	api.GET("/login", Login)
 }
