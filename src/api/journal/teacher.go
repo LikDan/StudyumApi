@@ -59,7 +59,7 @@ func getMark(ctx *gin.Context) {
 	group := ctx.Query("group")
 	subject := ctx.Query("subject")
 	userIdHex := ctx.Query("userId")
-	teacher := user.FullName
+	teacher := user.Name
 
 	if group == "" || subject == "" || userIdHex == "" {
 		h.ErrorMessage(ctx, "provide valid params")
