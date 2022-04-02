@@ -26,7 +26,7 @@ func getLessonsDate(ctx *gin.Context) {
 
 	if user.Type == "teacher" {
 		group = ctx.Query("group")
-		teacher = user.FullName
+		teacher = user.Name
 	} else {
 		group = user.Name
 		teacher = ctx.Query("teacher")
@@ -76,12 +76,12 @@ func getJournalStudent(user *userApi.User) (error, *Journal) {
 	var journal Journal
 
 	cursor, err := db.SubjectsCollection.Aggregate(nil, bson.A{
-		bson.M{"$match": bson.M{"group": user.Name, "educationPlaceId": user.StudyPlaceId}},
+		bson.M{"$match": bson.M{"group": user.TypeName, "educationPlaceId": user.StudyPlaceId}},
 		bson.M{"$group": bson.M{"_id": "$subject"}},
 		bson.M{"$lookup": bson.M{
 			"from": "Subjects",
 			"pipeline": bson.A{
-				bson.M{"$match": bson.M{"group": user.Name, "educationPlaceId": user.StudyPlaceId}},
+				bson.M{"$match": bson.M{"group": user.TypeName, "educationPlaceId": user.StudyPlaceId}},
 				bson.M{"$group": bson.M{"_id": bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$date"}}}},
 				bson.M{"$sort": bson.M{"_id": 1}},
 			},
@@ -93,7 +93,7 @@ func getJournalStudent(user *userApi.User) (error, *Journal) {
 			"from": "Subjects",
 			"let":  bson.M{"date": "$date", "subject": "$_id"},
 			"pipeline": bson.A{
-				bson.M{"$match": bson.M{"group": user.Name, "educationPlaceId": user.StudyPlaceId}},
+				bson.M{"$match": bson.M{"group": user.TypeName, "educationPlaceId": user.StudyPlaceId}},
 				bson.M{"$addFields": bson.M{"date_str": bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$date"}}}},
 				bson.M{"$lookup": bson.M{
 					"from": "Marks",
@@ -121,7 +121,7 @@ func getJournalStudent(user *userApi.User) (error, *Journal) {
 		bson.M{"$lookup": bson.M{
 			"from": "Subjects",
 			"pipeline": bson.A{
-				bson.M{"$match": bson.M{"group": user.Name, "educationPlaceId": user.StudyPlaceId}},
+				bson.M{"$match": bson.M{"group": user.TypeName, "educationPlaceId": user.StudyPlaceId}},
 				bson.M{"$group": bson.M{"_id": bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$date"}}}},
 				bson.M{"$addFields": bson.M{"date": bson.M{"$toDate": "$_id"}}},
 				bson.M{"$project": bson.M{"_id": 0}},
@@ -133,7 +133,7 @@ func getJournalStudent(user *userApi.User) (error, *Journal) {
 			"info": bson.M{
 				"editable":     false,
 				"studyPlaceId": user.StudyPlaceId,
-				"group":        user.Name,
+				"group":        user.TypeName,
 				"type":         "Student",
 			},
 		}},
@@ -165,7 +165,7 @@ func getJournalTeacher(user *userApi.User, group, subject string) (error, *Journ
 		bson.D{{"$match", bson.M{"type": "group", "name": group, "studyPlaceId": user.StudyPlaceId}}},
 		bson.D{{"$lookup", bson.M{
 			"from":     "Subjects",
-			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": user.FullName, "group": group, "educationPlaceId": user.StudyPlaceId}}}},
+			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": user.Name, "group": group, "educationPlaceId": user.StudyPlaceId}}}},
 			"as":       "subjects",
 		}}},
 		bson.D{{"$unwind", "$subjects"}},
@@ -185,14 +185,14 @@ func getJournalTeacher(user *userApi.User, group, subject string) (error, *Journ
 		bson.D{{"$project", bson.M{"_id": 0}}},
 		bson.D{{"$lookup", bson.M{
 			"from":     "Subjects",
-			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": user.FullName, "group": group, "educationPlaceId": user.StudyPlaceId}}}},
+			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": user.Name, "group": group, "educationPlaceId": user.StudyPlaceId}}}},
 			"as":       "dates",
 		}}},
 		bson.D{{"$addFields", bson.M{"info": bson.M{
 			"editable":     true,
 			"studyPlaceId": user.StudyPlaceId,
 			"group":        group,
-			"teacher":      user.FullName,
+			"teacher":      user.Name,
 			"subject":      subject,
 		}}}},
 	})

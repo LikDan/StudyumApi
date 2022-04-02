@@ -60,9 +60,7 @@ func Message(ctx *gin.Context, name string, value string, code int) {
 }
 
 func ErrorMessage(ctx *gin.Context, value string) {
-	ctx.Header("error", value)
-	ctx.Header("cookie", "")
-	ctx.JSON(204, gin.H{})
+	ctx.JSON(418, value)
 }
 
 func IsCronRunning(c *cron.Cron) bool {

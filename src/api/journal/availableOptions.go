@@ -20,13 +20,13 @@ func getAvailableOptions(ctx *gin.Context) {
 		ctx.JSON(200, []AvailableOption{{
 			Teacher:  "",
 			Subject:  "",
-			Group:    user.Name,
+			Group:    user.TypeName,
 			Editable: false,
 		}})
 		return
 	}
 
-	find, err := db.GeneralSubjectsCollection.Find(nil, bson.M{"teacher": user.FullName})
+	find, err := db.GeneralSubjectsCollection.Find(nil, bson.M{"teacher": user.Name})
 	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return

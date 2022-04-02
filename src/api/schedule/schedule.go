@@ -26,7 +26,7 @@ func getSchedule(ctx *gin.Context) {
 			type_ = user.Type
 		}
 		if name == "" {
-			name = user.Name
+			name = user.TypeName
 		}
 		if studyPlaceIdStr == "" {
 			studyPlaceIdStr = strconv.Itoa(user.StudyPlaceId)
