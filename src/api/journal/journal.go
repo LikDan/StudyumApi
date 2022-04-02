@@ -14,9 +14,8 @@ import (
 )
 
 func getLessonsDate(ctx *gin.Context) {
-	user, err := userApi.GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err, h.UNDEFINED) {
-		h.ErrorMessage(ctx, err.Error())
+	var user userApi.User
+	if err := userApi.GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
 		return
 	}
 
@@ -50,12 +49,12 @@ func getLessonsDate(ctx *gin.Context) {
 }
 
 func getJournal(ctx *gin.Context) {
-	user, err := userApi.GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err, h.UNDEFINED) {
-		h.ErrorMessage(ctx, err.Error())
+	var user userApi.User
+	if err := userApi.GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
 		return
 	}
 
+	var err error
 	var journal *Journal
 
 	if user.Type == "teacher" {
@@ -72,7 +71,7 @@ func getJournal(ctx *gin.Context) {
 	ctx.JSON(200, journal)
 }
 
-func getJournalStudent(user *userApi.User) (error, *Journal) {
+func getJournalStudent(user userApi.User) (error, *Journal) {
 	var journal Journal
 
 	cursor, err := db.SubjectsCollection.Aggregate(nil, bson.A{
@@ -152,7 +151,7 @@ func getJournalStudent(user *userApi.User) (error, *Journal) {
 	return nil, &journal
 }
 
-func getJournalTeacher(user *userApi.User, group, subject string) (error, *Journal) {
+func getJournalTeacher(user userApi.User, group, subject string) (error, *Journal) {
 	if !h.SliceContains(user.Permissions, "editJournal") {
 		return fmt.Errorf("no permission"), nil
 	}

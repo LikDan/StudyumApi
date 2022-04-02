@@ -55,10 +55,6 @@ func EqualStateInfo[T any](a, b []T) bool {
 	return true
 }
 
-func Message(ctx *gin.Context, name string, value string, code int) {
-	ctx.JSON(code, gin.H{name: value})
-}
-
 func ErrorMessage(ctx *gin.Context, value string) {
 	ctx.JSON(418, value)
 }
@@ -146,4 +142,16 @@ func MapSlice[T any, V any](s []*V, f func(int, *V) T) []T {
 	}
 
 	return t
+}
+
+func CheckAndMessage(ctx *gin.Context, code int, err error, logType LogType) bool {
+	if CheckError(err, logType) {
+		Message(ctx, code, err.Error())
+		return true
+	}
+	return false
+}
+
+func Message(ctx *gin.Context, code int, msg interface{}) {
+	ctx.JSON(code, msg)
 }

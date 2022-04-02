@@ -15,7 +15,8 @@ import (
 )
 
 func getSchedule(ctx *gin.Context) {
-	user, err := userApi.GetUserFromDbViaCookies(ctx)
+	var user userApi.User
+	err := userApi.GetUserViaGoogle(ctx, &user)
 
 	type_ := ctx.Query("type")
 	name := ctx.Query("name")
