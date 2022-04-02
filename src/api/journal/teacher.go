@@ -10,18 +10,18 @@ import (
 )
 
 func addMark(ctx *gin.Context) {
-	user, err := userApi.GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err, h.UNDEFINED) {
-		h.ErrorMessage(ctx, err.Error())
+	var user userApi.User
+	if err := userApi.GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
 		return
 	}
+
 	if !h.SliceContains(user.Permissions, "editJournal") {
 		h.ErrorMessage(ctx, "no permission")
 		return
 	}
 
 	var mark Mark
-	err = ctx.BindJSON(&mark)
+	err := ctx.BindJSON(&mark)
 	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, err.Error())
 		return
@@ -50,9 +50,8 @@ func addMark(ctx *gin.Context) {
 }
 
 func getMark(ctx *gin.Context) {
-	user, err := userApi.GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err, h.UNDEFINED) {
-		h.ErrorMessage(ctx, err.Error())
+	var user userApi.User
+	if err := userApi.GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
 		return
 	}
 
@@ -78,18 +77,18 @@ func getMark(ctx *gin.Context) {
 }
 
 func editMark(ctx *gin.Context) {
-	user, err := userApi.GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err, h.UNDEFINED) {
-		h.ErrorMessage(ctx, err.Error())
+	var user userApi.User
+	if err := userApi.GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
 		return
 	}
+
 	if !h.SliceContains(user.Permissions, "editJournal") {
 		h.ErrorMessage(ctx, "no permission")
 		return
 	}
 
 	var mark Mark
-	err = ctx.BindJSON(&mark)
+	err := ctx.BindJSON(&mark)
 	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return
@@ -116,11 +115,11 @@ func editMark(ctx *gin.Context) {
 }
 
 func removeMark(ctx *gin.Context) {
-	user, err := userApi.GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err, h.UNDEFINED) {
-		h.ErrorMessage(ctx, err.Error())
+	var user userApi.User
+	if err := userApi.GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
 		return
 	}
+
 	if !h.SliceContains(user.Permissions, "editJournal") {
 		h.ErrorMessage(ctx, "no permission")
 		return
@@ -171,9 +170,8 @@ func removeMark(ctx *gin.Context) {
 }
 
 func getGroupMembers(ctx *gin.Context) {
-	user, err := userApi.GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err, h.UNDEFINED) {
-		h.ErrorMessage(ctx, err.Error())
+	var user userApi.User
+	if err := userApi.GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
 		return
 	}
 
@@ -200,9 +198,8 @@ func getGroupMembers(ctx *gin.Context) {
 }
 
 func editInfo(ctx *gin.Context) {
-	user, err := userApi.GetUserFromDbViaCookies(ctx)
-	if h.CheckError(err, h.UNDEFINED) {
-		h.ErrorMessage(ctx, err.Error())
+	var user userApi.User
+	if err := userApi.GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
 		return
 	}
 
@@ -212,7 +209,7 @@ func editInfo(ctx *gin.Context) {
 	}
 
 	var lesson Lesson
-	err = ctx.BindJSON(&lesson)
+	err := ctx.BindJSON(&lesson)
 	if h.CheckError(err, h.UNDEFINED) {
 		h.ErrorMessage(ctx, err.Error())
 		return
