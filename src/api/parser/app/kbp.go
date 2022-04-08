@@ -85,6 +85,8 @@ func UpdateScheduleKbp(url string, states []schedule.StateInfo, oldStates []sche
 							return
 						}
 
+						date := h.ToDateWithoutTime(time_)
+
 						subject := schedule.SubjectFull{
 							Id:               primitive.NewObjectID(),
 							Subject:          div.Find(".subject").Text(),
@@ -97,8 +99,8 @@ func UpdateScheduleKbp(url string, states []schedule.StateInfo, oldStates []sche
 							Type_:            type_,
 							EducationPlaceId: 0,
 							Date:             time_,
-							StartTime:        time_.Add(startDurations[rowIndex].Start),
-							EndTime:          time_.Add(startDurations[rowIndex].End),
+							StartTime:        date.Add(startDurations[rowIndex].Start),
+							EndTime:          date.Add(startDurations[rowIndex].End),
 						}
 
 						if (!isGeneral && states[tableIndex*6+columnIndex].State == schedule.Updated && oldStates[tableIndex*6+columnIndex].State == schedule.NotUpdated) || (isGeneral && type_ != "ADDED") {
