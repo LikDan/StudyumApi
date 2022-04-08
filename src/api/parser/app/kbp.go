@@ -25,6 +25,16 @@ var KBP = studyPlace.Education{
 }
 
 func UpdateScheduleKbp(url string, states []schedule.StateInfo, oldStates []schedule.StateInfo, isGeneral bool) []schedule.SubjectFull {
+	startDurations := []h.Shift{
+		h.BindShift(8, 10, 9, 40),
+		h.BindShift(9, 50, 11, 20),
+		h.BindShift(11, 50, 13, 20),
+		h.BindShift(13, 50, 15, 20),
+		h.BindShift(15, 40, 17, 10),
+		h.BindShift(17, 20, 18, 50),
+		h.BindShift(19, 0, 20, 30),
+	}
+
 	document, err := htmlParser.NewDocument("http://kbp.by/rasp/timetable/view_beta_kbp/" + url)
 	h.CheckError(err, h.WARNING)
 
@@ -87,6 +97,8 @@ func UpdateScheduleKbp(url string, states []schedule.StateInfo, oldStates []sche
 							Type_:            type_,
 							EducationPlaceId: 0,
 							Date:             time_,
+							StartTime:        time_.Add(startDurations[rowIndex].Start),
+							EndTime:          time_.Add(startDurations[rowIndex].End),
 						}
 
 						if (!isGeneral && states[tableIndex*6+columnIndex].State == schedule.Updated && oldStates[tableIndex*6+columnIndex].State == schedule.NotUpdated) || (isGeneral && type_ != "ADDED") {
