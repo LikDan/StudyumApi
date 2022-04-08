@@ -155,3 +155,19 @@ func CheckAndMessage(ctx *gin.Context, code int, err error, logType LogType) boo
 func Message(ctx *gin.Context, code int, msg interface{}) {
 	ctx.JSON(code, msg)
 }
+
+func GetTimeDuration(hour, minute int) time.Duration {
+	return time.Duration(hour*60*60+minute*60) * time.Second
+}
+
+type Shift struct {
+	Start time.Duration
+	End   time.Duration
+}
+
+func BindShift(sHour, sMinute, eHour, eMinute int) Shift {
+	return Shift{
+		Start: GetTimeDuration(sHour, sMinute),
+		End:   GetTimeDuration(eHour, eMinute),
+	}
+}
