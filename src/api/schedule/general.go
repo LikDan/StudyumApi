@@ -7,7 +7,7 @@ import (
 	"studyium/src/db"
 )
 
-type StudyPlace struct {
+type StudyPlaceOld struct {
 	Id               int32  `json:"id" bson:"_id"`
 	WeeksQuantity    int    `json:"weeksQuantity" bson:"weeksCount"`
 	DaysQuantity     int    `json:"daysQuantity" bson:"daysCount"`
@@ -16,7 +16,7 @@ type StudyPlace struct {
 }
 
 func getStudyPlaces(ctx *gin.Context) {
-	var places []StudyPlace
+	var places []StudyPlaceOld
 
 	types, _ := db.StudyPlacesCollection.Find(nil, bson.D{})
 	err := types.All(nil, &places)

@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func getSchedule(ctx *gin.Context) {
+func getScheduleOld(ctx *gin.Context) {
 	var user userApi.User
 	err := userApi.GetUserViaGoogle(ctx, &user)
 
@@ -45,7 +45,7 @@ func getSchedule(ctx *gin.Context) {
 		return
 	}
 
-	var studyPlace StudyPlace
+	var studyPlace StudyPlaceOld
 
 	err = db.StudyPlacesCollection.FindOne(nil, bson.M{"_id": educationPlaceId}).Decode(&studyPlace)
 	if h.CheckError(err, h.WARNING) {
@@ -84,7 +84,7 @@ func getSchedule(ctx *gin.Context) {
 		return
 	}
 
-	var lessons []*Lesson
+	var lessons []*LessonOld
 
 	err = lessonsCursor.All(nil, &lessons)
 	if h.CheckError(err, h.WARNING) {
@@ -112,7 +112,7 @@ func getSchedule(ctx *gin.Context) {
 		return
 	}
 
-	var generalLessons []*Lesson
+	var generalLessons []*LessonOld
 	err = lessonsCursor.All(nil, &generalLessons)
 	if h.CheckError(err, h.WARNING) {
 		return
@@ -167,6 +167,220 @@ func getSchedule(ctx *gin.Context) {
 	})
 }
 
+func getSchedule(ctx *gin.Context) {
+	var user userApi.User
+	if err := userApi.GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
+		return
+	}
+
+	type_ := ctx.DefaultQuery("type", user.Type)
+	typeName := ctx.DefaultQuery("name", user.TypeName)
+	studyPlaceIdStr := ctx.Query("studyPlaceId")
+
+	if type_ == "" {
+		type_ = user.Type
+	}
+
+	if typeName == "" {
+		typeName = user.TypeName
+	}
+
+	var studyPlaceId int
+	if studyPlaceIdStr == "" {
+		studyPlaceId = user.StudyPlaceId
+	} else {
+		var err error
+		studyPlaceId, err = strconv.Atoi(studyPlaceIdStr)
+		if h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
+			return
+		}
+	}
+
+	if !h.CheckNotEmpty(type_, typeName) {
+		h.ErrorMessage(ctx, "Provide valid params")
+		return
+	}
+
+	var schedule Schedule
+
+	startWeekDate := h.Date().AddDate(0, 0, 1-int(time.Now().Weekday()))
+	cursor, err := db.GeneralSubjectsCollection.Aggregate(nil, bson.A{
+		bson.M{
+			"$match": bson.M{
+				type_:              typeName,
+				"educationPlaceId": studyPlaceId,
+			},
+		}, bson.M{
+			"$group": bson.M{
+				"_id":     "$weekIndex",
+				"lessons": bson.M{"$push": "$$ROOT"},
+			},
+		}, bson.M{
+			"$group": bson.M{
+				"_id":           nil,
+				"weeks":         bson.M{"$push": "$$ROOT"},
+				"weeksQuantity": bson.M{"$sum": 1},
+			},
+		}, bson.M{
+			"$unwind": "$weeks",
+		}, bson.M{
+			"$sort": bson.M{"weeks._id": 1},
+		}, bson.M{
+			"$group": bson.M{
+				"_id": nil,
+				"start": bson.M{"$push": bson.M{"$cond": bson.A{
+					bson.M{"$gte": bson.A{
+						bson.M{"$mod": bson.A{bson.M{"$isoWeek": startWeekDate}, "$weeksQuantity"}},
+						"$weeks_.id",
+					}},
+					"$weeks",
+					"$$REMOVE",
+				}}},
+				"end": bson.M{"$push": bson.M{"$cond": bson.A{
+					bson.M{"$lt": bson.A{
+						bson.M{"$mod": bson.A{bson.M{"$isoWeek": startWeekDate}, "$weeksQuantity"}},
+						"$weeks_.id",
+					}},
+					"$weeks",
+					"$$REMOVE",
+				}}},
+			},
+		}, bson.M{
+			"$project": bson.M{"weeks": bson.M{"$concatArrays": bson.A{"$start", "$end"}}},
+		}, bson.M{
+			"$unwind": bson.M{
+				"path":              "$weeks",
+				"includeArrayIndex": "index",
+			},
+		}, bson.M{
+			"$project": bson.M{
+				"lessons": "$weeks.lessons",
+				"startWeekDate": bson.M{"$dateAdd": bson.M{
+					"startDate": startWeekDate,
+					"unit":      "week",
+					"amount":    "$index",
+				}},
+			},
+		}, bson.M{
+			"$unwind": "$lessons",
+		}, bson.M{
+			"$addFields": bson.M{
+				"lessons.startTime": bson.M{"$dateFromParts": bson.M{
+					"year":   bson.M{"$year": "$startWeekDate"},
+					"month":  bson.M{"$month": "$startWeekDate"},
+					"day":    bson.M{"$sum": bson.A{bson.M{"$dayOfMonth": "$startWeekDate"}, "$lessons.columnIndex"}},
+					"hour":   bson.M{"$hour": "$lessons.startTime"},
+					"minute": bson.M{"$minute": "$lessons.startTime"},
+				}},
+				"lessons.endTime": bson.M{"$dateFromParts": bson.M{
+					"year":   bson.M{"$year": "$startWeekDate"},
+					"month":  bson.M{"$month": "$startWeekDate"},
+					"day":    bson.M{"$sum": bson.A{bson.M{"$dayOfMonth": "$startWeekDate"}, "$lessons.columnIndex"}},
+					"hour":   bson.M{"$hour": "$lessons.endTime"},
+					"minute": bson.M{"$minute": "$lessons.endTime"},
+				}},
+			},
+		}, bson.M{
+			"$group": bson.M{
+				"_id":     bson.M{"$dateToString": bson.M{"date": "$lessons.startTime", "format": "%Y-%m-%d"}},
+				"general": bson.M{"$push": "$lessons"},
+			},
+		}, bson.M{
+			"$lookup": bson.M{
+				"from": "Subjects",
+				"let":  bson.M{"date": "$_id"},
+				"pipeline": bson.A{
+					bson.M{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$and": bson.A{
+									bson.M{"$eq": bson.A{"$$date", bson.M{"$dateToString": bson.M{"date": "$startTime", "format": "%Y-%m-%d"}}}},
+									bson.M{"$eq": bson.A{"$group", typeName}},
+									bson.M{"$eq": bson.A{"$educationPlaceId", studyPlaceId}},
+								},
+							},
+						},
+					},
+				},
+				"as": "current",
+			},
+		}, bson.M{
+			"$project": bson.M{
+				"lessons": bson.M{"$cond": bson.A{bson.M{"$eq": bson.A{"$current", bson.A{}}}, "$general", "$current"}},
+			},
+		}, bson.M{
+			"$unwind": "$lessons",
+		}, bson.M{
+			"$replaceRoot": bson.M{"newRoot": "$lessons"},
+		}, bson.M{
+			"$group": bson.M{
+				"_id": bson.M{
+					"startDate": "$startTime",
+					"endDate":   "$endTime",
+				},
+				"startDate": bson.M{"$first": "$startTime"},
+				"endDate":   bson.M{"$first": "$endTime"},
+				"subjects": bson.M{"$push": bson.M{
+					"subject":     "$subject",
+					"teacher":     "$teacher",
+					"group":       "$group",
+					"room":        "$room",
+					"type":        "$type",
+					"title":       "$smalldescription",
+					"description": "$description",
+					"homework":    "$homework",
+				}},
+				"studyPlaceId": bson.M{"$first": "$educationPlaceId"},
+			},
+		}, bson.M{
+			"$project": bson.M{"_id": 0},
+		}, bson.M{
+			"$sort": bson.M{"_id.startDate": 1},
+		}, bson.M{
+			"$group": bson.M{
+				"_id":          nil,
+				"lessons":      bson.M{"$push": "$$ROOT"},
+				"studyPlaceId": bson.M{"$first": "$studyPlaceId"},
+			},
+		}, bson.M{
+			"$lookup": bson.M{
+				"from": "StudyPlaces",
+				"let":  bson.M{"studyPlaceId": "$studyPlaceId"},
+				"pipeline": bson.A{
+					bson.M{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$eq": bson.A{"$$studyPlaceId", "$_id"},
+							},
+						},
+					},
+				},
+				"as": "studyPlace",
+			},
+		}, bson.M{
+			"$project": bson.M{
+				"lessons":         1,
+				"info.studyPlace": bson.M{"$first": "$studyPlace"},
+			},
+		}, bson.M{
+			"$addFields": bson.M{
+				"info.type":     type_,
+				"info.typeName": typeName,
+			},
+		},
+	})
+	if h.CheckAndMessage(ctx, 418, err, h.WARNING) {
+		return
+	}
+
+	cursor.Next(nil)
+	if err = cursor.Decode(&schedule); h.CheckAndMessage(ctx, 418, err, h.WARNING) {
+		return
+	}
+
+	ctx.JSON(200, schedule)
+}
+
 func getScheduleTypes(ctx *gin.Context) {
 	var res []string
 
@@ -197,8 +411,27 @@ func getScheduleTypes(ctx *gin.Context) {
 	h.CheckError(err, h.WARNING)
 }
 
+type Info struct {
+	Type       string     `json:"type" bson:"type"`
+	TypeName   string     `json:"typeName" bson:"typeName"`
+	StudyPlace StudyPlace `json:"studyPlace" bson:"studyPlace"`
+}
+
+type StudyPlace struct {
+	Id         int    `json:"id" bson:"_id"`
+	WeeksCount int    `json:"weeksCount" bson:"weeksCount"`
+	DaysCount  int    `json:"daysCount" bson:"daysCount"`
+	Name       string `json:"name" bson:"name"`
+}
+
+type Schedule struct {
+	Info    Info      `json:"info" bson:"info"`
+	Lessons []*Lesson `json:"lessons" bson:"lessons"`
+}
+
 func BuildRequests(api *gin.RouterGroup, api2 *gin.RouterGroup) {
-	api.GET("", getSchedule)
+	api.GET("", getScheduleOld)
+	api.GET("view", getSchedule)
 	api.GET("/types", getScheduleTypes)
 
 	api2.GET("/studyPlaces", getStudyPlaces)
