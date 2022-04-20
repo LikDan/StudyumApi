@@ -18,6 +18,7 @@ type Lesson struct {
 	Subjects     []*Subject `bson:"subjects" json:"subjects"`
 	StartDate    time.Time  `bson:"startDate" json:"startDate"`
 	EndDate      time.Time  `bson:"endDate" json:"endDate"`
+	Updated      bool       `bson:"updated" json:"updated"`
 	StudyPlaceId int        `bson:"studyPlaceId" json:"studyPlaceId"`
 }
 
