@@ -279,6 +279,7 @@ func getSchedule(ctx *gin.Context) {
 					"hour":   bson.M{"$hour": "$lessons.endTime"},
 					"minute": bson.M{"$minute": "$lessons.endTime"},
 				}},
+				"lessons.updated": false,
 			},
 		}, bson.M{
 			"$group": bson.M{
@@ -300,6 +301,10 @@ func getSchedule(ctx *gin.Context) {
 								},
 							},
 						},
+					}, bson.M{
+						"$addFields": bson.M{
+							"updated": true,
+						},
 					},
 				},
 				"as": "current",
@@ -320,6 +325,7 @@ func getSchedule(ctx *gin.Context) {
 				},
 				"startDate": bson.M{"$first": "$startTime"},
 				"endDate":   bson.M{"$first": "$endTime"},
+				"updated":   bson.M{"$first": "$updated"},
 				"subjects": bson.M{"$push": bson.M{
 					"subject":     "$subject",
 					"teacher":     "$teacher",
@@ -364,8 +370,10 @@ func getSchedule(ctx *gin.Context) {
 			},
 		}, bson.M{
 			"$addFields": bson.M{
-				"info.type":     type_,
-				"info.typeName": typeName,
+				"info.type":          type_,
+				"info.typeName":      typeName,
+				"info.startWeekDate": startWeekDate,
+				"info.date":          time.Now(),
 			},
 		},
 	})
@@ -412,9 +420,11 @@ func getScheduleTypes(ctx *gin.Context) {
 }
 
 type Info struct {
-	Type       string     `json:"type" bson:"type"`
-	TypeName   string     `json:"typeName" bson:"typeName"`
-	StudyPlace StudyPlace `json:"studyPlace" bson:"studyPlace"`
+	Type          string     `json:"type" bson:"type"`
+	TypeName      string     `json:"typeName" bson:"typeName"`
+	StudyPlace    StudyPlace `json:"studyPlace" bson:"studyPlace"`
+	StartWeekDate time.Time  `json:"startWeekDate" bson:"startWeekDate"`
+	Date          time.Time  `json:"date" bson:"date"`
 }
 
 type StudyPlace struct {
