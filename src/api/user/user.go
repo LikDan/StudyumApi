@@ -186,6 +186,7 @@ func BuildRequests(api *gin.RouterGroup) {
 	api.GET("", getUser)
 	api.PUT("", updateUser)
 	api.PUT("revoke", revokeToken)
+	api.PUT("token", putToken)
 
 	api.GET("/toAccept", toAccept)
 	api.PUT("/accept", accept)
