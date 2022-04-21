@@ -17,6 +17,13 @@ func uptimeHandler(ctx *gin.Context) {
 	ctx.JSON(200, gin.H{"message": "hi"})
 }
 
+func BeforeAfterMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("AllowCredentials", "true")
+		c.Next()
+	}
+}
+
 func main() {
 	time.Local = time.FixedZone("GMT", 3*3600)
 
@@ -32,7 +39,7 @@ func main() {
 	r.HEAD("/api", uptimeHandler)
 	defer logApi.CloseLogFile()
 
-	api := r.Group("/api")
+	api := r.Group("/api", BeforeAfterMiddleware())
 
 	logGroup := api.Group("/log")
 	userGroup := api.Group("/user")
