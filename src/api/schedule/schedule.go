@@ -15,24 +15,9 @@ import (
 )
 
 func getScheduleOld(ctx *gin.Context) {
-	var user userApi.User
-	err := userApi.GetUserViaGoogle(ctx, &user)
-
 	type_ := ctx.Query("type")
 	name := ctx.Query("name")
 	studyPlaceIdStr := ctx.Query("studyPlaceId")
-
-	if err == nil {
-		if type_ == "" {
-			type_ = user.Type
-		}
-		if name == "" {
-			name = user.TypeName
-		}
-		if studyPlaceIdStr == "" {
-			studyPlaceIdStr = strconv.Itoa(user.StudyPlaceId)
-		}
-	}
 
 	if type_ == "" || name == "" || studyPlaceIdStr == "" {
 		h.ErrorMessage(ctx, "not authorized")
@@ -176,14 +161,6 @@ func getSchedule(ctx *gin.Context) {
 	type_ := ctx.DefaultQuery("type", user.Type)
 	typeName := ctx.DefaultQuery("name", user.TypeName)
 	studyPlaceIdStr := ctx.Query("studyPlaceId")
-
-	if type_ == "" {
-		type_ = user.Type
-	}
-
-	if typeName == "" {
-		typeName = user.TypeName
-	}
 
 	var studyPlaceId int
 	if studyPlaceIdStr == "" {
