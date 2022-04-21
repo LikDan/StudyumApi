@@ -88,14 +88,19 @@ func callbackHandler(ctx *gin.Context) {
 		}
 	}
 
+	ctx.Redirect(307, ctx.Request.FormValue("state")+"?token="+user.Token)
+}
+
+func putToken(ctx *gin.Context) {
+	bytes, _ := ctx.GetRawData()
+	token := string(bytes)
+
 	http.SetCookie(ctx.Writer, &http.Cookie{
 		Name:    "authToken",
-		Value:   user.Token,
+		Value:   token,
 		Path:    "/",
 		Expires: time.Now().AddDate(1, 0, 0),
 	})
-
-	ctx.Redirect(307, ctx.Request.FormValue("state"))
 }
 
 type Google struct {
