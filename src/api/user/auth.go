@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"io/ioutil"
@@ -18,7 +19,7 @@ var googleOauthConfig = &oauth2.Config{
 	ClientID:     "314976404425-5774o9r2j56p724ohicfegm6g4b2ch1t.apps.googleusercontent.com", //https://console.cloud.google.com/apis/dashboard
 	ClientSecret: "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",
 	Endpoint:     google.Endpoint,
-	RedirectURL:  "https://studyum-api.herokuapp.com/api/user/callback",
+	RedirectURL:  "http://localhost:8080/api/user/callback",
 	Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
 }
 
@@ -53,11 +54,11 @@ func callbackHandler(ctx *gin.Context) {
 	}
 
 	var user User
-	if err = db.UsersCollection.FindOne(ctx, bson.M{"_id": googleUser.Id}).Decode(&user); err != nil {
+	if err = db.UsersCollection.FindOne(ctx, bson.M{"email": googleUser.Email}).Decode(&user); err != nil {
 		if err.Error() == "mongo: no documents in result" {
 			user = User{
-				Id:            googleUser.Id,
-				Token:         token.AccessToken,
+				Id:            primitive.NewObjectID(),
+				Token:         h.GenerateSecureToken(),
 				Email:         googleUser.Email,
 				VerifiedEmail: googleUser.VerifiedEmail,
 				Login:         googleUser.Name,
@@ -81,8 +82,8 @@ func callbackHandler(ctx *gin.Context) {
 	}
 
 	if user.Token == "" {
-		user.Token = token.AccessToken
-		if _, err = db.UsersCollection.UpdateOne(ctx, bson.M{"_id": user.Id}, bson.M{"$set": bson.M{"token": user.Token}}); err != nil {
+		user.Token = h.GenerateSecureToken()
+		if _, err = db.UsersCollection.UpdateOne(ctx, bson.M{"email": user.Email}, bson.M{"$set": bson.M{"token": user.Token}}); err != nil {
 			h.ErrorMessage(ctx, "cannot update user")
 			return
 		}
