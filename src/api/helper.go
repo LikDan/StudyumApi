@@ -1,6 +1,9 @@
 package api
 
 import (
+	"crypto/md5"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron"
@@ -170,4 +173,17 @@ func BindShift(sHour, sMinute, eHour, eMinute int) Shift {
 		Start: GetTimeDuration(sHour, sMinute),
 		End:   GetTimeDuration(eHour, eMinute),
 	}
+}
+
+func GenerateSecureToken() string {
+	b := make([]byte, 128)
+	if _, err := rand.Read(b); err != nil {
+		return ""
+	}
+	return hex.EncodeToString(b)
+}
+
+func Hash(s string) string {
+	hash := md5.Sum([]byte(s))
+	return hex.EncodeToString(hash[:])
 }
