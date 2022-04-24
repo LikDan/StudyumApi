@@ -366,7 +366,7 @@ func getSchedule(ctx *gin.Context) {
 	ctx.JSON(200, schedule)
 }
 
-func getScheduleTypes(ctx *gin.Context) {
+func getScheduleTypesOld(ctx *gin.Context) {
 	var res []string
 
 	educationPlaceIdStr := ctx.Query("studyPlaceId")
@@ -396,6 +396,39 @@ func getScheduleTypes(ctx *gin.Context) {
 	h.CheckError(err, h.WARNING)
 }
 
+func getTypes(ctx *gin.Context) {
+	studyPlaceIdStr := ctx.Query("studyPlaceId")
+	if studyPlaceIdStr == "" {
+		h.ErrorMessage(ctx, "provide all params")
+		return
+	}
+
+	studyPlaceId, err := strconv.Atoi(studyPlaceIdStr)
+	if h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
+		return
+	}
+
+	var get = func(type_ string) []string {
+		namesInterface, _ := db.SubjectsCollection.Distinct(nil, type_, bson.M{"educationPlaceId": studyPlaceId})
+
+		names := make([]string, len(namesInterface))
+		for i, v := range namesInterface {
+			names[i] = v.(string)
+		}
+
+		return names
+	}
+
+	types := Types{
+		Groups:   get("group"),
+		Teachers: get("teacher"),
+		Subjects: get("subject"),
+		Rooms:    get("room"),
+	}
+
+	ctx.JSON(200, types)
+}
+
 type Info struct {
 	Type          string     `json:"type" bson:"type"`
 	TypeName      string     `json:"typeName" bson:"typeName"`
@@ -416,10 +449,18 @@ type Schedule struct {
 	Lessons []*Lesson `json:"lessons" bson:"lessons"`
 }
 
+type Types struct {
+	Groups   []string `json:"groups" bson:"groups"`
+	Teachers []string `json:"teachers" bson:"teachers"`
+	Subjects []string `json:"subjects" bson:"subjects"`
+	Rooms    []string `json:"rooms" bson:"rooms"`
+}
+
 func BuildRequests(api *gin.RouterGroup, api2 *gin.RouterGroup) {
 	api.GET("", getScheduleOld)
 	api.GET("view", getSchedule)
-	api.GET("/types", getScheduleTypes)
+	api.GET("/types", getScheduleTypesOld)
+	api.GET("/types/get", getTypes)
 
 	api2.GET("/studyPlaces", getStudyPlaces)
 }
