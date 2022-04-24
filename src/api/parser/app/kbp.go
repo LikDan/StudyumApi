@@ -25,7 +25,7 @@ var KBP = studyPlace.Education{
 }
 
 func UpdateScheduleKbp(url string, states []schedule.StateInfo, oldStates []schedule.StateInfo, isGeneral bool) []schedule.SubjectFull {
-	startDurations := []h.Shift{
+	weekdaysDurations := []h.Shift{
 		h.BindShift(8, 10, 9, 40),
 		h.BindShift(9, 50, 11, 20),
 		h.BindShift(11, 50, 13, 20),
@@ -33,6 +33,16 @@ func UpdateScheduleKbp(url string, states []schedule.StateInfo, oldStates []sche
 		h.BindShift(15, 40, 17, 10),
 		h.BindShift(17, 20, 18, 50),
 		h.BindShift(19, 0, 20, 30),
+	}
+
+	weekendsDurations := []h.Shift{
+		h.BindShift(8, 10, 9, 40),
+		h.BindShift(9, 50, 11, 20),
+		h.BindShift(11, 30, 13, 0),
+		h.BindShift(13, 30, 15, 0),
+		h.BindShift(15, 10, 16, 40),
+		h.BindShift(16, 50, 18, 20),
+		h.BindShift(18, 30, 20, 0),
 	}
 
 	document, err := htmlParser.NewDocument("http://kbp.by/rasp/timetable/view_beta_kbp/" + url)
@@ -87,6 +97,17 @@ func UpdateScheduleKbp(url string, states []schedule.StateInfo, oldStates []sche
 
 						date := h.ToDateWithoutTime(time_)
 
+						var startTime time.Duration
+						var endTime time.Duration
+
+						if columnIndex < 6 {
+							startTime = weekdaysDurations[rowIndex].Start
+							endTime = weekdaysDurations[rowIndex].End
+						} else {
+							startTime = weekendsDurations[rowIndex].Start
+							endTime = weekendsDurations[rowIndex].End
+						}
+
 						subject := schedule.SubjectFull{
 							Id:               primitive.NewObjectID(),
 							Subject:          div.Find(".subject").Text(),
@@ -99,8 +120,8 @@ func UpdateScheduleKbp(url string, states []schedule.StateInfo, oldStates []sche
 							Type_:            type_,
 							EducationPlaceId: 0,
 							Date:             time_,
-							StartTime:        date.Add(startDurations[rowIndex].Start),
-							EndTime:          date.Add(startDurations[rowIndex].End),
+							StartTime:        date.Add(startTime),
+							EndTime:          date.Add(endTime),
 						}
 
 						if (!isGeneral && states[tableIndex*6+columnIndex].State == schedule.Updated && oldStates[tableIndex*6+columnIndex].State == schedule.NotUpdated) || (isGeneral && type_ != "ADDED") {
