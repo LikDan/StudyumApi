@@ -100,7 +100,7 @@ func UpdateScheduleKbp(url string, states []schedule.StateInfo, oldStates []sche
 						var startTime time.Duration
 						var endTime time.Duration
 
-						if columnIndex < 6 {
+						if columnIndex < 5 {
 							startTime = weekdaysDurations[rowIndex].Start
 							endTime = weekdaysDurations[rowIndex].End
 						} else {
