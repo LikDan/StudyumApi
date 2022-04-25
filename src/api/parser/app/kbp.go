@@ -11,17 +11,15 @@ import (
 )
 
 var KBP = studyPlace.Education{
-	Id:                               0,
-	Name:                             "Kbp",
-	ScheduleUpdateCronPattern:        "@every 30m",
-	PrimaryScheduleUpdateCronPattern: "@every 5m",
-	PrimaryCronStartTimePattern:      "0 0 11 * * MON-FRI",
-	ScheduleUpdate:                   UpdateScheduleKbp,
-	ScheduleStatesUpdate:             UpdateStateKbp,
-	ScheduleAvailableTypeUpdate:      UpdateAccessibleTypesKbp,
-	AvailableTypes:                   []string{},
-	States:                           []schedule.StateInfo{},
-	Password:                         "kbp-corn-pass",
+	Id:                          0,
+	Name:                        "Kbp",
+	ScheduleUpdateCronPattern:   "@every 30m",
+	ScheduleUpdate:              UpdateScheduleKbp,
+	ScheduleStatesUpdate:        UpdateStateKbp,
+	ScheduleAvailableTypeUpdate: UpdateAccessibleTypesKbp,
+	AvailableTypes:              []string{},
+	States:                      []schedule.StateInfo{},
+	Password:                    "kbp-corn-pass",
 }
 
 func UpdateScheduleKbp(url string, states []schedule.StateInfo, oldStates []schedule.StateInfo, isGeneral bool) []schedule.SubjectFull {
