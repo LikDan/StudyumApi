@@ -8,19 +8,16 @@ import (
 )
 
 type Education struct {
-	Id                               int
-	Name                             string
-	ScheduleUpdateCronPattern        string
-	PrimaryScheduleUpdateCronPattern string
-	PrimaryCronStartTimePattern      string
-	ScheduleUpdate                   func(string, []schedule.StateInfo, []schedule.StateInfo, bool) []schedule.SubjectFull `json:"-"`
-	ScheduleStatesUpdate             func(string) []schedule.StateInfo                                                     `json:"-"`
-	ScheduleAvailableTypeUpdate      func() []string                                                                       `json:"-"`
-	AvailableTypes                   []string
-	States                           []schedule.StateInfo
-	Password                         string `json:"-"`
+	Id                          int
+	Name                        string
+	ScheduleUpdateCronPattern   string
+	ScheduleUpdate              func(string, []schedule.StateInfo, []schedule.StateInfo, bool) []schedule.SubjectFull `json:"-"`
+	ScheduleStatesUpdate        func(string) []schedule.StateInfo                                                     `json:"-"`
+	ScheduleAvailableTypeUpdate func() []string                                                                       `json:"-"`
+	AvailableTypes              []string
+	States                      []schedule.StateInfo
+	Password                    string `json:"-"`
 
-	PrimaryCron       *cron.Cron
 	GeneralCron       *cron.Cron
 	LaunchPrimaryCron bool
 	LastUpdateTime    time.Time
