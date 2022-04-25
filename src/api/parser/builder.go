@@ -117,20 +117,5 @@ func Launch() {
 			edu.PrimaryCron.Start()
 		})
 		edu.GeneralCron.Start()
-
-		var generalSubjects []schedule.SubjectFull
-
-		for _, availableType := range edu.AvailableTypes {
-			generalSubjects = append(generalSubjects, edu.ScheduleUpdate(availableType, edu.States, edu.States, true)...)
-		}
-
-		_, err = db.GeneralSubjectsCollection.DeleteMany(nil, bson.D{{"educationPlaceId", edu.Id}})
-		if h.CheckError(err, h.WARNING) {
-			continue
-		}
-		_, err = db.GeneralSubjectsCollection.InsertMany(nil, h.ToInterfaceSlice(generalSubjects))
-		if h.CheckError(err, h.WARNING) {
-			continue
-		}
 	}
 }
