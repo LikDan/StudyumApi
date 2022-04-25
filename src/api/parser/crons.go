@@ -36,7 +36,6 @@ func StopPrimaryCron(ctx *gin.Context) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
-	edu.PrimaryCron.Stop()
 	edu.LaunchPrimaryCron = false
 }
 
@@ -46,6 +45,5 @@ func LaunchPrimaryCron(ctx *gin.Context) {
 		h.ErrorMessage(ctx, err.Error())
 		return
 	}
-	edu.PrimaryCron.Start()
 	edu.LaunchPrimaryCron = true
 }

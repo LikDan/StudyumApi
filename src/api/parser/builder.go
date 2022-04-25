@@ -94,28 +94,10 @@ func Launch() {
 		edu.States = states
 
 		edu.GeneralCron = cron.New()
-		edu.PrimaryCron = cron.New()
-
-		edu.PrimaryCron.AddFunc(edu.PrimaryScheduleUpdateCronPattern, func() {
-			if !h.EqualStateInfo(edu.States, edu.ScheduleStatesUpdate(edu.AvailableTypes[0])) {
-				logrus.Info("Updated from primary cron (and stop it)")
-				UpdateDbSchedule(edu)
-				edu.PrimaryCron.Stop()
-			} else {
-				logrus.Info("No updates at primary cron")
-			}
-		})
 		edu.GeneralCron.AddFunc(edu.ScheduleUpdateCronPattern, func() {
 			UpdateDbSchedule(edu)
 		})
-		edu.GeneralCron.AddFunc(edu.PrimaryCronStartTimePattern, func() {
-			if !edu.LaunchPrimaryCron {
-				return
-			}
 
-			logrus.Info("Start primary cron")
-			edu.PrimaryCron.Start()
-		})
 		edu.GeneralCron.Start()
 	}
 }
