@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"strconv"
@@ -366,6 +367,31 @@ func getSchedule(ctx *gin.Context) {
 	ctx.JSON(200, schedule)
 }
 
+func addLessons(ctx *gin.Context) {
+	var user userApi.User
+	if err := userApi.GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
+		return
+	}
+
+	if !h.SliceContains(user.Permissions, "editSchedule") {
+		h.ErrorMessage(ctx, "no permissions")
+		return
+	}
+
+	var subjects []*SubjectFull
+	if err := ctx.BindJSON(&subjects); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
+		return
+	}
+	for _, subject := range subjects {
+		subject.Id = primitive.NewObjectID()
+	}
+
+	if _, err := db.SubjectsCollection.InsertMany(nil, h.ToInterfaceSlice(subjects)); h.CheckAndMessage(ctx, 418, err, h.WARNING) {
+		return
+	}
+	getSchedule(ctx)
+}
+
 func getScheduleTypesOld(ctx *gin.Context) {
 	var res []string
 
@@ -459,6 +485,7 @@ type Types struct {
 func BuildRequests(api *gin.RouterGroup, api2 *gin.RouterGroup) {
 	api.GET("", getScheduleOld)
 	api.GET("view", getSchedule)
+	api.PUT("", addLessons)
 	api.GET("/types", getScheduleTypesOld)
 	api.GET("/types/get", getTypes)
 
