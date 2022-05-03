@@ -161,18 +161,6 @@ func getSchedule(ctx *gin.Context) {
 
 	type_ := ctx.DefaultQuery("type", user.Type)
 	typeName := ctx.DefaultQuery("name", user.TypeName)
-	studyPlaceIdStr := ctx.Query("studyPlaceId")
-
-	var studyPlaceId int
-	if studyPlaceIdStr == "" {
-		studyPlaceId = user.StudyPlaceId
-	} else {
-		var err error
-		studyPlaceId, err = strconv.Atoi(studyPlaceIdStr)
-		if h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
-			return
-		}
-	}
 
 	if !h.CheckNotEmpty(type_, typeName) {
 		h.ErrorMessage(ctx, "Provide valid params")
@@ -182,100 +170,66 @@ func getSchedule(ctx *gin.Context) {
 	var schedule Schedule
 
 	startWeekDate := h.Date().AddDate(0, 0, 1-int(time.Now().Weekday()))
-	cursor, err := db.GeneralSubjectsCollection.Aggregate(nil, bson.A{
+	cursor, err := db.StudyPlacesCollection.Aggregate(nil, bson.A{
 		bson.M{
 			"$match": bson.M{
-				type_:              typeName,
-				"educationPlaceId": studyPlaceId,
+				"_id": user.StudyPlaceId,
 			},
-		}, bson.M{
-			"$group": bson.M{
-				"_id":     "$weekIndex",
-				"lessons": bson.M{"$push": "$$ROOT"},
-			},
-		}, bson.M{
-			"$group": bson.M{
-				"_id":           nil,
-				"weeks":         bson.M{"$push": "$$ROOT"},
-				"weeksQuantity": bson.M{"$sum": 1},
-			},
-		}, bson.M{
-			"$unwind": "$weeks",
-		}, bson.M{
-			"$sort": bson.M{"weeks._id": 1},
-		}, bson.M{
-			"$group": bson.M{
-				"_id": nil,
-				"start": bson.M{"$push": bson.M{"$cond": bson.A{
-					bson.M{"$gte": bson.A{
-						bson.M{"$mod": bson.A{bson.M{"$isoWeek": startWeekDate}, "$weeksQuantity"}},
-						"$weeks_.id",
-					}},
-					"$weeks",
-					"$$REMOVE",
-				}}},
-				"end": bson.M{"$push": bson.M{"$cond": bson.A{
-					bson.M{"$lt": bson.A{
-						bson.M{"$mod": bson.A{bson.M{"$isoWeek": startWeekDate}, "$weeksQuantity"}},
-						"$weeks_.id",
-					}},
-					"$weeks",
-					"$$REMOVE",
-				}}},
-			},
-		}, bson.M{
-			"$project": bson.M{"weeks": bson.M{"$concatArrays": bson.A{"$start", "$end"}}},
-		}, bson.M{
-			"$unwind": bson.M{
-				"path":              "$weeks",
-				"includeArrayIndex": "index",
-			},
-		}, bson.M{
-			"$project": bson.M{
-				"lessons": "$weeks.lessons",
-				"startWeekDate": bson.M{"$dateAdd": bson.M{
-					"startDate": startWeekDate,
-					"unit":      "week",
-					"amount":    "$index",
-				}},
-			},
-		}, bson.M{
-			"$unwind": "$lessons",
 		}, bson.M{
 			"$addFields": bson.M{
-				"lessons.startTime": bson.M{"$dateFromParts": bson.M{
-					"year":   bson.M{"$year": "$startWeekDate"},
-					"month":  bson.M{"$month": "$startWeekDate"},
-					"day":    bson.M{"$sum": bson.A{bson.M{"$dayOfMonth": "$startWeekDate"}, "$lessons.columnIndex"}},
-					"hour":   bson.M{"$hour": "$lessons.startTime"},
-					"minute": bson.M{"$minute": "$lessons.startTime"},
-				}},
-				"lessons.endTime": bson.M{"$dateFromParts": bson.M{
-					"year":   bson.M{"$year": "$startWeekDate"},
-					"month":  bson.M{"$month": "$startWeekDate"},
-					"day":    bson.M{"$sum": bson.A{bson.M{"$dayOfMonth": "$startWeekDate"}, "$lessons.columnIndex"}},
-					"hour":   bson.M{"$hour": "$lessons.endTime"},
-					"minute": bson.M{"$minute": "$lessons.endTime"},
-				}},
-				"lessons.updated": false,
+				"date": bson.M{"$range": bson.A{0, bson.M{"$multiply": bson.A{7, "$weeksCount"}}}},
 			},
 		}, bson.M{
-			"$group": bson.M{
-				"_id":     bson.M{"$dateToString": bson.M{"date": "$lessons.startTime", "format": "%Y-%m-%d"}},
-				"general": bson.M{"$push": "$lessons"},
+			"$unwind": "$date",
+		}, bson.M{
+			"$addFields": bson.M{
+				"date": bson.M{"$dateAdd": bson.M{
+					"startDate": startWeekDate,
+					"unit":      "day",
+					"amount":    "$date",
+				}},
+			},
+		}, bson.M{
+			"$addFields": bson.M{
+				"indexes": bson.M{
+					"weekIndex": bson.M{"$mod": bson.A{bson.M{"$isoWeek": "$date"}, "$weeksCount"}},
+					"dayIndex":  bson.M{"$subtract": bson.A{bson.M{"$isoDayOfWeek": "$date"}, 1}},
+				},
 			},
 		}, bson.M{
 			"$lookup": bson.M{
-				"from": "Subjects",
-				"let":  bson.M{"date": "$_id"},
+				"from": "General",
+				"let":  bson.M{"weekIndex": "$indexes.weekIndex", "dayIndex": "$indexes.dayIndex"},
 				"pipeline": bson.A{
 					bson.M{
 						"$match": bson.M{
 							"$expr": bson.M{
 								"$and": bson.A{
-									bson.M{"$eq": bson.A{"$$date", bson.M{"$dateToString": bson.M{"date": "$startTime", "format": "%Y-%m-%d"}}}},
-									bson.M{"$eq": bson.A{"$group", typeName}},
-									bson.M{"$eq": bson.A{"$educationPlaceId", studyPlaceId}},
+									bson.M{"$eq": bson.A{"$weekIndex", "$$weekIndex"}},
+									bson.M{"$eq": bson.A{"$columnIndex", "$$dayIndex"}},
+									bson.M{"$eq": bson.A{"$" + type_, typeName}},
+								},
+							},
+						},
+					}, bson.M{
+						"$addFields": bson.M{
+							"updated": false,
+						},
+					},
+				},
+				"as": "general",
+			},
+		}, bson.M{
+			"$lookup": bson.M{
+				"from": "Subjects",
+				"let":  bson.M{"date": "$date"},
+				"pipeline": bson.A{
+					bson.M{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$and": bson.A{
+									bson.M{"$eq": bson.A{bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$startTime"}}, bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$$date"}}}},
+									bson.M{"$eq": bson.A{"$" + type_, typeName}},
 								},
 							},
 						},
@@ -285,73 +239,63 @@ func getSchedule(ctx *gin.Context) {
 						},
 					},
 				},
-				"as": "current",
+				"as": "lessons",
 			},
 		}, bson.M{
-			"$project": bson.M{
-				"lessons": bson.M{"$cond": bson.A{bson.M{"$eq": bson.A{"$current", bson.A{}}}, "$general", "$current"}},
+			"$addFields": bson.M{
+				"lessons": bson.M{"$cond": bson.A{bson.M{"$eq": bson.A{"$lessons", bson.A{}}}, "$general", "$lessons"}},
 			},
 		}, bson.M{
 			"$unwind": "$lessons",
 		}, bson.M{
-			"$replaceRoot": bson.M{"newRoot": "$lessons"},
-		}, bson.M{
 			"$group": bson.M{
 				"_id": bson.M{
-					"startDate": "$startTime",
-					"endDate":   "$endTime",
+					"startDate": bson.M{"$concat": bson.A{bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$date"}}, bson.M{"$dateToString": bson.M{"format": "%H:%M:%S", "date": "$lessons.startTime"}}}},
+					"endDate":   bson.M{"$concat": bson.A{bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$date"}}, bson.M{"$dateToString": bson.M{"format": "%H:%M:%S", "date": "$lessons.endTime"}}}},
 				},
-				"startDate": bson.M{"$first": "$startTime"},
-				"endDate":   bson.M{"$first": "$endTime"},
-				"updated":   bson.M{"$first": "$updated"},
-				"subjects": bson.M{"$push": bson.M{
-					"subject":     "$subject",
-					"teacher":     "$teacher",
-					"group":       "$group",
-					"room":        "$room",
-					"type":        "$type",
-					"title":       "$smalldescription",
-					"description": "$description",
-					"homework":    "$homework",
+				"studyPlace": bson.M{"$first": bson.M{
+					"_id":        "$_id",
+					"name":       "$name",
+					"weeksCount": "$weeksCount",
 				}},
-				"studyPlaceId": bson.M{"$first": "$educationPlaceId"},
-			},
-		}, bson.M{
-			"$project": bson.M{"_id": 0},
-		}, bson.M{
-			"$sort": bson.M{"_id.startDate": 1},
-		}, bson.M{
-			"$group": bson.M{
-				"_id":          nil,
-				"lessons":      bson.M{"$push": "$$ROOT"},
-				"studyPlaceId": bson.M{"$first": "$studyPlaceId"},
-			},
-		}, bson.M{
-			"$lookup": bson.M{
-				"from": "StudyPlaces",
-				"let":  bson.M{"studyPlaceId": "$studyPlaceId"},
-				"pipeline": bson.A{
-					bson.M{
-						"$match": bson.M{
-							"$expr": bson.M{
-								"$eq": bson.A{"$$studyPlaceId", "$_id"},
-							},
-						},
-					},
-				},
-				"as": "studyPlace",
+				"updated":      bson.M{"$first": "$lessons.updated"},
+				"studyPlaceId": bson.M{"$first": "$_id"},
+				"subjects": bson.M{"$push": bson.M{
+					"subject":     "$lessons.subject",
+					"teacher":     "$lessons.teacher",
+					"group":       "$lessons.group",
+					"room":        "$lessons.room",
+					"type":        "$lessons.type",
+					"description": "$lessons.description",
+					"title":       "$lessons.smalldescription",
+					"homework":    "$lessons.homework",
+				}},
 			},
 		}, bson.M{
 			"$project": bson.M{
-				"lessons":         1,
-				"info.studyPlace": bson.M{"$first": "$studyPlace"},
+				"studyPlace":          1,
+				"lesson.startDate":    bson.M{"$toDate": "$_id.startDate"},
+				"lesson.endDate":      bson.M{"$toDate": "$_id.endDate"},
+				"lesson.updated":      "$updated",
+				"lesson.studyPlaceId": "$studyPlaceId",
+				"lesson.subjects":     "$subjects",
+			},
+		}, bson.M{
+			"$group": bson.M{
+				"_id": nil,
+				"info": bson.M{"$first": bson.M{
+					"studyPlace": "$studyPlace",
+				}},
+				"lessons": bson.M{"$push": "$lesson"},
 			},
 		}, bson.M{
 			"$addFields": bson.M{
-				"info.type":          type_,
-				"info.typeName":      typeName,
-				"info.startWeekDate": startWeekDate,
-				"info.date":          time.Now(),
+				"info": bson.M{
+					"startWeekDate": startWeekDate,
+					"date":          time.Now(),
+					"type":          type_,
+					"typeName":      typeName,
+				},
 			},
 		},
 	})
@@ -423,19 +367,13 @@ func getScheduleTypesOld(ctx *gin.Context) {
 }
 
 func getTypes(ctx *gin.Context) {
-	studyPlaceIdStr := ctx.Query("studyPlaceId")
-	if studyPlaceIdStr == "" {
-		h.ErrorMessage(ctx, "provide all params")
-		return
-	}
-
-	studyPlaceId, err := strconv.Atoi(studyPlaceIdStr)
-	if h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
+	var user userApi.User
+	if err := userApi.GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
 		return
 	}
 
 	var get = func(type_ string) []string {
-		namesInterface, _ := db.SubjectsCollection.Distinct(nil, type_, bson.M{"educationPlaceId": studyPlaceId})
+		namesInterface, _ := db.SubjectsCollection.Distinct(nil, type_, bson.M{"educationPlaceId": user.StudyPlaceId})
 
 		names := make([]string, len(namesInterface))
 		for i, v := range namesInterface {
