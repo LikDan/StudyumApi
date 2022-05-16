@@ -24,23 +24,23 @@ var KBP = studyPlace.Education{
 
 func UpdateScheduleKbp(url string, states []schedule.StateInfo, oldStates []schedule.StateInfo, isGeneral bool) []schedule.SubjectFull {
 	weekdaysDurations := []h.Shift{
-		h.BindShift(8, 10, 9, 40),
-		h.BindShift(9, 50, 11, 20),
-		h.BindShift(11, 50, 13, 20),
-		h.BindShift(13, 50, 15, 20),
-		h.BindShift(15, 40, 17, 10),
-		h.BindShift(17, 20, 18, 50),
-		h.BindShift(19, 0, 20, 30),
+		h.BindShift(8, 00, 9, 35),
+		h.BindShift(9, 45, 11, 20),
+		h.BindShift(11, 50, 13, 25),
+		h.BindShift(13, 45, 15, 20),
+		h.BindShift(15, 40, 17, 15),
+		h.BindShift(17, 25, 19, 0),
+		h.BindShift(19, 10, 20, 45),
 	}
 
 	weekendsDurations := []h.Shift{
-		h.BindShift(8, 10, 9, 40),
-		h.BindShift(9, 50, 11, 20),
-		h.BindShift(11, 30, 13, 0),
-		h.BindShift(13, 30, 15, 0),
-		h.BindShift(15, 10, 16, 40),
-		h.BindShift(16, 50, 18, 20),
-		h.BindShift(18, 30, 20, 0),
+		h.BindShift(8, 00, 9, 35),
+		h.BindShift(9, 45, 11, 20),
+		h.BindShift(11, 30, 13, 5),
+		h.BindShift(13, 30, 15, 5),
+		h.BindShift(15, 15, 16, 50),
+		h.BindShift(17, 0, 18, 35),
+		h.BindShift(18, 45, 20, 20),
 	}
 
 	document, err := htmlParser.NewDocument("http://kbp.by/rasp/timetable/view_beta_kbp/" + url)
