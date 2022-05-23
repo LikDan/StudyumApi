@@ -249,45 +249,16 @@ func getSchedule(ctx *gin.Context) {
 			"$unwind": "$lessons",
 		}, bson.M{
 			"$group": bson.M{
-				"_id": bson.M{
-					"startDate": bson.M{"$concat": bson.A{bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$date"}}, bson.M{"$dateToString": bson.M{"format": "%H:%M:%S", "date": "$lessons.startTime"}}}},
-					"endDate":   bson.M{"$concat": bson.A{bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$date"}}, bson.M{"$dateToString": bson.M{"format": "%H:%M:%S", "date": "$lessons.endTime"}}}},
-				},
+				"_id": nil,
 				"studyPlace": bson.M{"$first": bson.M{
 					"_id":        "$_id",
 					"name":       "$name",
 					"weeksCount": "$weeksCount",
 				}},
-				"updated":      bson.M{"$first": "$lessons.updated"},
-				"studyPlaceId": bson.M{"$first": "$_id"},
-				"subjects": bson.M{"$push": bson.M{
-					"subject":     "$lessons.subject",
-					"teacher":     "$lessons.teacher",
-					"group":       "$lessons.group",
-					"room":        "$lessons.room",
-					"type":        "$lessons.type",
-					"description": "$lessons.description",
-					"title":       "$lessons.smalldescription",
-					"homework":    "$lessons.homework",
-				}},
+				"lessons": bson.M{"$push": "$lessons"},
 			},
 		}, bson.M{
-			"$project": bson.M{
-				"studyPlace":          1,
-				"lesson.startDate":    bson.M{"$toDate": "$_id.startDate"},
-				"lesson.endDate":      bson.M{"$toDate": "$_id.endDate"},
-				"lesson.updated":      "$updated",
-				"lesson.studyPlaceId": "$studyPlaceId",
-				"lesson.subjects":     "$subjects",
-			},
-		}, bson.M{
-			"$group": bson.M{
-				"_id": nil,
-				"info": bson.M{"$first": bson.M{
-					"studyPlace": "$studyPlace",
-				}},
-				"lessons": bson.M{"$push": "$lesson"},
-			},
+			"$sort": bson.M{"lessons.startTime": 1},
 		}, bson.M{
 			"$addFields": bson.M{
 				"info": bson.M{
@@ -295,6 +266,7 @@ func getSchedule(ctx *gin.Context) {
 					"date":          time.Now(),
 					"type":          type_,
 					"typeName":      typeName,
+					"studyPlace":    "$studyPlace",
 				},
 			},
 		},
