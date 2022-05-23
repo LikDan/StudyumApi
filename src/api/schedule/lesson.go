@@ -23,20 +23,17 @@ type SubjectOld struct {
 }
 
 type Lesson struct {
-	Subjects     []*Subject `bson:"subjects" json:"subjects"`
-	StartDate    time.Time  `bson:"startDate" json:"startDate"`
-	EndDate      time.Time  `bson:"endDate" json:"endDate"`
-	Updated      bool       `bson:"updated" json:"updated"`
-	StudyPlaceId int        `bson:"studyPlaceId" json:"studyPlaceId"`
-}
-
-type Subject struct {
-	Subject     string `bson:"subject" json:"subject"`
-	Teacher     string `bson:"teacher" json:"teacher"`
-	Group       string `bson:"group" json:"group"`
-	Room        string `bson:"room" json:"room"`
-	Type_       string `bson:"type" json:"type"`
-	Description string `bson:"description" json:"description"`
-	Title       string `bson:"title" json:"title"`
-	Homework    string `bson:"homework" json:"homework"`
+	Id           string    `json:"id" bson:"_id"`
+	StudyPlaceId int       `json:"studyPlaceId" bson:"educationPlaceId"`
+	Updated      bool      `json:"updated" bson:"updated"`
+	Type         string    `json:"type" bson:"type"`
+	EndDate      time.Time `json:"endDate" bson:"endTime"`
+	StartDate    time.Time `json:"startDate" bson:"startTime"`
+	Subject      string    `json:"subject" bson:"subject"`
+	Group        string    `json:"group" bson:"group"`
+	Teacher      string    `json:"teacher" bson:"teacher"`
+	Room         string    `json:"room" bson:"room"`
+	Title        string    `json:"title" bson:"smalldescription"`
+	Homework     string    `json:"homework" bson:"homework"`
+	Description  string    `json:"description" bson:"description"`
 }
