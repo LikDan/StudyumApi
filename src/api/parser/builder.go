@@ -99,5 +99,42 @@ func Launch() {
 		})
 
 		edu.GeneralCron.Start()
+
+		//UpdateGeneral(edu)
+	}
+}
+
+func UpdateGeneral(edu *studyPlace.Education) {
+	var generalSubjectsRaw []schedule.SubjectFull
+
+	for _, availableType := range edu.AvailableTypes {
+		generalSubjectsRaw = append(generalSubjectsRaw, edu.ScheduleUpdate(availableType, edu.States, edu.States, true)...)
+	}
+
+	var generalSubjects []schedule.GeneralLesson
+	for _, lessonRaw := range generalSubjectsRaw {
+		lesson := schedule.GeneralLesson{
+			Id:           lessonRaw.Id,
+			StudyPlaceId: lessonRaw.EducationPlaceId,
+			EndTime:      lessonRaw.EndTime.Format("15:04"),
+			StartTime:    lessonRaw.StartTime.Format("15:04"),
+			Subject:      lessonRaw.Subject,
+			Group:        lessonRaw.Group,
+			Teacher:      lessonRaw.Teacher,
+			Room:         lessonRaw.Room,
+			DayIndex:     lessonRaw.ColumnIndex,
+			WeekIndex:    lessonRaw.WeekIndex,
+		}
+
+		generalSubjects = append(generalSubjects, lesson)
+	}
+
+	_, err := db.GeneralSubjectsCollection.DeleteMany(nil, bson.D{{"studyPlaceId", edu.Id}})
+	if h.CheckError(err, h.WARNING) {
+		return
+	}
+	_, err = db.GeneralSubjectsCollection.InsertMany(nil, h.ToInterfaceSlice(generalSubjects))
+	if h.CheckError(err, h.WARNING) {
+		return
 	}
 }
