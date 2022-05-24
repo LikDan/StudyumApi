@@ -199,21 +199,24 @@ func getSchedule(ctx *gin.Context) {
 		}, bson.M{
 			"$lookup": bson.M{
 				"from": "General",
-				"let":  bson.M{"weekIndex": "$indexes.weekIndex", "dayIndex": "$indexes.dayIndex"},
+				"let":  bson.M{"weekIndex": "$indexes.weekIndex", "dayIndex": "$indexes.dayIndex", "date": "$date"},
 				"pipeline": bson.A{
 					bson.M{
 						"$match": bson.M{
 							"$expr": bson.M{
 								"$and": bson.A{
-									bson.M{"$eq": bson.A{"$weekIndex", "$$weekIndex"}},
-									bson.M{"$eq": bson.A{"$columnIndex", "$$dayIndex"}},
 									bson.M{"$eq": bson.A{"$" + type_, typeName}},
+									bson.M{"$eq": bson.A{"$weekIndex", "$$weekIndex"}},
+									bson.M{"$eq": bson.A{"$dayIndex", "$$dayIndex"}},
 								},
 							},
 						},
 					}, bson.M{
 						"$addFields": bson.M{
-							"updated": false,
+							"updated":   false,
+							"type":      "STAY",
+							"startDate": bson.M{"$toDate": bson.M{"$concat": bson.A{bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$$date"}}, "T", "$startTime"}}},
+							"endDate":   bson.M{"$toDate": bson.M{"$concat": bson.A{bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$$date"}}, "T", "$endTime"}}},
 						},
 					},
 				},
@@ -235,7 +238,9 @@ func getSchedule(ctx *gin.Context) {
 						},
 					}, bson.M{
 						"$addFields": bson.M{
-							"updated": true,
+							"updated":   true,
+							"startDate": "$startTime",
+							"endDate":   "$endTime",
 						},
 					},
 				},
@@ -258,7 +263,7 @@ func getSchedule(ctx *gin.Context) {
 				"lessons": bson.M{"$push": "$lessons"},
 			},
 		}, bson.M{
-			"$sort": bson.M{"lessons.startTime": 1},
+			"$sort": bson.M{"lessons.startDate": 1},
 		}, bson.M{
 			"$addFields": bson.M{
 				"info": bson.M{
