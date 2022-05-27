@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"os"
-	h "studyium/src/api"
+	h "studyum/src/api"
 	"time"
 )
 

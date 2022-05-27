@@ -3,8 +3,8 @@ package schedule
 import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
-	h "studyium/src/api"
-	"studyium/src/db"
+	h "studyum/src/api"
+	"studyum/src/db"
 )
 
 type StudyPlaceOld struct {

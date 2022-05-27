@@ -9,9 +9,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"strconv"
 	"strings"
-	h "studyium/src/api"
-	userApi "studyium/src/api/user"
-	"studyium/src/db"
+	h "studyum/src/api"
+	userApi "studyum/src/api/user"
+	"studyum/src/db"
 	"time"
 )
 

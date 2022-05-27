@@ -6,8 +6,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
-	h "studyium/src/api"
-	"studyium/src/db"
+	h "studyum/src/api"
+	"studyum/src/db"
 	"time"
 )
 

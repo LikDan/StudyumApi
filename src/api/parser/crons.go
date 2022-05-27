@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	h "studyium/src/api"
-	"studyium/src/api/parser/studyPlace"
+	h "studyum/src/api"
+	"studyum/src/api/parser/studyPlace"
 )
 
 func GetEducationViaPasswordRequest(ctx *gin.Context) (*studyPlace.Education, error) {
