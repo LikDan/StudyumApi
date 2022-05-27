@@ -2,7 +2,7 @@ package parser
 
 import (
 	"github.com/gin-gonic/gin"
-	h "studyium/src/api"
+	h "studyum/src/api"
 )
 
 func UpdateSchedule(ctx *gin.Context) {

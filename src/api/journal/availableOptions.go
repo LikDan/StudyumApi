@@ -3,10 +3,10 @@ package journal
 import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
-	h "studyium/src/api"
-	"studyium/src/api/schedule"
-	userApi "studyium/src/api/user"
-	"studyium/src/db"
+	h "studyum/src/api"
+	"studyum/src/api/schedule"
+	userApi "studyum/src/api/user"
+	"studyum/src/db"
 )
 
 func getAvailableOptions(ctx *gin.Context) {
