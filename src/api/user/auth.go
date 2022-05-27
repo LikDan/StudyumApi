@@ -10,8 +10,8 @@ import (
 	"golang.org/x/oauth2/google"
 	"io/ioutil"
 	"net/http"
-	h "studyium/src/api"
-	"studyium/src/db"
+	h "studyum/src/api"
+	"studyum/src/db"
 	"time"
 )
 
