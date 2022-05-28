@@ -3,13 +3,11 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
-	"studyum/src/api/journal"
 	logApi "studyum/src/api/log"
 	"studyum/src/api/parser"
-	"studyum/src/api/schedule"
-	"studyum/src/api/user"
 	"studyum/src/db"
-	"studyum/src/firebase"
+	"studyum/src/routes"
+	"studyum/src/utils"
 	"time"
 )
 
@@ -22,7 +20,7 @@ func main() {
 
 	db.Init()
 
-	firebase.InitFirebaseApp()
+	utils.InitFirebaseApp()
 	parser.Launch()
 
 	logApi.InitLog()
@@ -32,23 +30,7 @@ func main() {
 	r.HEAD("/api", uptimeHandler)
 	defer logApi.CloseLogFile()
 
-	api := r.Group("/api")
-
-	logGroup := api.Group("/log")
-	userGroup := api.Group("/user")
-	journalGroup := api.Group("/journal")
-	scheduleGroup := api.Group("/schedule")
-
-	logApi.BuildRequests(logGroup)
-
-	user.BuildRequests(userGroup)
-	schedule.BuildRequests(scheduleGroup, api)
-	journal.BuildRequests(journalGroup)
-
-	api.GET("/stopPrimaryUpdates", parser.StopPrimaryCron)
-	api.GET("/launchPrimaryUpdates", parser.LaunchPrimaryCron)
-	api.GET("/info", parser.GetInfo)
-	scheduleGroup.GET("/update", parser.UpdateSchedule)
+	routes.Bind(r)
 
 	log.Info("Application launched")
 
