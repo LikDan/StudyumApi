@@ -13,7 +13,8 @@ import (
 	"studyum/src/api/parser/studyPlace"
 	"studyum/src/api/schedule"
 	"studyum/src/db"
-	"studyum/src/firebase"
+	"studyum/src/models"
+	"studyum/src/utils"
 	"time"
 )
 
@@ -42,7 +43,7 @@ func UpdateDbSchedule(edu *studyPlace.Education) {
 
 	if send {
 		logrus.Info("Updated with notification")
-		firebase.SendNotification("schedule_update", "Schedule", "Schedule was updated", "")
+		utils.SendNotification("schedule_update", "Schedule", "Schedule was updated", "")
 
 		lastStatesBytes, err := json.Marshal(lastStates)
 		if h.CheckError(err, h.WARNING) {
@@ -111,9 +112,9 @@ func UpdateGeneral(edu *studyPlace.Education) {
 		generalSubjectsRaw = append(generalSubjectsRaw, edu.ScheduleUpdate(availableType, edu.States, edu.States, true)...)
 	}
 
-	var generalSubjects []schedule.GeneralLesson
+	var generalSubjects []models.GeneralLesson
 	for _, lessonRaw := range generalSubjectsRaw {
-		lesson := schedule.GeneralLesson{
+		lesson := models.GeneralLesson{
 			Id:           lessonRaw.Id,
 			StudyPlaceId: lessonRaw.EducationPlaceId,
 			EndTime:      lessonRaw.EndTime.Format("15:04"),
