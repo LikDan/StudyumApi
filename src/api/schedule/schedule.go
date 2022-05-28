@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 	h "studyum/src/api"
-	userApi "studyum/src/api/user"
 	"studyum/src/db"
 	"time"
 )
@@ -83,14 +82,14 @@ func getScheduleOld(ctx *gin.Context) {
 	currentWeekIndex %= studyPlace.WeeksQuantity
 
 	lessonsCursor, err = db.GeneralSubjectsCollection.Aggregate(nil, mongo.Pipeline{
-		bson.D{{"$match", bson.M{type_: name, "educationPlaceId": educationPlaceId, "$or": bson.A{bson.M{"weekIndex": bson.M{"$ne": currentWeekIndex}}, bson.M{"$and": bson.A{bson.M{"weekIndex": bson.M{"$eq": lastLesson.WeekIndex}}, bson.M{"columnIndex": bson.M{"$gt": lastLesson.ColumnIndex}}}}}}}},
+		bson.D{{"$match", bson.M{type_: name, "studyPlaceId": educationPlaceId, "$or": bson.A{bson.M{"weekIndex": bson.M{"$ne": currentWeekIndex}}, bson.M{"$and": bson.A{bson.M{"weekIndex": bson.M{"$eq": lastLesson.WeekIndex}}, bson.M{"dayIndex": bson.M{"$gt": lastLesson.ColumnIndex}}}}}}}},
 		bson.D{{"$group", bson.M{
-			"_id":         bson.M{"$sum": bson.A{bson.M{"$multiply": bson.A{"$weekIndex", studyPlace.DaysQuantity, studyPlace.SubjectsQuantity}}, bson.M{"$multiply": bson.A{"$columnIndex", studyPlace.SubjectsQuantity}}, "$rowIndex"}},
-			"weekIndex":   bson.M{"$first": "$weekIndex"},
-			"columnIndex": bson.M{"$first": "$columnIndex"},
-			"rowIndex":    bson.M{"$first": "$rowIndex"},
-			"date":        bson.M{"$first": "$date"},
-			"subjects":    bson.M{"$addToSet": bson.M{"subject": "$subject", "group": "$group", "teacher": "$teacher", "room": "$room", "type": "$type"}},
+			"_id":       bson.M{"$sum": bson.A{bson.M{"$multiply": bson.A{"$weekIndex", studyPlace.DaysQuantity, studyPlace.SubjectsQuantity}}, bson.M{"$multiply": bson.A{"$columnIndex", studyPlace.SubjectsQuantity}}, "$rowIndex"}},
+			"weekIndex": bson.M{"$first": "$weekIndex"},
+			"dayIndex":  bson.M{"$first": "$dayIndex"},
+			"rowIndex":  bson.M{"$first": "$rowIndex"},
+			"date":      bson.M{"$first": "$date"},
+			"subjects":  bson.M{"$addToSet": bson.M{"subject": "$subject", "group": "$group", "teacher": "$teacher", "room": "$room", "type": "$type"}},
 		}}},
 		bson.D{{"$sort", bson.M{"_id": 1}}},
 	})
@@ -153,164 +152,63 @@ func getScheduleOld(ctx *gin.Context) {
 	})
 }
 
-func getSchedule(ctx *gin.Context) {
-	var user userApi.User
-	if err := userApi.GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
-		return
-	}
-
-	type_ := ctx.DefaultQuery("type", user.Type)
-	typeName := ctx.DefaultQuery("name", user.TypeName)
-
-	if !h.CheckNotEmpty(type_, typeName) {
-		h.ErrorMessage(ctx, "Provide valid params")
-		return
-	}
-
-	var schedule Schedule
-
-	startWeekDate := h.Date().AddDate(0, 0, 1-int(time.Now().Weekday()))
-	cursor, err := db.StudyPlacesCollection.Aggregate(nil, bson.A{
-		bson.M{
-			"$match": bson.M{
-				"_id": user.StudyPlaceId,
-			},
-		}, bson.M{
-			"$addFields": bson.M{
-				"date": bson.M{"$range": bson.A{0, bson.M{"$multiply": bson.A{7, "$weeksCount"}}}},
-			},
-		}, bson.M{
-			"$unwind": "$date",
-		}, bson.M{
-			"$addFields": bson.M{
-				"date": bson.M{"$dateAdd": bson.M{
-					"startDate": startWeekDate,
-					"unit":      "day",
-					"amount":    "$date",
-				}},
-			},
-		}, bson.M{
-			"$addFields": bson.M{
-				"indexes": bson.M{
-					"weekIndex": bson.M{"$mod": bson.A{bson.M{"$isoWeek": "$date"}, "$weeksCount"}},
-					"dayIndex":  bson.M{"$subtract": bson.A{bson.M{"$isoDayOfWeek": "$date"}, 1}},
-				},
-			},
-		}, bson.M{
-			"$lookup": bson.M{
-				"from": "General",
-				"let":  bson.M{"weekIndex": "$indexes.weekIndex", "dayIndex": "$indexes.dayIndex", "date": "$date"},
-				"pipeline": bson.A{
-					bson.M{
-						"$match": bson.M{
-							"$expr": bson.M{
-								"$and": bson.A{
-									bson.M{"$eq": bson.A{"$" + type_, typeName}},
-									bson.M{"$eq": bson.A{"$weekIndex", "$$weekIndex"}},
-									bson.M{"$eq": bson.A{"$dayIndex", "$$dayIndex"}},
-								},
-							},
-						},
-					}, bson.M{
-						"$addFields": bson.M{
-							"updated":   false,
-							"type":      "STAY",
-							"startDate": bson.M{"$toDate": bson.M{"$concat": bson.A{bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$$date"}}, "T", "$startTime"}}},
-							"endDate":   bson.M{"$toDate": bson.M{"$concat": bson.A{bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$$date"}}, "T", "$endTime"}}},
-						},
-					},
-				},
-				"as": "general",
-			},
-		}, bson.M{
-			"$lookup": bson.M{
-				"from": "Subjects",
-				"let":  bson.M{"date": "$date"},
-				"pipeline": bson.A{
-					bson.M{
-						"$match": bson.M{
-							"$expr": bson.M{
-								"$and": bson.A{
-									bson.M{"$eq": bson.A{bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$startTime"}}, bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$$date"}}}},
-									bson.M{"$eq": bson.A{"$" + type_, typeName}},
-								},
-							},
-						},
-					}, bson.M{
-						"$addFields": bson.M{
-							"updated":   true,
-							"startDate": "$startTime",
-							"endDate":   "$endTime",
-						},
-					},
-				},
-				"as": "lessons",
-			},
-		}, bson.M{
-			"$addFields": bson.M{
-				"lessons": bson.M{"$cond": bson.A{bson.M{"$eq": bson.A{"$lessons", bson.A{}}}, "$general", "$lessons"}},
-			},
-		}, bson.M{
-			"$unwind": "$lessons",
-		}, bson.M{
-			"$group": bson.M{
-				"_id": nil,
-				"studyPlace": bson.M{"$first": bson.M{
-					"_id":        "$_id",
-					"name":       "$name",
-					"weeksCount": "$weeksCount",
-				}},
-				"lessons": bson.M{"$push": "$lessons"},
-			},
-		}, bson.M{
-			"$sort": bson.M{"lessons.startDate": 1},
-		}, bson.M{
-			"$addFields": bson.M{
-				"info": bson.M{
-					"startWeekDate": startWeekDate,
-					"date":          time.Now(),
-					"type":          type_,
-					"typeName":      typeName,
-					"studyPlace":    "$studyPlace",
-				},
-			},
-		},
-	})
-	if h.CheckAndMessage(ctx, 418, err, h.WARNING) {
-		return
-	}
-
-	cursor.Next(nil)
-	if err = cursor.Decode(&schedule); h.CheckAndMessage(ctx, 418, err, h.WARNING) {
-		return
-	}
-
-	ctx.JSON(200, schedule)
+type StudyPlaceOld struct {
+	Id               int32  `json:"id" bson:"_id"`
+	WeeksQuantity    int    `json:"weeksQuantity" bson:"weeksCount"`
+	DaysQuantity     int    `json:"daysQuantity" bson:"daysCount"`
+	SubjectsQuantity int    `json:"subjectsQuantity" bson:"subjectsCount"`
+	Name             string `json:"name" bson:"name"`
 }
 
-func addLessons(ctx *gin.Context) {
-	var user userApi.User
-	if err := userApi.GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
-		return
-	}
+type LessonOld struct {
+	Id          int           `bson:"_id" json:"-"`
+	Subjects    []*SubjectOld `bson:"subjects" json:"subjects"`
+	ColumnIndex int32         `bson:"columnIndex" json:"columnIndex"`
+	RowIndex    int32         `bson:"rowIndex" json:"rowIndex"`
+	WeekIndex   int32         `bson:"weekIndex" json:"weekIndex"`
+	Date        time.Time     `bson:"date" json:"-"`
+	IsStay      bool          `bson:"isStay" json:"isStay"`
+}
 
-	if !h.SliceContains(user.Permissions, "editSchedule") {
-		h.ErrorMessage(ctx, "no permissions")
-		return
-	}
+type SubjectOld struct {
+	Subject string `bson:"subject" json:"subject"`
+	Teacher string `bson:"teacher" json:"teacher"`
+	Group   string `bson:"group" json:"group"`
+	Room    string `bson:"room" json:"room"`
+	Type_   string `bson:"type" json:"type"`
+}
 
-	var subjects []*SubjectFull
-	if err := ctx.BindJSON(&subjects); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
-		return
-	}
-	for _, subject := range subjects {
-		subject.Id = primitive.NewObjectID()
-	}
+type SubjectFull struct {
+	Id               primitive.ObjectID `json:"id" bson:"_id"`
+	Subject          string             `json:"subject"`
+	Teacher          string             `json:"teacher"`
+	Group            string             `json:"group"`
+	Room             string             `json:"room"`
+	ColumnIndex      int                `json:"columnIndex" bson:"columnIndex"`
+	RowIndex         int                `json:"rowIndex" bson:"rowIndex"`
+	WeekIndex        int                `json:"weekIndex" bson:"weekIndex"`
+	Type_            string             `json:"type" bson:"type"`
+	EducationPlaceId int                `json:"educationPlaceId" bson:"educationPlaceId"`
+	Date             time.Time          `json:"date"`
+	Homework         string             `json:"homework"`
+	SmallDescription string             `json:"smallDescription"`
+	Description      string             `json:"description"`
+	StartTime        time.Time          `json:"startTime" bson:"startTime"`
+	EndTime          time.Time          `json:"endTime" bson:"endTime"`
+}
 
-	if _, err := db.SubjectsCollection.InsertMany(nil, h.ToInterfaceSlice(subjects)); h.CheckAndMessage(ctx, 418, err, h.WARNING) {
-		return
-	}
-	getSchedule(ctx)
+type State string
+
+const (
+	Updated    State = "UPDATED"
+	NotUpdated State = "NOT_UPDATED"
+)
+
+type StateInfo struct {
+	State        State `bson:"status" json:"status"`
+	WeekIndex    int   `bson:"weekIndex" json:"weekIndex"`
+	DayIndex     int   `bson:"dayIndex" json:"dayIndex"`
+	StudyPlaceId int   `bson:"educationPlaceId" json:"-"`
 }
 
 func getScheduleTypesOld(ctx *gin.Context) {
@@ -343,66 +241,7 @@ func getScheduleTypesOld(ctx *gin.Context) {
 	h.CheckError(err, h.WARNING)
 }
 
-func getTypes(ctx *gin.Context) {
-	var user userApi.User
-	if err := userApi.GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
-		return
-	}
-
-	var get = func(type_ string) []string {
-		namesInterface, _ := db.SubjectsCollection.Distinct(nil, type_, bson.M{"educationPlaceId": user.StudyPlaceId})
-
-		names := make([]string, len(namesInterface))
-		for i, v := range namesInterface {
-			names[i] = v.(string)
-		}
-
-		return names
-	}
-
-	types := Types{
-		Groups:   get("group"),
-		Teachers: get("teacher"),
-		Subjects: get("subject"),
-		Rooms:    get("room"),
-	}
-
-	ctx.JSON(200, types)
-}
-
-type Info struct {
-	Type          string     `json:"type" bson:"type"`
-	TypeName      string     `json:"typeName" bson:"typeName"`
-	StudyPlace    StudyPlace `json:"studyPlace" bson:"studyPlace"`
-	StartWeekDate time.Time  `json:"startWeekDate" bson:"startWeekDate"`
-	Date          time.Time  `json:"date" bson:"date"`
-}
-
-type StudyPlace struct {
-	Id         int    `json:"id" bson:"_id"`
-	WeeksCount int    `json:"weeksCount" bson:"weeksCount"`
-	DaysCount  int    `json:"daysCount" bson:"daysCount"`
-	Name       string `json:"name" bson:"name"`
-}
-
-type Schedule struct {
-	Info    Info      `json:"info" bson:"info"`
-	Lessons []*Lesson `json:"lessons" bson:"lessons"`
-}
-
-type Types struct {
-	Groups   []string `json:"groups" bson:"groups"`
-	Teachers []string `json:"teachers" bson:"teachers"`
-	Subjects []string `json:"subjects" bson:"subjects"`
-	Rooms    []string `json:"rooms" bson:"rooms"`
-}
-
-func BuildRequests(api *gin.RouterGroup, api2 *gin.RouterGroup) {
+func BuildRequests(api *gin.RouterGroup) {
 	api.GET("", getScheduleOld)
-	api.GET("view", getSchedule)
-	api.PUT("", addLessons)
 	api.GET("/types", getScheduleTypesOld)
-	api.GET("/types/get", getTypes)
-
-	api2.GET("/studyPlaces", getStudyPlaces)
 }
