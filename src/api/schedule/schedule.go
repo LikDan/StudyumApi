@@ -84,12 +84,12 @@ func getScheduleOld(ctx *gin.Context) {
 	lessonsCursor, err = db.GeneralSubjectsCollection.Aggregate(nil, mongo.Pipeline{
 		bson.D{{"$match", bson.M{type_: name, "studyPlaceId": educationPlaceId, "$or": bson.A{bson.M{"weekIndex": bson.M{"$ne": currentWeekIndex}}, bson.M{"$and": bson.A{bson.M{"weekIndex": bson.M{"$eq": lastLesson.WeekIndex}}, bson.M{"dayIndex": bson.M{"$gt": lastLesson.ColumnIndex}}}}}}}},
 		bson.D{{"$group", bson.M{
-			"_id":       bson.M{"$sum": bson.A{bson.M{"$multiply": bson.A{"$weekIndex", studyPlace.DaysQuantity, studyPlace.SubjectsQuantity}}, bson.M{"$multiply": bson.A{"$columnIndex", studyPlace.SubjectsQuantity}}, "$rowIndex"}},
-			"weekIndex": bson.M{"$first": "$weekIndex"},
-			"dayIndex":  bson.M{"$first": "$dayIndex"},
-			"rowIndex":  bson.M{"$first": "$rowIndex"},
-			"date":      bson.M{"$first": "$date"},
-			"subjects":  bson.M{"$addToSet": bson.M{"subject": "$subject", "group": "$group", "teacher": "$teacher", "room": "$room", "type": "$type"}},
+			"_id":         bson.M{"$sum": bson.A{bson.M{"$multiply": bson.A{"$weekIndex", studyPlace.DaysQuantity, studyPlace.SubjectsQuantity}}, bson.M{"$multiply": bson.A{"$columnIndex", studyPlace.SubjectsQuantity}}, "$rowIndex"}},
+			"weekIndex":   bson.M{"$first": "$weekIndex"},
+			"columnIndex": bson.M{"$first": "$dayIndex"},
+			"rowIndex":    bson.M{"$first": "$rowIndex"},
+			"date":        bson.M{"$first": "$date"},
+			"subjects":    bson.M{"$addToSet": bson.M{"subject": "$subject", "group": "$group", "teacher": "$teacher", "room": "$room", "type": "$type"}},
 		}}},
 		bson.D{{"$sort", bson.M{"_id": 1}}},
 	})
