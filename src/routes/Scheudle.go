@@ -16,6 +16,7 @@ func Schedule(root *gin.RouterGroup) {
 	root.DELETE(":id", controllers.DeleteLesson)
 
 	root.POST("update", controllers.UpdateSchedule)
+	root.POST("updateGeneral", controllers.UpdateGeneralSchedule)
 
 	schedule.BuildRequests(root)
 }

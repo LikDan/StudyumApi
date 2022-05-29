@@ -82,6 +82,26 @@ func UpdateSchedule(ctx *gin.Context) {
 	parser.UpdateDbSchedule(education)
 }
 
+func UpdateGeneralSchedule(ctx *gin.Context) {
+	var user models.User
+	if err := AuthUserViaContext(ctx, &user, "editSchedule"); err.CheckAndResponse(ctx) {
+		return
+	}
+
+	var education *studyPlace.Education = nil
+	for _, education_ := range parser.Educations {
+		if education_.Id == user.StudyPlaceId {
+			education = education_
+			break
+		}
+	}
+	if education == nil {
+		models.BindErrorStr("not authorized", 401, api.UNDEFINED).CheckAndResponse(ctx)
+	}
+
+	parser.UpdateGeneral(education)
+}
+
 func AddLesson(ctx *gin.Context) {
 	var user models.User
 	if err := AuthUserViaContext(ctx, &user, "editSchedule"); err.CheckAndResponse(ctx) {
