@@ -215,7 +215,7 @@ func editInfo(ctx *gin.Context) {
 		return
 	}
 
-	_, err = db.SubjectsCollection.UpdateOne(nil, bson.M{"_id": lesson.Id}, bson.M{"$set": bson.M{"homework": lesson.Homework, "smallDescription": lesson.SmallDescription, "description": lesson.Description}})
+	_, err = db.LessonsCollection.UpdateOne(nil, bson.M{"_id": lesson.Id}, bson.M{"$set": bson.M{"homework": lesson.Homework, "smallDescription": lesson.SmallDescription, "description": lesson.Description}})
 	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return

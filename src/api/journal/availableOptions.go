@@ -25,7 +25,7 @@ func getAvailableOptions(ctx *gin.Context) {
 		return
 	}
 
-	find, err := db.GeneralSubjectsCollection.Find(nil, bson.M{"teacher": user.Name})
+	find, err := db.GeneralLessonsCollection.Find(nil, bson.M{"teacher": user.Name})
 	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
 		return

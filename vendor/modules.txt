@@ -109,11 +109,6 @@ github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742
 ## explicit
 github.com/modern-go/reflect2
-# github.com/nleeper/goment v1.4.4
-## explicit; go 1.14
-github.com/nleeper/goment
-github.com/nleeper/goment/locales
-github.com/nleeper/goment/regexps
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
@@ -123,12 +118,12 @@ github.com/robfig/cron
 # github.com/sirupsen/logrus v1.8.1
 ## explicit; go 1.13
 github.com/sirupsen/logrus
-# github.com/tkuchiki/go-timezone v0.2.0
-## explicit
-github.com/tkuchiki/go-timezone
 # github.com/ugorji/go/codec v1.1.7
 ## explicit
 github.com/ugorji/go/codec
+# github.com/waclawthedev/go-sugaring v1.0.1
+## explicit; go 1.18
+github.com/waclawthedev/go-sugaring
 # github.com/xdg-go/pbkdf2 v1.0.0
 ## explicit; go 1.9
 github.com/xdg-go/pbkdf2
@@ -201,12 +196,16 @@ go.opencensus.io/trace/tracestate
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/sha3
+# golang.org/x/exp v0.0.0-20220407100705-7b9b53b0aca4
+## explicit; go 1.18
+golang.org/x/exp/constraints
 # golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
 ## explicit; go 1.11
 golang.org/x/lint
 golang.org/x/lint/golint
-# golang.org/x/mod v0.4.1
-## explicit; go 1.12
+# golang.org/x/mod v0.6.0-dev.0.20211013180041-c96bc1413d57
+## explicit; go 1.17
+golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
 # golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
@@ -229,24 +228,24 @@ golang.org/x/oauth2/google/internal/externalaccount
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
+# golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 ## explicit
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1
+# golang.org/x/sys v0.0.0-20211019181941-9d821ace8654
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/text v0.3.6
-## explicit; go 1.11
+# golang.org/x/text v0.3.7
+## explicit; go 1.17
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/tools v0.1.0
-## explicit; go 1.12
+# golang.org/x/tools v0.1.8-0.20211029000441-d6a9af8af023
+## explicit; go 1.17
 golang.org/x/tools/cmd/goimports
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/gcexportdata
@@ -259,6 +258,7 @@ golang.org/x/tools/internal/fastwalk
 golang.org/x/tools/internal/gocommand
 golang.org/x/tools/internal/gopathwalk
 golang.org/x/tools/internal/imports
+golang.org/x/tools/internal/typeparams
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 ## explicit; go 1.11
 golang.org/x/xerrors

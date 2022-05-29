@@ -12,9 +12,10 @@ func Schedule(root *gin.RouterGroup) {
 	root.GET("getTypes", controllers.GetScheduleTypes)
 
 	root.POST("", controllers.AddLesson)
+	root.PUT("", controllers.UpdateLesson)
 	root.DELETE(":id", controllers.DeleteLesson)
 
-	root.POST("update", controllers.Update)
+	root.POST("update", controllers.UpdateSchedule)
 
 	schedule.BuildRequests(root)
 }

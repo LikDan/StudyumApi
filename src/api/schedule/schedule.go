@@ -52,8 +52,8 @@ func getScheduleOld(ctx *gin.Context) {
 
 	startDate := h.Date().AddDate(0, 0, 1-int(time.Now().Weekday()))
 
-	lessonsCursor, err := db.SubjectsCollection.Aggregate(nil, mongo.Pipeline{
-		bson.D{{"$match", bson.M{"date": bson.M{"$gte": startDate}, type_: name, "educationPlaceId": educationPlaceId}}},
+	lessonsCursor, err := db.LessonsCollection.Aggregate(nil, mongo.Pipeline{
+		bson.D{{"$match", bson.M{"date": bson.M{"$gte": startDate}, type_: name, "studyPlaceId": educationPlaceId}}},
 		bson.D{{"$group", bson.M{
 			"_id":         bson.M{"$sum": bson.A{bson.M{"$multiply": bson.A{"$weekIndex", studyPlace.DaysQuantity, studyPlace.SubjectsQuantity}}, bson.M{"$multiply": bson.A{"$columnIndex", studyPlace.SubjectsQuantity}}, "$rowIndex"}},
 			"weekIndex":   bson.M{"$first": "$weekIndex"},
@@ -81,7 +81,7 @@ func getScheduleOld(ctx *gin.Context) {
 	_, currentWeekIndex := time.Now().ISOWeek()
 	currentWeekIndex %= studyPlace.WeeksQuantity
 
-	lessonsCursor, err = db.GeneralSubjectsCollection.Aggregate(nil, mongo.Pipeline{
+	lessonsCursor, err = db.GeneralLessonsCollection.Aggregate(nil, mongo.Pipeline{
 		bson.D{{"$match", bson.M{type_: name, "studyPlaceId": educationPlaceId, "$or": bson.A{bson.M{"weekIndex": bson.M{"$ne": currentWeekIndex}}, bson.M{"$and": bson.A{bson.M{"weekIndex": bson.M{"$eq": lastLesson.WeekIndex}}, bson.M{"dayIndex": bson.M{"$gt": lastLesson.ColumnIndex}}}}}}}},
 		bson.D{{"$group", bson.M{
 			"_id":         bson.M{"$sum": bson.A{bson.M{"$multiply": bson.A{"$weekIndex", studyPlace.DaysQuantity, studyPlace.SubjectsQuantity}}, bson.M{"$multiply": bson.A{"$columnIndex", studyPlace.SubjectsQuantity}}, "$rowIndex"}},
@@ -188,7 +188,7 @@ type SubjectFull struct {
 	RowIndex         int                `json:"rowIndex" bson:"rowIndex"`
 	WeekIndex        int                `json:"weekIndex" bson:"weekIndex"`
 	Type_            string             `json:"type" bson:"type"`
-	EducationPlaceId int                `json:"educationPlaceId" bson:"educationPlaceId"`
+	EducationPlaceId int                `json:"educationPlaceId" bson:"studyPlaceId"`
 	Date             time.Time          `json:"date"`
 	Homework         string             `json:"homework"`
 	SmallDescription string             `json:"smallDescription"`
@@ -224,8 +224,8 @@ func getScheduleTypesOld(ctx *gin.Context) {
 	h.CheckError(err, h.UNDEFINED)
 
 	var toJson = func(type_ string) {
-		var filter = bson.D{{type_, bson.D{{"$not", bson.D{{"$eq", ""}}}}}, {"educationPlaceId", bson.D{{"$eq", educationPlaceId}}}}
-		types, _ := db.SubjectsCollection.Distinct(nil, type_, filter)
+		var filter = bson.D{{type_, bson.D{{"$not", bson.D{{"$eq", ""}}}}}, {"studyPlaceId", bson.D{{"$eq", educationPlaceId}}}}
+		types, _ := db.LessonsCollection.Distinct(nil, type_, filter)
 
 		for _, response := range types {
 			res = append(res, "{\"type\": \""+type_+"\",\"name\": \""+response.(string)+"\"}")
