@@ -62,7 +62,7 @@ func GetScheduleTypes(ctx *gin.Context) {
 	ctx.JSON(200, types)
 }
 
-func Update(ctx *gin.Context) {
+func UpdateSchedule(ctx *gin.Context) {
 	var user models.User
 	if err := AuthUserViaContext(ctx, &user, "editSchedule"); err.CheckAndResponse(ctx) {
 		return
@@ -94,6 +94,24 @@ func AddLesson(ctx *gin.Context) {
 	}
 
 	if err := db.AddLesson(&subject, user.StudyPlaceId); err.CheckAndResponse(ctx) {
+		return
+	}
+
+	ctx.JSON(200, subject)
+}
+
+func UpdateLesson(ctx *gin.Context) {
+	var user models.User
+	if err := AuthUserViaContext(ctx, &user, "editSchedule"); err.CheckAndResponse(ctx) {
+		return
+	}
+
+	var subject models.Lesson
+	if err := ctx.BindJSON(&subject); models.BindError(err, 400, api.UNDEFINED).CheckAndResponse(ctx) {
+		return
+	}
+
+	if err := db.UpdateLesson(&subject, user.StudyPlaceId); err.CheckAndResponse(ctx) {
 		return
 	}
 

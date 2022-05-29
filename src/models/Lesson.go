@@ -8,7 +8,6 @@ import (
 type Lesson struct {
 	Id           primitive.ObjectID `json:"id" bson:"_id"`
 	StudyPlaceId int                `json:"studyPlaceId" bson:"studyPlaceId"`
-	Updated      bool               `json:"updated" bson:"updated"`
 	Type         string             `json:"type" bson:"type"`
 	EndDate      time.Time          `json:"endDate" bson:"endDate"`
 	StartDate    time.Time          `json:"startDate" bson:"startDate"`

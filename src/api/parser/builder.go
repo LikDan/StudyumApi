@@ -32,7 +32,7 @@ func UpdateDbSchedule(edu *studyPlace.Education) {
 		subjects = append(subjects, edu.ScheduleUpdate(availableType, edu.States, lastStates, false)...)
 	}
 
-	_, err := db.SubjectsCollection.InsertMany(nil, h.ToInterfaceSlice(subjects))
+	_, err := db.LessonsCollection.InsertMany(nil, h.ToInterfaceSlice(subjects))
 	h.CheckError(err, h.WARNING)
 	_, err = db.StateCollection.DeleteMany(nil, bson.M{"educationPlaceId": edu.Id})
 	h.CheckError(err, h.WARNING)
@@ -67,29 +67,18 @@ func Launch() {
 			continue
 		}
 
-		find, err := db.StateCollection.Find(
+		cursor, err := db.StateCollection.Find(
 			nil,
 			bson.M{"educationPlaceId": edu.Id},
 			options.Find().SetSort(bson.D{{"weekIndex", 1}, {"dayIndex", 1}}),
 		)
-		h.CheckError(err, h.WARNING)
+		if h.CheckError(err, h.WARNING) {
+			return
+		}
 
 		var states []schedule.StateInfo
-
-		for find.TryNext(nil) {
-			weekIndex := int(find.Current.Lookup("weekIndex").Int32())
-			dayIndex := int(find.Current.Lookup("dayIndex").Int32())
-			educationPlaceId := int(find.Current.Lookup("educationPlaceId").Int32())
-			status := find.Current.Lookup("status").StringValue()
-
-			state := schedule.StateInfo{
-				State:        schedule.State(status),
-				WeekIndex:    weekIndex,
-				DayIndex:     dayIndex,
-				StudyPlaceId: educationPlaceId,
-			}
-
-			states = append(states, state)
+		if err := cursor.All(nil, &states); h.CheckError(err, h.WARNING) {
+			return
 		}
 
 		edu.States = states
@@ -130,11 +119,11 @@ func UpdateGeneral(edu *studyPlace.Education) {
 		generalSubjects = append(generalSubjects, lesson)
 	}
 
-	_, err := db.GeneralSubjectsCollection.DeleteMany(nil, bson.D{{"studyPlaceId", edu.Id}})
+	_, err := db.GeneralLessonsCollection.DeleteMany(nil, bson.D{{"studyPlaceId", edu.Id}})
 	if h.CheckError(err, h.WARNING) {
 		return
 	}
-	_, err = db.GeneralSubjectsCollection.InsertMany(nil, h.ToInterfaceSlice(generalSubjects))
+	_, err = db.GeneralLessonsCollection.InsertMany(nil, h.ToInterfaceSlice(generalSubjects))
 	if h.CheckError(err, h.WARNING) {
 		return
 	}
