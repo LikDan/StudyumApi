@@ -53,8 +53,7 @@ func GetSchedule(studyPlaceId int, type_ string, typeName string, schedule *mode
 						},
 					}, bson.M{
 						"$addFields": bson.M{
-							"updated":   false,
-							"type":      "STAY",
+							"type":      "GENERAL",
 							"startDate": bson.M{"$toDate": bson.M{"$concat": bson.A{bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$$date"}}, "T", "$startTime"}}},
 							"endDate":   bson.M{"$toDate": bson.M{"$concat": bson.A{bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$$date"}}, "T", "$endTime"}}},
 						},
@@ -64,23 +63,22 @@ func GetSchedule(studyPlaceId int, type_ string, typeName string, schedule *mode
 			},
 		}, bson.M{
 			"$lookup": bson.M{
-				"from": "Subjects",
+				"from": "Lessons",
 				"let":  bson.M{"date": "$date"},
 				"pipeline": bson.A{
 					bson.M{
 						"$match": bson.M{
 							"$expr": bson.M{
 								"$and": bson.A{
-									bson.M{"$eq": bson.A{bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$startTime"}}, bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$$date"}}}},
+									bson.M{"$eq": bson.A{bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$startDate"}}, bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$$date"}}}},
 									bson.M{"$eq": bson.A{"$" + type_, typeName}},
 								},
 							},
 						},
 					}, bson.M{
 						"$addFields": bson.M{
-							"updated":   true,
-							"startDate": "$startTime",
-							"endDate":   "$endTime",
+							"startDate": "$startDate",
+							"endDate":   "$endDate",
 						},
 					},
 				},
@@ -129,7 +127,7 @@ func GetSchedule(studyPlaceId int, type_ string, typeName string, schedule *mode
 }
 
 func GetScheduleType(studyPlaceId int, type_ string) []string {
-	namesInterface, _ := SubjectsCollection.Distinct(nil, type_, bson.M{"educationPlaceId": studyPlaceId})
+	namesInterface, _ := LessonsCollection.Distinct(nil, type_, bson.M{"studyPlaceId": studyPlaceId})
 
 	names := make([]string, len(namesInterface))
 	for i, v := range namesInterface {
@@ -140,9 +138,23 @@ func GetScheduleType(studyPlaceId int, type_ string) []string {
 }
 
 func AddLesson(lesson *models.Lesson, studyPlaceId int) *models.Error {
+	if lesson.Type == "GENERAL" {
+		lesson.Type = "STAY"
+	}
+
 	lesson.Id = primitive.NewObjectID()
 	lesson.StudyPlaceId = studyPlaceId
-	if _, err := SubjectsCollection.InsertOne(nil, lesson); err != nil {
+	if _, err := LessonsCollection.InsertOne(nil, lesson); err != nil {
+		return models.BindError(err, 418, h.WARNING)
+	}
+
+	return models.EmptyError()
+}
+
+func UpdateLesson(lesson *models.Lesson, studyPlaceId int) *models.Error {
+	lesson.StudyPlaceId = studyPlaceId
+
+	if _, err := LessonsCollection.UpdateOne(nil, bson.M{"_id": lesson.Id, "studyPlaceId": studyPlaceId}, bson.M{"$set": lesson}); err != nil {
 		return models.BindError(err, 418, h.WARNING)
 	}
 
@@ -150,7 +162,7 @@ func AddLesson(lesson *models.Lesson, studyPlaceId int) *models.Error {
 }
 
 func DeleteLesson(id primitive.ObjectID, studyPlaceId int) *models.Error {
-	if _, err := SubjectsCollection.DeleteOne(nil, bson.M{"_id": id, "studyPlaceId": studyPlaceId}); err != nil {
+	if _, err := LessonsCollection.DeleteOne(nil, bson.M{"_id": id, "studyPlaceId": studyPlaceId}); err != nil {
 		return models.BindError(err, 418, h.WARNING)
 	}
 

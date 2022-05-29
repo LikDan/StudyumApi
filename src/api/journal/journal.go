@@ -33,7 +33,7 @@ func getLessonsDate(ctx *gin.Context) {
 
 	var subjects []schedule.SubjectFull
 
-	find, err := db.SubjectsCollection.Find(nil, bson.M{"teacher": teacher, "group": group, "subject": subject})
+	find, err := db.LessonsCollection.Find(nil, bson.M{"teacher": teacher, "group": group, "subject": subject})
 	err = find.All(nil, &subjects)
 	if h.CheckError(err, h.WARNING) {
 		h.ErrorMessage(ctx, err.Error())
@@ -74,13 +74,13 @@ func getJournal(ctx *gin.Context) {
 func getJournalStudent(user userApi.User) (error, *Journal) {
 	var journal Journal
 
-	cursor, err := db.SubjectsCollection.Aggregate(nil, bson.A{
-		bson.M{"$match": bson.M{"group": user.TypeName, "educationPlaceId": user.StudyPlaceId}},
+	cursor, err := db.LessonsCollection.Aggregate(nil, bson.A{
+		bson.M{"$match": bson.M{"group": user.TypeName, "studyPlaceId": user.StudyPlaceId}},
 		bson.M{"$group": bson.M{"_id": "$subject"}},
 		bson.M{"$lookup": bson.M{
-			"from": "Subjects",
+			"from": "Lessons",
 			"pipeline": bson.A{
-				bson.M{"$match": bson.M{"group": user.TypeName, "educationPlaceId": user.StudyPlaceId}},
+				bson.M{"$match": bson.M{"group": user.TypeName, "studyPlaceId": user.StudyPlaceId}},
 				bson.M{"$group": bson.M{"_id": bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$date"}}}},
 				bson.M{"$sort": bson.M{"_id": 1}},
 			},
@@ -89,10 +89,10 @@ func getJournalStudent(user userApi.User) (error, *Journal) {
 		bson.M{"$unwind": "$date"},
 		bson.M{"$addFields": bson.M{"date": "$date._id"}},
 		bson.M{"$lookup": bson.M{
-			"from": "Subjects",
+			"from": "Lessons",
 			"let":  bson.M{"date": "$date", "subject": "$_id"},
 			"pipeline": bson.A{
-				bson.M{"$match": bson.M{"group": user.TypeName, "educationPlaceId": user.StudyPlaceId}},
+				bson.M{"$match": bson.M{"group": user.TypeName, "studyPlaceId": user.StudyPlaceId}},
 				bson.M{"$addFields": bson.M{"date_str": bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$date"}}}},
 				bson.M{"$lookup": bson.M{
 					"from": "Marks",
@@ -118,9 +118,9 @@ func getJournalStudent(user userApi.User) (error, *Journal) {
 		bson.M{"$sort": bson.M{"title": 1}},
 		bson.M{"$group": bson.M{"_id": nil, "rows": bson.M{"$push": "$$ROOT"}}},
 		bson.M{"$lookup": bson.M{
-			"from": "Subjects",
+			"from": "Lessons",
 			"pipeline": bson.A{
-				bson.M{"$match": bson.M{"group": user.TypeName, "educationPlaceId": user.StudyPlaceId}},
+				bson.M{"$match": bson.M{"group": user.TypeName, "studyPlaceId": user.StudyPlaceId}},
 				bson.M{"$group": bson.M{"_id": bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$date"}}}},
 				bson.M{"$addFields": bson.M{"date": bson.M{"$toDate": "$_id"}}},
 				bson.M{"$project": bson.M{"_id": 0}},
@@ -163,8 +163,8 @@ func getJournalTeacher(user userApi.User, group, subject string) (error, *Journa
 	cursor, err := db.UsersCollection.Aggregate(nil, mongo.Pipeline{
 		bson.D{{"$match", bson.M{"type": "group", "name": group, "studyPlaceId": user.StudyPlaceId}}},
 		bson.D{{"$lookup", bson.M{
-			"from":     "Subjects",
-			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": user.Name, "group": group, "educationPlaceId": user.StudyPlaceId}}}},
+			"from":     "Lessons",
+			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": user.Name, "group": group, "studyPlaceId": user.StudyPlaceId}}}},
 			"as":       "subjects",
 		}}},
 		bson.D{{"$unwind", "$subjects"}},
@@ -183,8 +183,8 @@ func getJournalTeacher(user userApi.User, group, subject string) (error, *Journa
 		bson.D{{"$group", bson.M{"_id": nil, "rows": bson.M{"$push": "$$ROOT"}}}},
 		bson.D{{"$project", bson.M{"_id": 0}}},
 		bson.D{{"$lookup", bson.M{
-			"from":     "Subjects",
-			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": user.Name, "group": group, "educationPlaceId": user.StudyPlaceId}}}},
+			"from":     "Lessons",
+			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": user.Name, "group": group, "studyPlaceId": user.StudyPlaceId}}}},
 			"as":       "dates",
 		}}},
 		bson.D{{"$addFields", bson.M{"info": bson.M{
@@ -267,7 +267,7 @@ type Lesson struct {
 func getMarksViaId(userId primitive.ObjectID, id primitive.ObjectID) []Lesson {
 	var marks []Lesson
 
-	lessonsCursor, err := db.SubjectsCollection.Aggregate(nil, mongo.Pipeline{
+	lessonsCursor, err := db.LessonsCollection.Aggregate(nil, mongo.Pipeline{
 		bson.D{{"$lookup", bson.M{
 			"from":         "Marks",
 			"localField":   "_id",
@@ -292,9 +292,9 @@ func getMarksViaId(userId primitive.ObjectID, id primitive.ObjectID) []Lesson {
 func getMarks(userId primitive.ObjectID, group, teacher, subject string, studyPlaceId int) []Lesson {
 	var marks []Lesson
 
-	match := bson.M{"group": group, "teacher": teacher, "subject": subject, "educationPlaceId": studyPlaceId}
+	match := bson.M{"group": group, "teacher": teacher, "subject": subject, "studyPlaceId": studyPlaceId}
 
-	lessonsCursor, err := db.SubjectsCollection.Aggregate(nil, mongo.Pipeline{
+	lessonsCursor, err := db.LessonsCollection.Aggregate(nil, mongo.Pipeline{
 		bson.D{{"$lookup", bson.M{
 			"from":         "Marks",
 			"localField":   "_id",
@@ -319,7 +319,7 @@ func getMarks(userId primitive.ObjectID, group, teacher, subject string, studyPl
 func getLesson(lessonId *primitive.ObjectID) (*schedule.SubjectFull, error) {
 	var subject schedule.SubjectFull
 
-	err := db.SubjectsCollection.FindOne(nil, bson.M{"_id": lessonId}).Decode(&subject)
+	err := db.LessonsCollection.FindOne(nil, bson.M{"_id": lessonId}).Decode(&subject)
 	if err != nil {
 		return nil, err
 	}
