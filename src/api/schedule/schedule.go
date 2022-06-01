@@ -193,8 +193,8 @@ type SubjectFull struct {
 	Homework         string             `json:"homework"`
 	SmallDescription string             `json:"smallDescription"`
 	Description      string             `json:"description"`
-	StartTime        time.Time          `json:"startTime" bson:"startTime"`
-	EndTime          time.Time          `json:"endTime" bson:"endTime"`
+	StartTime        time.Time          `json:"startTime" bson:"startDate"`
+	EndTime          time.Time          `json:"endTime" bson:"endDate"`
 }
 
 type State string
