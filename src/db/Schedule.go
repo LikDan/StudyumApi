@@ -38,7 +38,7 @@ func GetSchedule(studyPlaceId int, type_ string, typeName string, schedule *mode
 			},
 		}, bson.M{
 			"$lookup": bson.M{
-				"from": "General",
+				"from": "GeneralLessons",
 				"let":  bson.M{"weekIndex": "$indexes.weekIndex", "dayIndex": "$indexes.dayIndex", "date": "$date"},
 				"pipeline": bson.A{
 					bson.M{
