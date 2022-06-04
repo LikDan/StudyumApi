@@ -5,10 +5,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"net/http"
 	h "studyum/src/api"
 	"studyum/src/db"
-	"time"
 )
 
 func GetUserViaGoogle(ctx *gin.Context, user *User) error {
@@ -77,40 +75,6 @@ func logout(ctx *gin.Context) {
 	ctx.SetCookie("authToken", "", -1, "", "", false, false)
 
 	h.Message(ctx, 200, "successful")
-}
-
-func login(ctx *gin.Context) {
-	var data = struct {
-		Email    string `json:"email" bson:"email"`
-		Password string `json:"password" bson:"password"`
-	}{}
-
-	if err := ctx.BindJSON(&data); h.CheckAndMessage(ctx, 418, err, h.WARNING) {
-		return
-	}
-
-	data.Password = h.Hash(data.Password)
-	var user User
-	if err := db.UsersCollection.FindOne(nil, data).Decode(&user); h.CheckAndMessage(ctx, 418, err, h.WARNING) {
-		return
-	}
-
-	if user.Token == "" {
-		user.Token = h.GenerateSecureToken()
-		if _, err := db.UsersCollection.UpdateOne(ctx, bson.M{"email": user.Email}, bson.M{"$set": bson.M{"token": user.Token}}); err != nil {
-			h.ErrorMessage(ctx, "cannot update user")
-			return
-		}
-	}
-
-	http.SetCookie(ctx.Writer, &http.Cookie{
-		Name:    "authToken",
-		Value:   user.Token,
-		Path:    "/",
-		Expires: time.Now().AddDate(1, 0, 0),
-	})
-
-	ctx.JSON(200, user)
 }
 
 func updateUser(ctx *gin.Context) {
@@ -271,8 +235,6 @@ func BuildRequests(api *gin.RouterGroup) {
 	api.GET("", getUser)
 	api.PUT("", updateUser)
 	api.POST("", createUser)
-
-	api.PUT("/login", login)
 
 	api.PUT("/revoke", revokeToken)
 	api.PUT("/token", putToken)
