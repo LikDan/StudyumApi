@@ -5,7 +5,6 @@ import (
 	"studyum/src/api/journal"
 	logApi "studyum/src/api/log"
 	"studyum/src/api/parser"
-	"studyum/src/api/user"
 	"studyum/src/controllers"
 )
 
@@ -20,9 +19,9 @@ func Bind(engine *gin.Engine) {
 	api.GET("/studyPlaces", controllers.GetStudyPlaces)
 
 	Schedule(scheduleGroup)
+	User(userGroup)
 
 	logApi.BuildRequests(logGroup)
-	user.BuildRequests(userGroup)
 	journal.BuildRequests(journalGroup)
 
 	api.GET("/stopPrimaryUpdates", parser.StopPrimaryCron)
