@@ -231,9 +231,7 @@ func BuildRequests(api *gin.RouterGroup) {
 	api.GET("/auth", authorization)
 	api.GET("/callback", callbackHandler)
 
-	api.GET("", getUser)
 	api.PUT("", updateUser)
-	api.POST("", createUser)
 
 	api.PUT("/token", putToken)
 
