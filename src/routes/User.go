@@ -12,5 +12,8 @@ func User(root *gin.RouterGroup) {
 
 	root.PUT("signup/stage1", controllers.SignUpUserStage1)
 
+	root.DELETE("signout", controllers.SignOutUser)
+	root.DELETE("revoke", controllers.RevokeToken)
+
 	user.BuildRequests(root)
 }
