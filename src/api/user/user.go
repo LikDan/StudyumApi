@@ -27,56 +27,6 @@ func GetUserViaGoogle(ctx *gin.Context, user *User) error {
 	return nil
 }
 
-func getUser(ctx *gin.Context) {
-	var user User
-	if err := GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
-		return
-	}
-
-	ctx.JSON(200, user)
-}
-
-func createUser(ctx *gin.Context) {
-	var userData CreateUserData
-	if err := ctx.BindJSON(&userData); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
-		return
-	}
-
-	if !h.CheckNotEmpty(userData.Email, userData.Login, userData.Name, userData.TypeName, userData.Type, userData.Password) || userData.PasswordRepeat != userData.Password || len(userData.Password) < 8 {
-		h.ErrorMessage(ctx, "Provide valid params")
-		return
-	}
-
-	user := User{
-		Id:            primitive.NewObjectID(),
-		Token:         h.GenerateSecureToken(),
-		Password:      h.Hash(userData.Password),
-		Email:         userData.Email,
-		VerifiedEmail: false,
-		Login:         userData.Login,
-		Name:          userData.Name,
-		PictureUrl:    "https://i.stack.imgur.com/l60Hf.png",
-		Type:          userData.Type,
-		TypeName:      userData.TypeName,
-		StudyPlaceId:  userData.StudyPlaceId,
-		Permissions:   nil,
-		Accepted:      false,
-		Blocked:       false,
-	}
-
-	if _, err := db.UsersCollection.InsertOne(nil, user); h.CheckAndMessage(ctx, 418, err, h.WARNING) {
-		return
-	}
-
-	ctx.JSON(200, user)
-}
-
-func logout(ctx *gin.Context) {
-	ctx.SetCookie("authToken", "", -1, "", "", false, false)
-
-	h.Message(ctx, 200, "successful")
-}
-
 func updateUser(ctx *gin.Context) {
 	var user User
 	if err := GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
@@ -177,20 +127,6 @@ func decline(ctx *gin.Context) {
 	}
 
 	_, err := db.UsersCollection.UpdateOne(nil, bson.M{"_id": userId}, bson.M{"$set": bson.M{"blocked": true}})
-	if h.CheckAndMessage(ctx, 500, err, h.WARNING) {
-		return
-	}
-
-	h.Message(ctx, 200, "successful")
-}
-
-func revokeToken(ctx *gin.Context) {
-	token, err := ctx.Cookie("authToken")
-	if h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
-		return
-	}
-
-	_, err = db.UsersCollection.UpdateOne(nil, bson.M{"token": token}, bson.M{"$set": bson.M{"token": ""}})
 	if h.CheckAndMessage(ctx, 500, err, h.WARNING) {
 		return
 	}
