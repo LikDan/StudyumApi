@@ -27,43 +27,6 @@ func GetUserViaGoogle(ctx *gin.Context, user *User) error {
 	return nil
 }
 
-func updateUser(ctx *gin.Context) {
-	var user User
-	if err := GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
-		return
-	}
-
-	if user.Accepted && !h.SliceContains(user.Permissions, "editInfo") {
-		h.ErrorMessage(ctx, "You don't have permission to edit information")
-		return
-	}
-
-	var userUpdate User
-	if err := ctx.Bind(&userUpdate); h.CheckAndMessage(ctx, 500, err, h.WARNING) {
-		return
-	}
-
-	user.StudyPlaceId = userUpdate.StudyPlaceId
-	user.Type = userUpdate.Type
-	user.TypeName = userUpdate.TypeName
-	user.Name = userUpdate.Name
-
-	user.Accepted = false
-	user.Blocked = false
-
-	_, err := db.UsersCollection.UpdateOne(nil, bson.M{"_id": user.Id}, bson.M{"$set": user})
-	if h.CheckAndMessage(ctx, 500, err, h.WARNING) {
-		return
-	}
-
-	err = db.UsersCollection.FindOne(nil, bson.M{"_id": user.Id}).Decode(&user)
-	if h.CheckAndMessage(ctx, 500, err, h.WARNING) {
-		return
-	}
-
-	ctx.JSON(200, user)
-}
-
 func toAccept(ctx *gin.Context) {
 	var user User
 	if err := GetUserViaGoogle(ctx, &user); h.CheckAndMessage(ctx, 418, err, h.UNDEFINED) {
@@ -166,8 +129,6 @@ type CreateUserData struct {
 func BuildRequests(api *gin.RouterGroup) {
 	api.GET("/auth", authorization)
 	api.GET("/callback", callbackHandler)
-
-	api.PUT("", updateUser)
 
 	api.PUT("/token", putToken)
 

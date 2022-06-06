@@ -142,6 +142,30 @@ func SignUpUserStage1(ctx *gin.Context) {
 	ctx.JSON(200, user)
 }
 
+func UpdateUser(ctx *gin.Context) {
+	var user models.User
+	if err := AuthUserViaContext(ctx, &user); err.CheckAndResponse(ctx) {
+		return
+	}
+
+	var data models.UserSignUpData
+	if err := ctx.BindJSON(&data); models.BindError(err, 400, utils.UNDEFINED).CheckAndResponse(ctx) {
+		return
+	}
+
+	data.Password = utils.Hash(data.Password)
+
+	user.Login = data.Login
+	user.Name = data.Name
+	user.Password = data.Password
+	user.Email = data.Email
+	if err := db.UpdateUser(&user); err.CheckAndResponse(ctx) {
+		return
+	}
+
+	ctx.JSON(200, user)
+}
+
 func SignOutUser(ctx *gin.Context) {
 	ctx.SetCookie("authToken", "", -1, "", "", false, false)
 	ctx.JSON(200, "authToken")

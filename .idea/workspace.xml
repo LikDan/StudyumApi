@@ -4,9 +4,12 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Remove unused functions">
+    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Create edit user func">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api/user/user.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/user/user.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/controllers/User.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/controllers/User.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/db/User.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/db/User.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/routes/User.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/routes/User.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -98,25 +101,11 @@
     <MESSAGE value="Improve user page api" />
     <MESSAGE value="Rebase get user func" />
     <MESSAGE value="Remove unused functions" />
-    <option name="LAST_COMMIT_MESSAGE" value="Remove unused functions" />
+    <MESSAGE value="Fix issue with token" />
+    <MESSAGE value="Create edit user func" />
+    <option name="LAST_COMMIT_MESSAGE" value="Create edit user func" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/src/controllers/User.go</url>
-          <line>19</line>
-          <option name="timeStamp" value="5" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/src/controllers/User.go</url>
-          <line>16</line>
-          <option name="timeStamp" value="6" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>
