@@ -131,6 +131,11 @@ func SignUpUserStage1(ctx *gin.Context) {
 	ctx.JSON(200, user)
 }
 
+func SignOutUser(ctx *gin.Context) {
+	ctx.SetCookie("authToken", "", -1, "", "", false, false)
+	ctx.JSON(200, "authToken")
+}
+
 func LoginUser(ctx *gin.Context) {
 	var data models.UserLoginData
 	if err := ctx.BindJSON(&data); models.BindError(err, 400, utils.UNDEFINED).CheckAndResponse(ctx) {
@@ -149,4 +154,18 @@ func LoginUser(ctx *gin.Context) {
 	}
 
 	ctx.JSON(200, user)
+}
+
+func RevokeToken(ctx *gin.Context) {
+	token, err := ctx.Cookie("authToken")
+	if err != nil {
+		models.BindErrorStr("not authorized", 401, utils.UNDEFINED).CheckAndResponse(ctx)
+		return
+	}
+
+	if db.RevokeToken(token).CheckAndResponse(ctx) {
+		return
+	}
+
+	ctx.JSON(200, token)
 }
