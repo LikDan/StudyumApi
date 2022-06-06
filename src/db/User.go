@@ -52,6 +52,14 @@ func Login(data *models.UserLoginData, user *models.User) *models.Error {
 	return models.EmptyError()
 }
 
+func UpdateUser(user *models.User) *models.Error {
+	if _, err := UsersCollection.UpdateOne(nil, bson.M{"token": user.Token}, bson.M{"$set": user}); err != nil {
+		return models.BindError(err, 418, h.UNDEFINED)
+	}
+
+	return models.EmptyError()
+}
+
 func RevokeToken(token string) *models.Error {
 	if _, err := UsersCollection.UpdateOne(nil, bson.M{"token": token}, bson.M{"$set": bson.M{"token": ""}}); err != nil {
 		return models.BindError(err, 418, h.UNDEFINED)
