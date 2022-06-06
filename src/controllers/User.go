@@ -38,6 +38,15 @@ func AuthUserViaContext(ctx *gin.Context, user *models.User, permissions ...stri
 	return models.EmptyError()
 }
 
+func GetUser(ctx *gin.Context) {
+	var user models.User
+	if err := AuthUserViaContext(ctx, &user); err.CheckAndResponse(ctx) {
+		return
+	}
+
+	ctx.JSON(200, user)
+}
+
 func putToken(ctx *gin.Context, user *models.User) *models.Error {
 	if user.Token == "" {
 		user.Token = utils.GenerateSecureToken()

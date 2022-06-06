@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Improve user sign-in">
+    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Improve user page api">
       <change beforePath="$PROJECT_DIR$/src/api/user/user.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/user/user.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/controllers/User.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/controllers/User.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/db/User.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/db/User.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/routes/User.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/routes/User.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -97,7 +96,8 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Fix" />
     <MESSAGE value="Improve user sign-in" />
-    <option name="LAST_COMMIT_MESSAGE" value="Improve user sign-in" />
+    <MESSAGE value="Improve user page api" />
+    <option name="LAST_COMMIT_MESSAGE" value="Improve user page api" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>

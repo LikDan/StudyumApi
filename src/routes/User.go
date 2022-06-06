@@ -7,6 +7,8 @@ import (
 )
 
 func User(root *gin.RouterGroup) {
+	root.GET("", controllers.GetUser)
+
 	root.PUT("login", controllers.LoginUser)
 	root.POST("signup", controllers.SignUpUser)
 
