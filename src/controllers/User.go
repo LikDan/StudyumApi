@@ -33,7 +33,9 @@ func AuthUserViaContext(ctx *gin.Context, user *models.User, permissions ...stri
 		return models.BindError(err, 401, utils.UNDEFINED)
 	}
 
-	AuthUserViaToken(token, user, permissions...)
+	if err := AuthUserViaToken(token, user, permissions...); err.Check() {
+		return err
+	}
 
 	return models.EmptyError()
 }
