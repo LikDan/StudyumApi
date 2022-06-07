@@ -18,6 +18,7 @@ func User(root *gin.RouterGroup) {
 
 	root.GET("auth/:oauth", oauth2.OAuth2)
 	root.GET("callback", oauth2.CallbackOAuth2)
+	root.PUT("auth/token", oauth2.PutAuthToken)
 
 	root.DELETE("signout", controllers.SignOutUser)
 	root.DELETE("revoke", controllers.RevokeToken)

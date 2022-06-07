@@ -23,8 +23,22 @@ func OAuth2(ctx *gin.Context) {
 		return
 	}
 
-	url := config.AuthCodeURL(ctx.Query("redirect"))
+	url := config.AuthCodeURL(ctx.Query("host"))
 	ctx.Redirect(307, url)
+}
+
+func PutAuthToken(ctx *gin.Context) {
+	bytes, _ := ctx.GetRawData()
+	token := string(bytes)
+
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name:    "authToken",
+		Value:   token,
+		Path:    "/",
+		Expires: time.Now().AddDate(1, 0, 0),
+	})
+
+	ctx.JSON(200, token)
 }
 
 func CallbackOAuth2(ctx *gin.Context) {
@@ -89,11 +103,5 @@ func CallbackOAuth2(ctx *gin.Context) {
 		}
 	}
 
-	http.SetCookie(ctx.Writer, &http.Cookie{
-		Name:    "authToken",
-		Value:   user.Token,
-		Path:    "/",
-		Expires: time.Now().AddDate(1, 0, 0),
-	})
-	ctx.Redirect(307, "http://"+ctx.Query("state"))
+	ctx.Redirect(307, "http://"+ctx.Query("state")+"/user/receiveToken?token="+user.Token)
 }
