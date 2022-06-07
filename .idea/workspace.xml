@@ -4,11 +4,9 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Improve oauth2 config">
+    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Improve oauth2 token">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/controllers/oauth2/Configs.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/controllers/oauth2/Configs.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/controllers/oauth2/Google.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/controllers/oauth2/Google.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/routes/User.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/routes/User.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/controllers/oauth2/Google.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/controllers/oauth2/Auth.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -136,7 +134,8 @@
     <MESSAGE value="Create edit user func" />
     <MESSAGE value="Improve oauth2" />
     <MESSAGE value="Improve oauth2 config" />
-    <option name="LAST_COMMIT_MESSAGE" value="Improve oauth2 config" />
+    <MESSAGE value="Improve oauth2 token" />
+    <option name="LAST_COMMIT_MESSAGE" value="Improve oauth2 token" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>

@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	h "studyum/src/api"
+	"studyum/src/controllers"
 	"studyum/src/db"
 	"studyum/src/models"
 	"time"
@@ -38,7 +39,12 @@ func PutAuthToken(ctx *gin.Context) {
 		Expires: time.Now().AddDate(1, 0, 0),
 	})
 
-	ctx.JSON(200, token)
+	var user models.User
+	if err := controllers.AuthUserViaToken(token, &user); err.CheckAndResponse(ctx) {
+		return
+	}
+
+	ctx.JSON(200, user)
 }
 
 func CallbackOAuth2(ctx *gin.Context) {
