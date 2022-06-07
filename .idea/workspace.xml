@@ -4,14 +4,10 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Create edit user func">
-      <change afterPath="$PROJECT_DIR$/src/controllers/oauth2/Configs.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/controllers/oauth2/Google.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/models/OAuth2CallbackUser.go" afterDir="false" />
+    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Improve oauth2">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/api/user/auth.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/user/auth.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/api/user/user.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/user/user.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/routes/User.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/routes/User.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/controllers/oauth2/Configs.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/controllers/oauth2/Configs.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/db/db_utils.go" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -37,27 +33,27 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "DefaultGoTemplateProperty": "Go File",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.go.format.on.save.advertiser.fired": "true",
-    "RunOnceActivity.go.formatter.settings.were.checked": "true",
-    "RunOnceActivity.go.migrated.go.modules.settings": "true",
-    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
-    "RunOnceActivity.go.vendoring.notification.had.been.shown": "true",
-    "RunOnceActivity.go.watchers.conflict.with.on.save.actions.check.performed": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "go.import.settings.migrated": "true",
-    "last_opened_file_path": "P:/Go/Studyum/src/models",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "settings.editor.selected.configurable": "org.jetbrains.plugins.github.ui.GithubSettingsConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.format.on.save.advertiser.fired&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.vendoring.notification.had.been.shown&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.watchers.conflict.with.on.save.actions.check.performed&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;P:/Go/Studyum/src/models&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.github.ui.GithubSettingsConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="P:\Go\Studyum\src\models" />
@@ -68,7 +64,9 @@
       <module name="Studyum" />
       <working_directory value="$PROJECT_DIR$" />
       <envs>
-        <env name="DB_URL" value="mongodb+srv://likdan:Byd7FhSBtNfdaJ7w@maincluster.nafh0.mongodb.net/?retryWrites=true&amp;w=majority" />
+        <env name="DB_URL" value="mongodb+srv://likdan:9LhIh0p86ThASsXV@maincluster.nafh0.mongodb.net/?retryWrites=true&amp;w=majority" />
+        <env name="GOOGLE_SECRET" value="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" />
+        <env name="OAUTH2_CALLBACK" value="http://localhost:8080" />
       </envs>
       <kind value="PACKAGE" />
       <package value="studyum" />
@@ -105,7 +103,8 @@
     <MESSAGE value="Remove unused functions" />
     <MESSAGE value="Fix issue with token" />
     <MESSAGE value="Create edit user func" />
-    <option name="LAST_COMMIT_MESSAGE" value="Create edit user func" />
+    <MESSAGE value="Improve oauth2" />
+    <option name="LAST_COMMIT_MESSAGE" value="Improve oauth2" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
