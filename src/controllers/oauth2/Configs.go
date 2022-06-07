@@ -7,7 +7,7 @@ import (
 )
 
 var googleOAuthConfig = &oauth2.Config{
-	ClientID:     "314976404425-5774o9r2j56p724ohicfegm6g4b2ch1t.apps.googleusercontent.com", //https	://console.cloud.google.com/apis/dashboard
+	ClientID:     "314976404425-5774o9r2j56p724ohicfegm6g4b2ch1t.apps.googleusercontent.com", //https://console.cloud.google.com/apis/dashboard
 	ClientSecret: os.Getenv("GOOGLE_SECRET"),
 	Endpoint:     google.Endpoint,
 	RedirectURL:  os.Getenv("OAUTH2_CALLBACK") + "/api/user/callback",

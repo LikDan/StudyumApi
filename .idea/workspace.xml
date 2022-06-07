@@ -4,10 +4,11 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Improve oauth2">
+    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Improve oauth2 config">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/controllers/oauth2/Configs.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/controllers/oauth2/Configs.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/db/db_utils.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/controllers/oauth2/Google.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/controllers/oauth2/Google.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/routes/User.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/routes/User.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -87,11 +88,41 @@
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
       <map>
+        <entry key="34a56564-16de-41bf-b640-4d0a15e37022">
+          <value>
+            <State>
+              <option name="SHOW_ONLY_AFFECTED_CHANGES" value="true" />
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="HEAD" />
+                      </list>
+                    </value>
+                  </entry>
+                  <entry key="structure">
+                    <value>
+                      <list>
+                        <option value="dir:P:/Go/Studyum/src/api/user" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
         <entry key="MAIN">
           <value>
             <State />
           </value>
         </entry>
+      </map>
+    </option>
+    <option name="OPEN_GENERIC_TABS">
+      <map>
+        <entry key="34a56564-16de-41bf-b640-4d0a15e37022" value="TOOL_WINDOW" />
       </map>
     </option>
   </component>
@@ -104,7 +135,8 @@
     <MESSAGE value="Fix issue with token" />
     <MESSAGE value="Create edit user func" />
     <MESSAGE value="Improve oauth2" />
-    <option name="LAST_COMMIT_MESSAGE" value="Improve oauth2" />
+    <MESSAGE value="Improve oauth2 config" />
+    <option name="LAST_COMMIT_MESSAGE" value="Improve oauth2 config" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
