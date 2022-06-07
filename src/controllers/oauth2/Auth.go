@@ -76,27 +76,26 @@ func CallbackOAuth2(ctx *gin.Context) {
 
 	var user models.User
 	if err = db.UsersCollection.FindOne(ctx, bson.M{"email": googleUser.Email}).Decode(&user); err != nil {
-		if err.Error() == "mongo: no documents in result" {
-			user = models.User{
-				Id:            primitive.NewObjectID(),
-				Token:         h.GenerateSecureToken(),
-				Email:         googleUser.Email,
-				VerifiedEmail: googleUser.VerifiedEmail,
-				Login:         googleUser.Name,
-				Name:          googleUser.Name,
-				PictureUrl:    googleUser.PictureUrl,
-				Type:          "",
-				TypeName:      "",
-				StudyPlaceId:  0,
-				Permissions:   nil,
-				Accepted:      false,
-				Blocked:       false,
-			}
-			if _, err = db.UsersCollection.InsertOne(ctx, user); models.BindError(err, 418, h.WARNING).CheckAndResponse(ctx) {
-				return
-			}
-		} else {
+		if err.Error() != "mongo: no documents in result" {
 			models.BindError(err, 418, h.WARNING).CheckAndResponse(ctx)
+			return
+		}
+		user = models.User{
+			Id:            primitive.NewObjectID(),
+			Token:         h.GenerateSecureToken(),
+			Email:         googleUser.Email,
+			VerifiedEmail: googleUser.VerifiedEmail,
+			Login:         googleUser.Name,
+			Name:          googleUser.Name,
+			PictureUrl:    googleUser.PictureUrl,
+			Type:          "",
+			TypeName:      "",
+			StudyPlaceId:  0,
+			Permissions:   nil,
+			Accepted:      false,
+			Blocked:       false,
+		}
+		if _, err = db.UsersCollection.InsertOne(ctx, user); models.BindError(err, 418, h.WARNING).CheckAndResponse(ctx) {
 			return
 		}
 	}
