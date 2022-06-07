@@ -127,11 +127,6 @@ type CreateUserData struct {
 }
 
 func BuildRequests(api *gin.RouterGroup) {
-	api.GET("/auth", authorization)
-	api.GET("/callback", callbackHandler)
-
-	api.PUT("/token", putToken)
-
 	api.GET("/toAccept", toAccept)
 	api.PUT("/accept", accept)
 	api.PUT("/decline", decline)
