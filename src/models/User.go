@@ -5,8 +5,8 @@ import "go.mongodb.org/mongo-driver/bson/primitive"
 type User struct {
 	Id            primitive.ObjectID `json:"id" bson:"_id"`
 	Token         string             `json:"-" bson:"token"`
-	Password      string             `json:"password" bson:"password"`
-	Email         string             `json:"email" bson:"email"`
+	Password      string             `json:"password" bson:"password" validate:"min=8"`
+	Email         string             `json:"email" bson:"email" validate:"email"`
 	VerifiedEmail bool               `json:"verifiedEmail" bson:"verifiedEmail"`
 	Login         string             `json:"login" bson:"login"`
 	Name          string             `json:"name" bson:"name"`

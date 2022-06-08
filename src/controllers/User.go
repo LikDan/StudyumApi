@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+	_ "github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
@@ -78,6 +80,11 @@ func SignUpUser(ctx *gin.Context) {
 		return
 	}
 
+	if err := validator.New().Struct(&data); err != nil {
+		models.BindErrorStr("provide valid data", 400, utils.UNDEFINED).CheckAndResponse(ctx)
+		return
+	}
+
 	data.Password = utils.Hash(data.Password)
 
 	user := models.User{
@@ -150,6 +157,11 @@ func UpdateUser(ctx *gin.Context) {
 
 	var data models.UserSignUpData
 	if err := ctx.BindJSON(&data); models.BindError(err, 400, utils.UNDEFINED).CheckAndResponse(ctx) {
+		return
+	}
+
+	if err := validator.New().Struct(&data); err != nil {
+		models.BindErrorStr("provide valid data", 400, utils.UNDEFINED).CheckAndResponse(ctx)
 		return
 	}
 
