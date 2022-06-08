@@ -39,7 +39,7 @@ func SendNotification(topic string, title string, body string, url string) error
 }
 
 func InitFirebaseApp() {
-	opt := option.WithCredentialsFile("credentials_firebase.json")
+	opt := option.WithCredentialsFile("firebase_credentials.json")
 	var err error
 	firebaseApp, err = firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
