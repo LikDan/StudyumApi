@@ -4,7 +4,75 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Update get credentials method" />
+    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Improve edit info validator">
+      <change afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/universal-translator/Makefile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/MAINTAINERS.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/currency_codes.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/postcode_regexes.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/internal/language/common.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/internal/language/compact.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/internal/language/compact/compact.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/internal/language/compact/language.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/internal/language/compact/parents.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/internal/language/compact/tables.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/internal/language/compact/tags.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/internal/language/compose.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/internal/language/coverage.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/internal/language/language.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/internal/language/lookup.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/internal/language/match.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/internal/language/parse.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/internal/language/tables.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/internal/language/tags.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/internal/tag/tag.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/language/coverage.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/language/doc.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/language/go1_1.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/language/go1_2.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/language/language.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/language/match.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/language/parse.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/language/tables.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vendor/golang.org/x/text/language/tags.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/go.sum" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/controllers/User.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/controllers/User.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/models/User.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/models/User.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/models/UserLoginData.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/models/UserLoginData.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/models/UserSignUpData.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/models/UserSignUpData.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/locales/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/locales/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/locales/currency/currency.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/locales/currency/currency.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/universal-translator/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/universal-translator/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/universal-translator/import_export.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/universal-translator/import_export.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/universal-translator/translator.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/universal-translator/translator.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/.travis.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/Makefile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/baked_in.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/baked_in.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/cache.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/cache.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/country_codes.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/country_codes.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/doc.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/doc.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/errors.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/errors.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/field_level.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/field_level.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/regexes.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/regexes.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/struct_level.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/struct_level.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/util.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/util.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/validator.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/validator.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/validator_instance.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/go-playground/validator/v10/validator_instance.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/leodido/go-urn/.travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/leodido/go-urn/.travis.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/leodido/go-urn/urn.go" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/github.com/leodido/go-urn/urn.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/waclawthedev/go-sugaring/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/waclawthedev/go-sugaring/LICENSE" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/waclawthedev/go-sugaring/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/github.com/waclawthedev/go-sugaring/sugar.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/golang.org/x/exp/AUTHORS" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/golang.org/x/exp/CONTRIBUTORS" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/golang.org/x/exp/LICENSE" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/golang.org/x/exp/PATENTS" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/golang.org/x/exp/constraints/constraints.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/vendor/modules.txt" beforeDir="false" afterPath="$PROJECT_DIR$/vendor/modules.txt" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -154,7 +222,8 @@
     <MESSAGE value="Refactor" />
     <MESSAGE value="Change credentials" />
     <MESSAGE value="Update get credentials method" />
-    <option name="LAST_COMMIT_MESSAGE" value="Update get credentials method" />
+    <MESSAGE value="Improve edit info validator" />
+    <option name="LAST_COMMIT_MESSAGE" value="Improve edit info validator" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>

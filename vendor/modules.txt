@@ -42,14 +42,14 @@ github.com/gin-gonic/gin/binding
 github.com/gin-gonic/gin/internal/bytesconv
 github.com/gin-gonic/gin/internal/json
 github.com/gin-gonic/gin/render
-# github.com/go-playground/locales v0.13.0
+# github.com/go-playground/locales v0.14.0
 ## explicit; go 1.13
 github.com/go-playground/locales
 github.com/go-playground/locales/currency
-# github.com/go-playground/universal-translator v0.17.0
+# github.com/go-playground/universal-translator v0.18.0
 ## explicit; go 1.13
 github.com/go-playground/universal-translator
-# github.com/go-playground/validator/v10 v10.4.1
+# github.com/go-playground/validator/v10 v10.11.0
 ## explicit; go 1.13
 github.com/go-playground/validator/v10
 # github.com/go-stack/stack v1.8.0
@@ -97,7 +97,7 @@ github.com/klauspost/compress/huff0
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/leodido/go-urn v1.2.0
+# github.com/leodido/go-urn v1.2.1
 ## explicit; go 1.13
 github.com/leodido/go-urn
 # github.com/mattn/go-isatty v0.0.12
@@ -123,7 +123,6 @@ github.com/sirupsen/logrus
 github.com/ugorji/go/codec
 # github.com/waclawthedev/go-sugaring v1.0.1
 ## explicit; go 1.18
-github.com/waclawthedev/go-sugaring
 # github.com/xdg-go/pbkdf2 v1.0.0
 ## explicit; go 1.9
 github.com/xdg-go/pbkdf2
@@ -198,7 +197,6 @@ golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/sha3
 # golang.org/x/exp v0.0.0-20220407100705-7b9b53b0aca4
 ## explicit; go 1.18
-golang.org/x/exp/constraints
 # golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
 ## explicit; go 1.11
 golang.org/x/lint
@@ -240,6 +238,10 @@ golang.org/x/sys/unix
 golang.org/x/sys/windows
 # golang.org/x/text v0.3.7
 ## explicit; go 1.17
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
+golang.org/x/text/internal/tag
+golang.org/x/text/language
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
