@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Change credentials">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/utils/Firebase.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/utils/Firebase.go" afterDir="false" />
-    </list>
+    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Update get credentials method" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -156,7 +153,8 @@
     <MESSAGE value="Improve oauth2 token" />
     <MESSAGE value="Refactor" />
     <MESSAGE value="Change credentials" />
-    <option name="LAST_COMMIT_MESSAGE" value="Change credentials" />
+    <MESSAGE value="Update get credentials method" />
+    <option name="LAST_COMMIT_MESSAGE" value="Update get credentials method" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
