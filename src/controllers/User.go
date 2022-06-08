@@ -153,11 +153,12 @@ func UpdateUser(ctx *gin.Context) {
 		return
 	}
 
-	data.Password = utils.Hash(data.Password)
+	if data.Password != "" && len(data.Password) > 8 {
+		user.Password = utils.Hash(data.Password)
+	}
 
 	user.Login = data.Login
 	user.Name = data.Name
-	user.Password = data.Password
 	user.Email = data.Email
 	if err := db.UpdateUser(&user); err.CheckAndResponse(ctx) {
 		return
