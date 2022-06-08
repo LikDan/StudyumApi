@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/option"
+	"os"
 )
 
 var firebaseApp *firebase.App
@@ -39,7 +40,9 @@ func SendNotification(topic string, title string, body string, url string) error
 }
 
 func InitFirebaseApp() {
-	opt := option.WithCredentialsFile("firebase_credentials.json")
+	credentials := os.Getenv("FIREBASE_CREDENTIALS")
+	opt := option.WithCredentialsJSON([]byte(credentials))
+
 	var err error
 	firebaseApp, err = firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
