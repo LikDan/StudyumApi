@@ -4,8 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/src/api"
-	"studyum/src/api/parser"
-	"studyum/src/api/parser/studyPlace"
 	"studyum/src/db"
 	"studyum/src/models"
 	"studyum/src/utils"
@@ -63,27 +61,28 @@ func GetScheduleTypes(ctx *gin.Context) {
 }
 
 func UpdateSchedule(ctx *gin.Context) {
-	var user models.User
+	/*var user models.User
 	if err := AuthUserViaContext(ctx, &user, "editSchedule"); err.CheckAndResponse(ctx) {
 		return
 	}
 
-	var education *studyPlace.Education = nil
+	var education *models.IParserApp = nil
 	for _, education_ := range parser.Educations {
 		if education_.Id == user.StudyPlaceId {
 			education = education_
 			break
 		}
 	}
+
 	if education == nil {
 		models.BindErrorStr("not authorized", 401, api.UNDEFINED).CheckAndResponse(ctx)
 	}
 
-	parser.UpdateDbSchedule(education)
+	parser.UpdateDbSchedule(education)*/
 }
 
 func UpdateGeneralSchedule(ctx *gin.Context) {
-	var user models.User
+	/*var user models.User
 	if err := AuthUserViaContext(ctx, &user, "editSchedule"); err.CheckAndResponse(ctx) {
 		return
 	}
@@ -99,7 +98,7 @@ func UpdateGeneralSchedule(ctx *gin.Context) {
 		models.BindErrorStr("not authorized", 401, api.UNDEFINED).CheckAndResponse(ctx)
 	}
 
-	parser.UpdateGeneral(education)
+	parser.UpdateGeneral(education)*/
 }
 
 func AddLesson(ctx *gin.Context) {
