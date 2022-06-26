@@ -4,26 +4,11 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Add validators">
-      <change afterPath="$PROJECT_DIR$/src/db/Journal.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/db/Parser.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/models/DayState.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/models/IParserApp.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/models/Mark.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/models/ParseJournalUser.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/models/ScheduleStateInfo.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/models/ScheduleTypeInfo.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/parser/Init.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/parser/apps/kbp.go" afterDir="false" />
+    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Improve parser apps">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/api/parser/app/kbp.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/api/parser/builder.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/api/parser/crons.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/api/parser/info.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/api/parser/studyPlace/education.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/db/Schedule.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/db/Schedule.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/db/collections.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/db/collections.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/controllers/Schedule.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/controllers/Schedule.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/routes/Bind.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/routes/Bind.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -176,7 +161,8 @@
     <MESSAGE value="Update get credentials method" />
     <MESSAGE value="Improve edit info validator" />
     <MESSAGE value="Add validators" />
-    <option name="LAST_COMMIT_MESSAGE" value="Add validators" />
+    <MESSAGE value="Improve parser apps" />
+    <option name="LAST_COMMIT_MESSAGE" value="Improve parser apps" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
