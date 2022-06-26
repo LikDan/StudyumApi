@@ -3,6 +3,7 @@ package db
 import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	h "studyum/src/api"
 	"studyum/src/models"
 	"time"
@@ -151,6 +152,14 @@ func AddLesson(lesson *models.Lesson, studyPlaceId int) *models.Error {
 	return models.EmptyError()
 }
 
+func AddLessons(lessons []*models.Lesson) *models.Error {
+	if _, err := LessonsCollection.InsertMany(nil, h.ToInterfaceSlice(lessons)); err != nil {
+		return models.BindError(err, 418, h.WARNING)
+	}
+
+	return models.EmptyError()
+}
+
 func UpdateLesson(lesson *models.Lesson, studyPlaceId int) *models.Error {
 	lesson.StudyPlaceId = studyPlaceId
 
@@ -163,6 +172,17 @@ func UpdateLesson(lesson *models.Lesson, studyPlaceId int) *models.Error {
 
 func DeleteLesson(id primitive.ObjectID, studyPlaceId int) *models.Error {
 	if _, err := LessonsCollection.DeleteOne(nil, bson.M{"_id": id, "studyPlaceId": studyPlaceId}); err != nil {
+		return models.BindError(err, 418, h.WARNING)
+	}
+
+	return models.EmptyError()
+}
+
+func GetLastLesson(studyPlaceId int, lesson *models.Lesson) *models.Error {
+	opt := options.FindOne()
+	opt.Sort = bson.M{"startDate": -1}
+
+	if err := LessonsCollection.FindOne(nil, bson.M{"studyPlaceId": studyPlaceId}, opt).Decode(lesson); err != nil {
 		return models.BindError(err, 418, h.WARNING)
 	}
 
