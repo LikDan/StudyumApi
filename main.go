@@ -4,11 +4,19 @@ import (
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	logApi "studyum/src/api/log"
-	"studyum/src/api/parser"
 	"studyum/src/db"
+	"studyum/src/parser"
 	"studyum/src/routes"
 	"studyum/src/utils"
 	"time"
+	//log "github.com/sirupsen/logrus"
+	//logApi "studyum/src/api/log"
+	//"studyum/src/api/parser"
+	//"studyum/src/db"
+	//"studyum/src/parser/apps"
+	//"studyum/src/routes"
+	//"studyum/src/utils"
+	//"time"
 )
 
 func uptimeHandler(ctx *gin.Context) {
@@ -21,7 +29,7 @@ func main() {
 	db.Init()
 
 	utils.InitFirebaseApp()
-	parser.Launch()
+	parser.InitApps()
 
 	logApi.InitLog()
 

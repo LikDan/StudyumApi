@@ -16,6 +16,9 @@ var (
 	StudyPlacesCollection    *mongo.Collection
 	UsersCollection          *mongo.Collection
 	MarksCollection          *mongo.Collection
+
+	ParseJournalUserCollection   *mongo.Collection
+	ParseScheduleTypesCollection *mongo.Collection
 )
 
 func Init() {
@@ -37,4 +40,7 @@ func Init() {
 	GeneralLessonsCollection = DataBase.Collection("GeneralLessons")
 	StateCollection = DataBase.Collection("States")
 	MarksCollection = DataBase.Collection("Marks")
+
+	ParseJournalUserCollection = DataBase.Collection("ParseJournalUsers")
+	ParseScheduleTypesCollection = DataBase.Collection("ParseScheduleTypes")
 }
