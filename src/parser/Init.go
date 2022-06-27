@@ -9,8 +9,14 @@ import (
 
 var Apps = []models.IParserApp{&apps2.KbpApp}
 
-func UpdateGeneral(app models.IParserApp) {
-	Update(app) //TODO
+func UpdateGeneralSchedule(app models.IParserApp) {
+	var types []models.ScheduleTypeInfo
+	db.GetScheduleTypesToParse(app.GetName(), &types)
+
+	for _, type_ := range types {
+		lessons := app.GeneralScheduleUpdate(&type_)
+		db.UpdateGeneralSchedule(lessons)
+	}
 }
 
 func Update(app models.IParserApp) {
@@ -41,8 +47,6 @@ func InitApps() {
 
 		types := app.ScheduleTypesUpdate()
 		db.InsertScheduleTypes(types)
-
-		Update(app)
 
 		updateCron := cron.New()
 		if err := updateCron.AddFunc(app.GetUpdateCronPattern(), func() { Update(app) }); err != nil {
