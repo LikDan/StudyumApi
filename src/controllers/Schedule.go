@@ -63,7 +63,7 @@ func GetScheduleTypes(ctx *gin.Context) {
 
 func UpdateSchedule(ctx *gin.Context) {
 	var user models.User
-	if err := AuthUserViaContext(ctx, &user); err.CheckAndResponse(ctx) {
+	if err := AuthUserViaContext(ctx, &user, "editSchedule"); err.CheckAndResponse(ctx) {
 		return
 	}
 
@@ -87,7 +87,7 @@ func UpdateGeneralSchedule(ctx *gin.Context) {
 		return
 	}
 
-	parser.UpdateGeneral(app)
+	parser.UpdateGeneralSchedule(app)
 	ctx.JSON(200, "updated")
 }
 
