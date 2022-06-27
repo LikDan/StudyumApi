@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Create update general schedule handler" />
+    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Create docker-hub GitHub action" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
