@@ -6,6 +6,7 @@ import (
 	"studyum/src/api"
 	"studyum/src/db"
 	"studyum/src/models"
+	"studyum/src/parser"
 	"studyum/src/utils"
 )
 
@@ -61,44 +62,33 @@ func GetScheduleTypes(ctx *gin.Context) {
 }
 
 func UpdateSchedule(ctx *gin.Context) {
-	/*var user models.User
-	if err := AuthUserViaContext(ctx, &user, "editSchedule"); err.CheckAndResponse(ctx) {
+	var user models.User
+	if err := AuthUserViaContext(ctx, &user); err.CheckAndResponse(ctx) {
 		return
 	}
 
-	var education *models.IParserApp = nil
-	for _, education_ := range parser.Educations {
-		if education_.Id == user.StudyPlaceId {
-			education = education_
-			break
-		}
+	var app models.IParserApp
+	if err := parser.GetAppByStudyPlaceId(user.StudyPlaceId, &app); err.CheckAndResponse(ctx) {
+		return
 	}
 
-	if education == nil {
-		models.BindErrorStr("not authorized", 401, api.UNDEFINED).CheckAndResponse(ctx)
-	}
-
-	parser.UpdateDbSchedule(education)*/
+	parser.Update(app)
+	ctx.JSON(200, "updated")
 }
 
 func UpdateGeneralSchedule(ctx *gin.Context) {
-	/*var user models.User
+	var user models.User
 	if err := AuthUserViaContext(ctx, &user, "editSchedule"); err.CheckAndResponse(ctx) {
 		return
 	}
 
-	var education *studyPlace.Education = nil
-	for _, education_ := range parser.Educations {
-		if education_.Id == user.StudyPlaceId {
-			education = education_
-			break
-		}
-	}
-	if education == nil {
-		models.BindErrorStr("not authorized", 401, api.UNDEFINED).CheckAndResponse(ctx)
+	var app models.IParserApp
+	if err := parser.GetAppByStudyPlaceId(user.StudyPlaceId, &app); err.CheckAndResponse(ctx) {
+		return
 	}
 
-	parser.UpdateGeneral(education)*/
+	parser.UpdateGeneral(app)
+	ctx.JSON(200, "updated")
 }
 
 func AddLesson(ctx *gin.Context) {

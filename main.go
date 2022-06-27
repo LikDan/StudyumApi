@@ -9,6 +9,7 @@ import (
 	logApi "studyum/src/api/log"
 	"studyum/src/db"
 	"studyum/src/models"
+	"studyum/src/parser"
 	"studyum/src/routes"
 	"studyum/src/utils"
 	"time"
@@ -41,7 +42,7 @@ func main() {
 	db.Init()
 
 	utils.InitFirebaseApp()
-	//parser.InitApps()
+	parser.InitApps()
 
 	logApi.InitLog()
 

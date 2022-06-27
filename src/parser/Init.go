@@ -7,7 +7,11 @@ import (
 	apps2 "studyum/src/parser/apps"
 )
 
-var apps = []models.IParserApp{&apps2.KbpApp}
+var Apps = []models.IParserApp{&apps2.KbpApp}
+
+func UpdateGeneral(app models.IParserApp) {
+	Update(app) //TODO
+}
 
 func Update(app models.IParserApp) {
 	var users []models.ParseJournalUser
@@ -29,7 +33,7 @@ func Update(app models.IParserApp) {
 }
 
 func InitApps() {
-	for _, app := range apps {
+	for _, app := range Apps {
 		var lesson models.Lesson
 		db.GetLastLesson(app.GetStudyPlaceId(), &lesson)
 
