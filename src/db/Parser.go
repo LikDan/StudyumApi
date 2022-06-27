@@ -62,3 +62,17 @@ func UpdateParseJournalUser(user *models.ParseJournalUser) *models.Error {
 
 	return models.EmptyError()
 }
+
+func UpdateGeneralSchedule(lessons []*models.GeneralLesson) *models.Error {
+	_, err := GeneralLessonsCollection.DeleteMany(nil, bson.D{{"studyPlaceId", lessons[0].StudyPlaceId}})
+	if err != nil {
+		return models.BindError(err, 418, h.WARNING)
+	}
+
+	_, err = GeneralLessonsCollection.InsertMany(nil, h.ToInterfaceSlice(lessons))
+	if err != nil {
+		return models.BindError(err, 418, h.WARNING)
+	}
+
+	return models.EmptyError()
+}
