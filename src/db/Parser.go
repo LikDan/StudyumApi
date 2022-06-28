@@ -27,6 +27,10 @@ func GetUsersToParse(parserAppName string, users *[]models.ParseJournalUser) *mo
 }
 
 func InsertScheduleTypes(types []*models.ScheduleTypeInfo) *models.Error {
+	if len(types) == 0 {
+		return models.BindErrorStr("Provided empty array", 418, h.UNDEFINED)
+	}
+
 	if _, err := ParseScheduleTypesCollection.DeleteMany(nil, bson.M{"parserAppName": types[0].ParserAppName}); err != nil {
 		return models.BindError(err, 418, h.WARNING)
 	}
@@ -64,6 +68,10 @@ func UpdateParseJournalUser(user *models.ParseJournalUser) *models.Error {
 }
 
 func UpdateGeneralSchedule(lessons []*models.GeneralLesson) *models.Error {
+	if len(lessons) == 0 {
+		return models.BindErrorStr("Provided empty array", 418, h.UNDEFINED)
+	}
+
 	_, err := GeneralLessonsCollection.DeleteMany(nil, bson.D{{"studyPlaceId", lessons[0].StudyPlaceId}})
 	if err != nil {
 		return models.BindError(err, 418, h.WARNING)
