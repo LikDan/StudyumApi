@@ -8,7 +8,7 @@ import (
 )
 
 func GetUserViaToken(token string, user *models.User) *models.Error {
-	if err := UsersCollection.FindOne(nil, bson.M{"token": token}).Decode(&user); err != nil {
+	if err := UsersCollection.FindOne(nil, bson.M{"token": token}).Decode(user); err != nil {
 		if err.Error() == "mongo: no documents in result" {
 			return models.BindErrorStr("not authorized", 401, h.UNDEFINED)
 		} else {

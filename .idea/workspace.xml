@@ -4,8 +4,23 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Improve validation">
+    <list default="true" id="0e3000d8-6488-4c8b-8a09-098c699bba4c" name="Changes" comment="Change gitignore">
+      <change afterPath="$PROJECT_DIR$/src/controllers/Journal.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/models/Journal.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/models/JournalAvailableOptions.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/models/JournalInfo.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/models/JournalRow.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/routes/Journal.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api/journal/availableOptions.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api/journal/journal.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api/journal/teacher.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/controllers/User.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/controllers/User.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/db/Journal.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/db/Journal.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/db/User.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/db/User.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/models/Lesson.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/models/Lesson.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/models/Mark.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/models/Mark.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/routes/Bind.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/routes/Bind.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -26,8 +41,6 @@
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/main.go" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/api/helper.go" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/src/api/journal/journal.go" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/src/api/journal/teacher.go" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/db/Journal.go" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/db/Parser.go" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/src/models/Mark.go" root0="FORCE_HIGHLIGHTING" />
@@ -39,32 +52,36 @@
   </component>
   <component name="ProjectId" id="2A1VPicbDCMp3Cgo3mDrzh4bAii" />
   <component name="ProjectViewState">
-    <option name="autoscrollFromSource" value="false" />
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.format.on.save.advertiser.fired&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.vendoring.notification.had.been.shown&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.go.watchers.conflict.with.on.save.actions.check.performed&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
-    &quot;go.sdk.automatically.set&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/likdan/Project/ECommerce&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "DefaultGoTemplateProperty": "Go File",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.go.format.on.save.advertiser.fired": "true",
+    "RunOnceActivity.go.formatter.settings.were.checked": "true",
+    "RunOnceActivity.go.migrated.go.modules.settings": "true",
+    "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
+    "RunOnceActivity.go.vendoring.notification.had.been.shown": "true",
+    "RunOnceActivity.go.watchers.conflict.with.on.save.actions.check.performed": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "go.import.settings.migrated": "true",
+    "go.sdk.automatically.set": "true",
+    "last_opened_file_path": "/home/likdan/Project/Studyum",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "settings.editor.selected.configurable": "preferences.pluginManager"
+  },
+  "keyToStringList": {
+    "DatabaseDriversLRU": [
+      "mongo"
+    ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="P:\Go\Studyum\src\models" />
@@ -76,7 +93,7 @@
       <recent name="P:\Go\Studyum\src\parser\apps\kbp" />
     </key>
   </component>
-  <component name="RunManager" selected="Docker.Dockerfile">
+  <component name="RunManager" selected="Go Build.go build studyum">
     <configuration name="go build studyum" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <module name="Studyum" />
       <working_directory value="$PROJECT_DIR$" />
@@ -101,10 +118,14 @@
       </deployment>
       <method v="2" />
     </configuration>
+    <list>
+      <item itemvalue="Docker.Dockerfile" />
+      <item itemvalue="Go Build.go build studyum" />
+    </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Docker.Dockerfile" />
         <item itemvalue="Go Build.go build studyum" />
+        <item itemvalue="Docker.Dockerfile" />
       </list>
     </recent_temporary>
   </component>
@@ -176,12 +197,22 @@
     <MESSAGE value="Create docker-hub GitHub action" />
     <MESSAGE value="Update docker-hub GitHub action" />
     <MESSAGE value="Improve validation" />
-    <option name="LAST_COMMIT_MESSAGE" value="Improve validation" />
+    <MESSAGE value="Change gitignore" />
+    <option name="LAST_COMMIT_MESSAGE" value="Change gitignore" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
   </component>
   <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/src/db/Journal.go</url>
+          <line>223</line>
+          <option name="timeStamp" value="12" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
     <watches-manager>
       <configuration name="GoApplicationRunConfiguration">
         <watch expression="dates[103]" language="go" />

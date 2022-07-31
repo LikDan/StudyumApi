@@ -20,7 +20,7 @@ func AuthUserViaToken(token string, user *models.User, permissions ...string) *m
 	}
 
 	for _, permission := range permissions {
-		if !utils.SliceContains(user.Permissions, permission) {
+		if !utils.SliceContains(user_.Permissions, permission) {
 			return models.BindErrorStr("no permission(s)", 403, utils.UNDEFINED)
 		}
 	}

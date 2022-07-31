@@ -2,7 +2,6 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"studyum/src/api/journal"
 	logApi "studyum/src/api/log"
 	"studyum/src/controllers"
 )
@@ -18,8 +17,8 @@ func Bind(engine *gin.Engine) {
 	api.GET("/studyPlaces", controllers.GetStudyPlaces)
 
 	Schedule(scheduleGroup)
+	Journal(journalGroup)
 	User(userGroup)
 
 	logApi.BuildRequests(logGroup)
-	journal.BuildRequests(journalGroup)
 }
