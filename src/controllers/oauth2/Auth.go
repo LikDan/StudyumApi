@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"net/http"
@@ -74,7 +73,8 @@ func CallbackOAuth2(ctx *gin.Context) {
 	}
 
 	var user models.User
-	if err = db.UsersCollection.FindOne(ctx, bson.M{"email": googleUser.Email}).Decode(&user); err != nil {
+
+	if err = db.GetUserByEmail(ctx, googleUser.Email, &user).Error; err != nil {
 		if err.Error() != "mongo: no documents in result" {
 			models.BindError(err, 418, models.WARNING).CheckAndResponse(ctx)
 			return
@@ -94,15 +94,16 @@ func CallbackOAuth2(ctx *gin.Context) {
 			Accepted:      false,
 			Blocked:       false,
 		}
-		if _, err = db.UsersCollection.InsertOne(ctx, user); models.BindError(err, 418, models.WARNING).CheckAndResponse(ctx) {
+
+		if db.SignUp(&user).CheckAndResponse(ctx) {
 			return
 		}
 	}
 
 	if user.Token == "" {
 		user.Token = utils.GenerateSecureToken()
-		if _, err = db.UsersCollection.UpdateOne(ctx, bson.M{"email": user.Email}, bson.M{"$set": bson.M{"token": user.Token}}); err != nil {
-			models.BindError(err, 418, models.WARNING).CheckAndResponse(ctx)
+
+		if db.UpdateUserTokenByEmail(ctx, user.Email, user.Token).CheckAndResponse(ctx) {
 			return
 		}
 	}

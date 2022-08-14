@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	_ "github.com/go-playground/validator/v10"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"studyum/src/db"
@@ -59,8 +58,8 @@ func putToken(ctx *gin.Context, user *models.User) *models.Error {
 			Password: user.Password,
 		}
 
-		if _, err := db.UsersCollection.UpdateOne(ctx, data, bson.M{"$set": bson.M{"token": user.Token}}); err != nil {
-			return models.BindError(err, 418, models.WARNING)
+		if err := db.UpdateToken(ctx, data, user.Token); err != nil {
+			return err
 		}
 	}
 
