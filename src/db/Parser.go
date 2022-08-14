@@ -9,12 +9,12 @@ import (
 )
 
 func GetLessonByDate(date time.Time, name string, group string, lesson *models.Lesson) {
-	result := LessonsCollection.FindOne(nil, bson.M{"subject": name, "group": group, "startDate": bson.M{"$gte": date, "$lt": date.AddDate(0, 0, 1)}})
+	result := lessonsCollection.FindOne(nil, bson.M{"subject": name, "group": group, "startDate": bson.M{"$gte": date, "$lt": date.AddDate(0, 0, 1)}})
 	_ = result.Decode(lesson)
 }
 
 func GetUsersToParse(parserAppName string, users *[]models.ParseJournalUser) *models.Error {
-	result, err := ParseJournalUserCollection.Find(nil, bson.M{"parserAppName": parserAppName})
+	result, err := parseJournalUserCollection.Find(nil, bson.M{"parserAppName": parserAppName})
 	if err != nil {
 		return models.BindError(err, 418, models.WARNING)
 	}
@@ -31,7 +31,7 @@ func InsertScheduleTypes(types []*models.ScheduleTypeInfo) *models.Error {
 		return models.BindErrorStr("Provided empty array", 418, models.UNDEFINED)
 	}
 
-	if _, err := ParseScheduleTypesCollection.DeleteMany(nil, bson.M{"parserAppName": types[0].ParserAppName}); err != nil {
+	if _, err := parseScheduleTypesCollection.DeleteMany(nil, bson.M{"parserAppName": types[0].ParserAppName}); err != nil {
 		return models.BindError(err, 418, models.WARNING)
 	}
 
@@ -39,7 +39,7 @@ func InsertScheduleTypes(types []*models.ScheduleTypeInfo) *models.Error {
 		type_.Id = primitive.NewObjectID()
 	}
 
-	if _, err := ParseScheduleTypesCollection.InsertMany(nil, utils.ToInterfaceSlice(types)); err != nil {
+	if _, err := parseScheduleTypesCollection.InsertMany(nil, utils.ToInterfaceSlice(types)); err != nil {
 		return models.BindError(err, 418, models.WARNING)
 	}
 
@@ -47,7 +47,7 @@ func InsertScheduleTypes(types []*models.ScheduleTypeInfo) *models.Error {
 }
 
 func GetScheduleTypesToParse(parserAppName string, types *[]models.ScheduleTypeInfo) *models.Error {
-	result, err := ParseScheduleTypesCollection.Find(nil, bson.M{"parserAppName": parserAppName})
+	result, err := parseScheduleTypesCollection.Find(nil, bson.M{"parserAppName": parserAppName})
 	if err != nil {
 		return models.BindError(err, 418, models.WARNING)
 	}
@@ -60,7 +60,7 @@ func GetScheduleTypesToParse(parserAppName string, types *[]models.ScheduleTypeI
 }
 
 func UpdateParseJournalUser(user *models.ParseJournalUser) *models.Error {
-	if _, err := ParseJournalUserCollection.UpdateByID(nil, user.ID, bson.M{"$set": user}); err != nil {
+	if _, err := parseJournalUserCollection.UpdateByID(nil, user.ID, bson.M{"$set": user}); err != nil {
 		return models.BindError(err, 418, models.WARNING)
 	}
 
@@ -72,12 +72,12 @@ func UpdateGeneralSchedule(lessons []*models.GeneralLesson) *models.Error {
 		return models.BindErrorStr("Provided empty array", 418, models.UNDEFINED)
 	}
 
-	_, err := GeneralLessonsCollection.DeleteMany(nil, bson.D{{"studyPlaceId", lessons[0].StudyPlaceId}})
+	_, err := generalLessonsCollection.DeleteMany(nil, bson.D{{"studyPlaceId", lessons[0].StudyPlaceId}})
 	if err != nil {
 		return models.BindError(err, 418, models.WARNING)
 	}
 
-	_, err = GeneralLessonsCollection.InsertMany(nil, utils.ToInterfaceSlice(lessons))
+	_, err = generalLessonsCollection.InsertMany(nil, utils.ToInterfaceSlice(lessons))
 	if err != nil {
 		return models.BindError(err, 418, models.WARNING)
 	}

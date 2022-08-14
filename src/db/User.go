@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/src/models"
@@ -62,6 +63,30 @@ func UpdateUser(user *models.User) *models.Error {
 func RevokeToken(token string) *models.Error {
 	if _, err := UsersCollection.UpdateOne(nil, bson.M{"token": token}, bson.M{"$set": bson.M{"token": ""}}); err != nil {
 		return models.BindError(err, 418, models.UNDEFINED)
+	}
+
+	return models.EmptyError()
+}
+
+func UpdateToken(ctx context.Context, data models.UserLoginData, token string) *models.Error {
+	if _, err := usersCollection.UpdateOne(ctx, data, bson.M{"$set": bson.M{"token": token}}); err != nil {
+		return models.BindError(err, 418, models.WARNING)
+	}
+
+	return models.EmptyError()
+}
+
+func UpdateUserTokenByEmail(ctx context.Context, email, token string) *models.Error {
+	if _, err := usersCollection.UpdateOne(ctx, bson.M{"email": email}, bson.M{"$set": bson.M{"token": token}}); err != nil {
+		return models.BindError(err, 418, models.WARNING)
+	}
+
+	return models.EmptyError()
+}
+
+func GetUserByEmail(ctx context.Context, email string, user *models.User) *models.Error {
+	if err := usersCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user); err != nil {
+		return models.BindError(err, 500, models.WARNING)
 	}
 
 	return models.EmptyError()

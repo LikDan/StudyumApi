@@ -11,7 +11,7 @@ import (
 
 func AddMark(mark *models.Mark) *models.Error {
 	mark.Id = primitive.NewObjectID()
-	if _, err := MarksCollection.InsertOne(nil, mark); err != nil {
+	if _, err := marksCollection.InsertOne(nil, mark); err != nil {
 		return models.BindError(err, 418, models.WARNING)
 	}
 
@@ -19,7 +19,7 @@ func AddMark(mark *models.Mark) *models.Error {
 }
 
 func UpdateMark(mark *models.Mark) *models.Error {
-	_, err := MarksCollection.UpdateOne(nil, bson.M{"_id": mark.Id, "lessonId": mark.LessonId}, bson.M{"$set": bson.M{"mark": mark.Mark}})
+	_, err := marksCollection.UpdateOne(nil, bson.M{"_id": mark.Id, "lessonId": mark.LessonId}, bson.M{"$set": bson.M{"mark": mark.Mark}})
 	if err != nil {
 		return models.BindError(err, 500, models.WARNING)
 	}
@@ -28,7 +28,7 @@ func UpdateMark(mark *models.Mark) *models.Error {
 }
 
 func DeleteMark(id primitive.ObjectID, lessonId primitive.ObjectID) *models.Error {
-	_, err := MarksCollection.DeleteOne(nil, bson.M{"_id": id, "lessonId": lessonId})
+	_, err := marksCollection.DeleteOne(nil, bson.M{"_id": id, "lessonId": lessonId})
 	if err != nil {
 		return models.BindError(err, 500, models.WARNING)
 	}
@@ -37,7 +37,7 @@ func DeleteMark(id primitive.ObjectID, lessonId primitive.ObjectID) *models.Erro
 }
 
 func AddMarks(marks []*models.Mark) *models.Error {
-	if _, err := MarksCollection.InsertMany(nil, utils.ToInterfaceSlice(marks)); err != nil {
+	if _, err := marksCollection.InsertMany(nil, utils.ToInterfaceSlice(marks)); err != nil {
 		return models.BindError(err, 418, models.WARNING)
 	}
 
@@ -45,7 +45,7 @@ func AddMarks(marks []*models.Mark) *models.Error {
 }
 
 func GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]models.JournalAvailableOption, *models.Error) {
-	aggregate, err := LessonsCollection.Aggregate(ctx, bson.A{
+	aggregate, err := lessonsCollection.Aggregate(ctx, bson.A{
 		bson.M{"$match": bson.M{"teacher": teacher}},
 		bson.M{"$group": bson.M{
 			"_id": bson.M{
@@ -72,7 +72,7 @@ func GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]
 }
 
 func GetStudentJournal(ctx context.Context, journal *models.Journal, userId primitive.ObjectID, group string, studyPlaceId int) *models.Error {
-	cursor, err := LessonsCollection.Aggregate(ctx, bson.A{
+	cursor, err := lessonsCollection.Aggregate(ctx, bson.A{
 		bson.M{"$match": bson.M{"group": group, "studyPlaceId": studyPlaceId}},
 		bson.M{"$group": bson.M{"_id": "$subject"}},
 		bson.M{"$lookup": bson.M{
@@ -197,7 +197,7 @@ func GetJournal(ctx context.Context, journal *models.Journal, group string, subj
 }
 
 func GetLessonById(ctx context.Context, userId primitive.ObjectID, id primitive.ObjectID) (models.Lesson, *models.Error) {
-	lessonsCursor, err := LessonsCollection.Aggregate(ctx, mongo.Pipeline{
+	lessonsCursor, err := lessonsCollection.Aggregate(ctx, mongo.Pipeline{
 		bson.D{{"$match", bson.M{"_id": id}}},
 		bson.D{{"$lookup", bson.M{
 			"from":         "Marks",
@@ -221,7 +221,7 @@ func GetLessonById(ctx context.Context, userId primitive.ObjectID, id primitive.
 }
 
 func GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId int) ([]models.Lesson, *models.Error) {
-	lessonsCursor, err := LessonsCollection.Aggregate(ctx, mongo.Pipeline{
+	lessonsCursor, err := lessonsCollection.Aggregate(ctx, mongo.Pipeline{
 		bson.D{{"$lookup", bson.M{
 			"from":         "Marks",
 			"localField":   "_id",
