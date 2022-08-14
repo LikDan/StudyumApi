@@ -7,12 +7,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
-	"io/ioutil"
 	"net/http"
-	h "studyum/src/api"
 	"studyum/src/controllers"
 	"studyum/src/db"
 	"studyum/src/models"
+	"studyum/src/utils"
 	"time"
 )
 
@@ -20,7 +19,7 @@ func OAuth2(ctx *gin.Context) {
 	config := Configs[ctx.Param("oauth")]
 
 	if config == nil {
-		models.BindErrorStr("no such server", 400, h.UNDEFINED).CheckAndResponse(ctx)
+		models.BindErrorStr("no such server", 400, models.UNDEFINED).CheckAndResponse(ctx)
 		return
 	}
 
@@ -49,12 +48,12 @@ func PutAuthToken(ctx *gin.Context) {
 
 func CallbackOAuth2(ctx *gin.Context) {
 	token, err := googleOAuthConfig.Exchange(context.Background(), ctx.Query("code"))
-	if models.BindError(err, 400, h.UNDEFINED).CheckAndResponse(ctx) {
+	if models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
 	}
 
 	response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
-	if models.BindError(err, 400, h.UNDEFINED).CheckAndResponse(ctx) {
+	if models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
 	}
 
@@ -63,21 +62,21 @@ func CallbackOAuth2(ctx *gin.Context) {
 		h.CheckError(err, h.WARNING)
 	}(response.Body)
 
-	content, err := ioutil.ReadAll(response.Body)
-	if models.BindError(err, 418, h.WARNING).CheckAndResponse(ctx) {
+	content, err := io.ReadAll(response.Body)
+	if models.BindError(err, 418, models.WARNING).CheckAndResponse(ctx) {
 		return
 	}
 
 	var googleUser models.OAuth2CallbackUser
 	err = json.Unmarshal(content, &googleUser)
-	if models.BindError(err, 418, h.WARNING).CheckAndResponse(ctx) {
+	if models.BindError(err, 418, models.WARNING).CheckAndResponse(ctx) {
 		return
 	}
 
 	var user models.User
 	if err = db.UsersCollection.FindOne(ctx, bson.M{"email": googleUser.Email}).Decode(&user); err != nil {
 		if err.Error() != "mongo: no documents in result" {
-			models.BindError(err, 418, h.WARNING).CheckAndResponse(ctx)
+			models.BindError(err, 418, models.WARNING).CheckAndResponse(ctx)
 			return
 		}
 		user = models.User{
@@ -95,7 +94,7 @@ func CallbackOAuth2(ctx *gin.Context) {
 			Accepted:      false,
 			Blocked:       false,
 		}
-		if _, err = db.UsersCollection.InsertOne(ctx, user); models.BindError(err, 418, h.WARNING).CheckAndResponse(ctx) {
+		if _, err = db.UsersCollection.InsertOne(ctx, user); models.BindError(err, 418, models.WARNING).CheckAndResponse(ctx) {
 			return
 		}
 	}
@@ -103,7 +102,7 @@ func CallbackOAuth2(ctx *gin.Context) {
 	if user.Token == "" {
 		user.Token = h.GenerateSecureToken()
 		if _, err = db.UsersCollection.UpdateOne(ctx, bson.M{"email": user.Email}, bson.M{"$set": bson.M{"token": user.Token}}); err != nil {
-			models.BindError(err, 418, h.WARNING).CheckAndResponse(ctx)
+			models.BindError(err, 418, models.WARNING).CheckAndResponse(ctx)
 			return
 		}
 	}

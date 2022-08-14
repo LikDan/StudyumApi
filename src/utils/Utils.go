@@ -1,6 +1,9 @@
 package utils
 
 import (
+	"crypto/md5"
+	"crypto/rand"
+	"encoding/hex"
 	"github.com/gin-gonic/gin"
 	"studyum/src/models"
 )

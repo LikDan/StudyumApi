@@ -3,8 +3,8 @@ package db
 import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	h "studyum/src/api"
 	"studyum/src/models"
+	"studyum/src/utils"
 	"time"
 )
 
@@ -16,11 +16,11 @@ func GetLessonByDate(date time.Time, name string, group string, lesson *models.L
 func GetUsersToParse(parserAppName string, users *[]models.ParseJournalUser) *models.Error {
 	result, err := ParseJournalUserCollection.Find(nil, bson.M{"parserAppName": parserAppName})
 	if err != nil {
-		return models.BindError(err, 418, h.WARNING)
+		return models.BindError(err, 418, models.WARNING)
 	}
 
 	if err := result.All(nil, users); err != nil {
-		return models.BindError(err, 418, h.WARNING)
+		return models.BindError(err, 418, models.WARNING)
 	}
 
 	return models.EmptyError()
@@ -28,11 +28,11 @@ func GetUsersToParse(parserAppName string, users *[]models.ParseJournalUser) *mo
 
 func InsertScheduleTypes(types []*models.ScheduleTypeInfo) *models.Error {
 	if len(types) == 0 {
-		return models.BindErrorStr("Provided empty array", 418, h.UNDEFINED)
+		return models.BindErrorStr("Provided empty array", 418, models.UNDEFINED)
 	}
 
 	if _, err := ParseScheduleTypesCollection.DeleteMany(nil, bson.M{"parserAppName": types[0].ParserAppName}); err != nil {
-		return models.BindError(err, 418, h.WARNING)
+		return models.BindError(err, 418, models.WARNING)
 	}
 
 	for _, type_ := range types {
@@ -49,11 +49,11 @@ func InsertScheduleTypes(types []*models.ScheduleTypeInfo) *models.Error {
 func GetScheduleTypesToParse(parserAppName string, types *[]models.ScheduleTypeInfo) *models.Error {
 	result, err := ParseScheduleTypesCollection.Find(nil, bson.M{"parserAppName": parserAppName})
 	if err != nil {
-		return models.BindError(err, 418, h.WARNING)
+		return models.BindError(err, 418, models.WARNING)
 	}
 
 	if err := result.All(nil, types); err != nil {
-		return models.BindError(err, 418, h.WARNING)
+		return models.BindError(err, 418, models.WARNING)
 	}
 
 	return models.EmptyError()
@@ -61,7 +61,7 @@ func GetScheduleTypesToParse(parserAppName string, types *[]models.ScheduleTypeI
 
 func UpdateParseJournalUser(user *models.ParseJournalUser) *models.Error {
 	if _, err := ParseJournalUserCollection.UpdateByID(nil, user.ID, bson.M{"$set": user}); err != nil {
-		return models.BindError(err, 418, h.WARNING)
+		return models.BindError(err, 418, models.WARNING)
 	}
 
 	return models.EmptyError()
@@ -69,17 +69,17 @@ func UpdateParseJournalUser(user *models.ParseJournalUser) *models.Error {
 
 func UpdateGeneralSchedule(lessons []*models.GeneralLesson) *models.Error {
 	if len(lessons) == 0 {
-		return models.BindErrorStr("Provided empty array", 418, h.UNDEFINED)
+		return models.BindErrorStr("Provided empty array", 418, models.UNDEFINED)
 	}
 
 	_, err := GeneralLessonsCollection.DeleteMany(nil, bson.D{{"studyPlaceId", lessons[0].StudyPlaceId}})
 	if err != nil {
-		return models.BindError(err, 418, h.WARNING)
+		return models.BindError(err, 418, models.WARNING)
 	}
 
 	_, err = GeneralLessonsCollection.InsertMany(nil, h.ToInterfaceSlice(lessons))
 	if err != nil {
-		return models.BindError(err, 418, h.WARNING)
+		return models.BindError(err, 418, models.WARNING)
 	}
 
 	return models.EmptyError()

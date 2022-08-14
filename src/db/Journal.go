@@ -5,14 +5,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	h "studyum/src/api"
 	"studyum/src/models"
+	"studyum/src/utils"
 )
 
 func AddMark(mark *models.Mark) *models.Error {
 	mark.Id = primitive.NewObjectID()
 	if _, err := MarksCollection.InsertOne(nil, mark); err != nil {
-		return models.BindError(err, 418, h.WARNING)
+		return models.BindError(err, 418, models.WARNING)
 	}
 
 	return models.EmptyError()
@@ -21,7 +21,7 @@ func AddMark(mark *models.Mark) *models.Error {
 func UpdateMark(mark *models.Mark) *models.Error {
 	_, err := MarksCollection.UpdateOne(nil, bson.M{"_id": mark.Id, "lessonId": mark.LessonId}, bson.M{"$set": bson.M{"mark": mark.Mark}})
 	if err != nil {
-		return models.BindError(err, 500, h.WARNING)
+		return models.BindError(err, 500, models.WARNING)
 	}
 
 	return models.EmptyError()
@@ -30,15 +30,15 @@ func UpdateMark(mark *models.Mark) *models.Error {
 func DeleteMark(id primitive.ObjectID, lessonId primitive.ObjectID) *models.Error {
 	_, err := MarksCollection.DeleteOne(nil, bson.M{"_id": id, "lessonId": lessonId})
 	if err != nil {
-		return models.BindError(err, 500, h.WARNING)
+		return models.BindError(err, 500, models.WARNING)
 	}
 
 	return models.EmptyError()
 }
 
 func AddMarks(marks []*models.Mark) *models.Error {
-	if _, err := MarksCollection.InsertMany(nil, h.ToInterfaceSlice(marks)); err != nil {
-		return models.BindError(err, 418, h.WARNING)
+	if _, err := MarksCollection.InsertMany(nil, utils.ToInterfaceSlice(marks)); err != nil {
+		return models.BindError(err, 418, models.WARNING)
 	}
 
 	return models.EmptyError()
@@ -60,12 +60,12 @@ func GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]
 		bson.M{"$addFields": bson.M{"editable": editable}},
 	})
 	if err != nil {
-		return nil, models.BindError(err, 500, h.WARNING)
+		return nil, models.BindError(err, 500, models.WARNING)
 	}
 
 	var options []models.JournalAvailableOption
 	if err = aggregate.All(ctx, &options); err != nil {
-		return nil, models.BindError(err, 500, h.WARNING)
+		return nil, models.BindError(err, 500, models.WARNING)
 	}
 
 	return options, models.EmptyError()
@@ -137,12 +137,12 @@ func GetStudentJournal(ctx context.Context, journal *models.Journal, userId prim
 		bson.M{"$project": bson.M{"_id": 0}},
 	})
 	if err != nil {
-		return models.BindError(err, 500, h.WARNING)
+		return models.BindError(err, 500, models.WARNING)
 	}
 
 	cursor.Next(ctx)
 	if err = cursor.Decode(&journal); err != nil {
-		return models.BindError(err, 500, h.WARNING)
+		return models.BindError(err, 500, models.WARNING)
 	}
 
 	return models.EmptyError()
@@ -185,12 +185,12 @@ func GetJournal(ctx context.Context, journal *models.Journal, group string, subj
 		}}}},
 	})
 	if err != nil {
-		return models.BindError(err, 500, h.WARNING)
+		return models.BindError(err, 500, models.WARNING)
 	}
 
 	cursor.Next(ctx)
 	if err = cursor.Decode(&journal); err != nil {
-		return models.BindError(err, 500, h.WARNING)
+		return models.BindError(err, 500, models.WARNING)
 	}
 
 	return models.EmptyError()
@@ -214,7 +214,7 @@ func GetLessonById(ctx context.Context, userId primitive.ObjectID, id primitive.
 	var lesson models.Lesson
 	lessonsCursor.Next(ctx)
 	if err = lessonsCursor.Decode(&lesson); err != nil {
-		return models.Lesson{}, models.BindError(err, 500, h.WARNING)
+		return models.Lesson{}, models.BindError(err, 500, models.WARNING)
 	}
 
 	return lesson, models.EmptyError()
@@ -237,7 +237,7 @@ func GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, 
 
 	var marks []models.Lesson
 	if err = lessonsCursor.All(ctx, &marks); err != nil {
-		return nil, models.BindError(err, 500, h.WARNING)
+		return nil, models.BindError(err, 500, models.WARNING)
 	}
 
 	return marks, models.EmptyError()
