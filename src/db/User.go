@@ -8,7 +8,7 @@ import (
 )
 
 func GetUserViaToken(token string, user *models.User) *models.Error {
-	if err := UsersCollection.FindOne(nil, bson.M{"token": token}).Decode(user); err != nil {
+	if err := usersCollection.FindOne(nil, bson.M{"token": token}).Decode(user); err != nil {
 		if err.Error() == "mongo: no documents in result" {
 			return models.BindErrorStr("not authorized", 401, models.UNDEFINED)
 		} else {
@@ -21,7 +21,7 @@ func GetUserViaToken(token string, user *models.User) *models.Error {
 
 func SignUp(user *models.User) *models.Error {
 	user.Id = primitive.NewObjectID()
-	if _, err := UsersCollection.InsertOne(nil, user); err != nil {
+	if _, err := usersCollection.InsertOne(nil, user); err != nil {
 		if err.Error() == "mongo: no documents in result" {
 			return models.BindErrorStr("not authorized", 401, models.UNDEFINED)
 		} else {
@@ -33,7 +33,7 @@ func SignUp(user *models.User) *models.Error {
 }
 
 func SignUpStage1(user *models.User) *models.Error {
-	if _, err := UsersCollection.UpdateOne(nil, bson.M{"token": user.Token}, bson.M{"$set": user}); err != nil {
+	if _, err := usersCollection.UpdateOne(nil, bson.M{"token": user.Token}, bson.M{"$set": user}); err != nil {
 		return models.BindError(err, 400, models.WARNING)
 	}
 
@@ -41,7 +41,7 @@ func SignUpStage1(user *models.User) *models.Error {
 }
 
 func Login(data *models.UserLoginData, user *models.User) *models.Error {
-	if err := UsersCollection.FindOne(nil, data).Decode(&user); err != nil {
+	if err := usersCollection.FindOne(nil, data).Decode(&user); err != nil {
 		if err.Error() == "mongo: no documents in result" {
 			return models.BindErrorStr("not authorized", 401, models.UNDEFINED)
 		} else {
@@ -53,7 +53,7 @@ func Login(data *models.UserLoginData, user *models.User) *models.Error {
 }
 
 func UpdateUser(user *models.User) *models.Error {
-	if _, err := UsersCollection.UpdateOne(nil, bson.M{"token": user.Token}, bson.M{"$set": user}); err != nil {
+	if _, err := usersCollection.UpdateOne(nil, bson.M{"token": user.Token}, bson.M{"$set": user}); err != nil {
 		return models.BindError(err, 418, models.UNDEFINED)
 	}
 
@@ -61,7 +61,7 @@ func UpdateUser(user *models.User) *models.Error {
 }
 
 func RevokeToken(token string) *models.Error {
-	if _, err := UsersCollection.UpdateOne(nil, bson.M{"token": token}, bson.M{"$set": bson.M{"token": ""}}); err != nil {
+	if _, err := usersCollection.UpdateOne(nil, bson.M{"token": token}, bson.M{"$set": bson.M{"token": ""}}); err != nil {
 		return models.BindError(err, 418, models.UNDEFINED)
 	}
 

@@ -149,7 +149,7 @@ func GetStudentJournal(ctx context.Context, journal *models.Journal, userId prim
 }
 
 func GetJournal(ctx context.Context, journal *models.Journal, group string, subject string, typeName string, studyPlaceId int) *models.Error {
-	cursor, err := UsersCollection.Aggregate(ctx, mongo.Pipeline{
+	cursor, err := usersCollection.Aggregate(ctx, mongo.Pipeline{
 		bson.D{{"$match", bson.M{"type": "group", "typeName": group, "studyPlaceId": studyPlaceId}}},
 		bson.D{{"$lookup", bson.M{
 			"from":     "Lessons",
