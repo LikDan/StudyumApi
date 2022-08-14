@@ -3,7 +3,6 @@ package controllers
 import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"studyum/src/api"
 	"studyum/src/db"
 	"studyum/src/models"
 	"studyum/src/parser"
@@ -14,7 +13,7 @@ func GetSchedule(ctx *gin.Context) {
 	type_ := ctx.Param("type")
 	typeName := ctx.Param("name")
 
-	if utils.CheckEmptyAndResponse(ctx, models.BindErrorStr("provide valid params", 400, api.UNDEFINED), type_, typeName) {
+	if utils.CheckEmptyAndResponse(ctx, models.BindErrorStr("provide valid params", 400, models.UNDEFINED), type_, typeName) {
 		return
 	}
 
@@ -98,7 +97,7 @@ func AddLesson(ctx *gin.Context) {
 	}
 
 	var subject models.Lesson
-	if err := ctx.BindJSON(&subject); models.BindError(err, 400, api.UNDEFINED).CheckAndResponse(ctx) {
+	if err := ctx.BindJSON(&subject); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
 	}
 
@@ -116,7 +115,7 @@ func UpdateLesson(ctx *gin.Context) {
 	}
 
 	var subject models.Lesson
-	if err := ctx.BindJSON(&subject); models.BindError(err, 400, api.UNDEFINED).CheckAndResponse(ctx) {
+	if err := ctx.BindJSON(&subject); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
 	}
 
@@ -135,7 +134,7 @@ func DeleteLesson(ctx *gin.Context) {
 
 	idHex := ctx.Param("id")
 	if !primitive.IsValidObjectID(idHex) {
-		models.BindErrorStr("provide valid id", 400, api.UNDEFINED).CheckAndResponse(ctx)
+		models.BindErrorStr("provide valid id", 400, models.UNDEFINED).CheckAndResponse(ctx)
 	}
 
 	id, _ := primitive.ObjectIDFromHex(idHex)

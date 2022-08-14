@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"studyum/src/api"
 	"studyum/src/models"
 )
 
@@ -14,7 +13,7 @@ func GetAppByStudyPlaceId(id int, app *models.IParserApp) *models.Error {
 	}
 
 	if app == nil {
-		models.BindErrorStr("not authorized", 401, api.UNDEFINED)
+		models.BindErrorStr("not authorized", 401, models.UNDEFINED)
 	}
 
 	return models.EmptyError()

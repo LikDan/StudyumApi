@@ -3,9 +3,9 @@ package controllers
 import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	h "studyum/src/api"
 	"studyum/src/db"
 	"studyum/src/models"
+	"studyum/src/utils"
 )
 
 func GetJournalAvailableOptions(ctx *gin.Context) {
@@ -77,12 +77,12 @@ func AddMark(ctx *gin.Context) {
 	}
 
 	var mark models.Mark
-	if err := ctx.BindJSON(&mark); models.BindError(err, 400, h.UNDEFINED).CheckAndResponse(ctx) {
+	if err := ctx.BindJSON(&mark); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
 	}
 
 	if mark.Mark == "" || mark.UserId.IsZero() || mark.LessonId.IsZero() {
-		models.BindErrorStr("provide valid params", 400, h.UNDEFINED).CheckAndResponse(ctx)
+		models.BindErrorStr("provide valid params", 400, models.UNDEFINED).CheckAndResponse(ctx)
 		return
 	}
 
@@ -110,12 +110,12 @@ func GetMark(ctx *gin.Context) {
 	teacher := user.Name
 
 	if group == "" || subject == "" || userIdHex == "" {
-		models.BindErrorStr("provide valid params", 400, h.UNDEFINED).CheckAndResponse(ctx)
+		models.BindErrorStr("provide valid params", 400, models.UNDEFINED).CheckAndResponse(ctx)
 		return
 	}
 
 	userId, err_ := primitive.ObjectIDFromHex(userIdHex)
-	if models.BindError(err_, 400, h.UNDEFINED).CheckAndResponse(ctx) {
+	if models.BindError(err_, 400, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
 	}
 
@@ -139,12 +139,12 @@ func UpdateMark(ctx *gin.Context) {
 	}
 
 	var mark models.Mark
-	if err := ctx.BindJSON(&mark); models.BindError(err, 400, h.UNDEFINED).CheckAndResponse(ctx) {
+	if err := ctx.BindJSON(&mark); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
 	}
 
 	if mark.Mark == "" || mark.Id.IsZero() || mark.UserId.IsZero() || mark.LessonId.IsZero() {
-		models.BindErrorStr("provide valid params", 400, h.UNDEFINED)
+		models.BindErrorStr("provide valid params", 400, models.UNDEFINED)
 		return
 	}
 
@@ -176,22 +176,22 @@ func DeleteMark(ctx *gin.Context) {
 	subjectId := ctx.Query("subjectId")
 
 	if markId == "" || userIdHex == "" || subjectId == "" {
-		models.BindErrorStr("provide valid params", 400, h.UNDEFINED).CheckAndResponse(ctx)
+		models.BindErrorStr("provide valid params", 400, models.UNDEFINED).CheckAndResponse(ctx)
 		return
 	}
 
 	userId, err_ := primitive.ObjectIDFromHex(userIdHex)
-	if models.BindError(err_, 400, h.UNDEFINED).CheckAndResponse(ctx) {
+	if models.BindError(err_, 400, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
 	}
 
 	markObjectId, err_ := primitive.ObjectIDFromHex(markId)
-	if models.BindError(err_, 400, h.UNDEFINED).CheckAndResponse(ctx) {
+	if models.BindError(err_, 400, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
 	}
 
 	subjectObjectId, err_ := primitive.ObjectIDFromHex(subjectId)
-	if models.BindError(err_, 400, h.UNDEFINED).CheckAndResponse(ctx) {
+	if models.BindError(err_, 400, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
 	}
 

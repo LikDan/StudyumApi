@@ -4,13 +4,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	h "studyum/src/api"
 	"studyum/src/models"
+	"studyum/src/utils"
 	"time"
 )
 
 func GetSchedule(studyPlaceId int, type_ string, typeName string, schedule *models.Schedule) *models.Error {
-	startWeekDate := h.Date().AddDate(0, 0, 1-int(time.Now().Weekday()))
+	startWeekDate := utils.Date().AddDate(0, 0, 1-int(time.Now().Weekday()))
 	cursor, err := StudyPlacesCollection.Aggregate(nil, bson.A{
 		bson.M{
 			"$match": bson.M{
@@ -116,12 +116,12 @@ func GetSchedule(studyPlaceId int, type_ string, typeName string, schedule *mode
 		},
 	})
 	if err != nil {
-		return models.BindError(err, 403, h.UNDEFINED)
+		return models.BindError(err, 403, models.UNDEFINED)
 	}
 
 	cursor.Next(nil)
 	if err = cursor.Decode(&schedule); err != nil {
-		return models.BindError(err, 418, h.WARNING)
+		return models.BindError(err, 418, models.WARNING)
 	}
 
 	return models.EmptyError()
@@ -146,15 +146,15 @@ func AddLesson(lesson *models.Lesson, studyPlaceId int) *models.Error {
 	lesson.Id = primitive.NewObjectID()
 	lesson.StudyPlaceId = studyPlaceId
 	if _, err := LessonsCollection.InsertOne(nil, lesson); err != nil {
-		return models.BindError(err, 418, h.WARNING)
+		return models.BindError(err, 418, models.WARNING)
 	}
 
 	return models.EmptyError()
 }
 
 func AddLessons(lessons []*models.Lesson) *models.Error {
-	if _, err := LessonsCollection.InsertMany(nil, h.ToInterfaceSlice(lessons)); err != nil {
-		return models.BindError(err, 418, h.WARNING)
+	if _, err := LessonsCollection.InsertMany(nil, utils.ToInterfaceSlice(lessons)); err != nil {
+		return models.BindError(err, 418, models.WARNING)
 	}
 
 	return models.EmptyError()
@@ -164,7 +164,7 @@ func UpdateLesson(lesson *models.Lesson, studyPlaceId int) *models.Error {
 	lesson.StudyPlaceId = studyPlaceId
 
 	if _, err := LessonsCollection.UpdateOne(nil, bson.M{"_id": lesson.Id, "studyPlaceId": studyPlaceId}, bson.M{"$set": lesson}); err != nil {
-		return models.BindError(err, 418, h.WARNING)
+		return models.BindError(err, 418, models.WARNING)
 	}
 
 	return models.EmptyError()
@@ -172,7 +172,7 @@ func UpdateLesson(lesson *models.Lesson, studyPlaceId int) *models.Error {
 
 func DeleteLesson(id primitive.ObjectID, studyPlaceId int) *models.Error {
 	if _, err := LessonsCollection.DeleteOne(nil, bson.M{"_id": id, "studyPlaceId": studyPlaceId}); err != nil {
-		return models.BindError(err, 418, h.WARNING)
+		return models.BindError(err, 418, models.WARNING)
 	}
 
 	return models.EmptyError()
@@ -183,7 +183,7 @@ func GetLastLesson(studyPlaceId int, lesson *models.Lesson) *models.Error {
 	opt.Sort = bson.M{"startDate": -1}
 
 	if err := LessonsCollection.FindOne(nil, bson.M{"studyPlaceId": studyPlaceId}, opt).Decode(lesson); err != nil {
-		return models.BindError(err, 418, h.WARNING)
+		return models.BindError(err, 418, models.WARNING)
 	}
 
 	return models.EmptyError()

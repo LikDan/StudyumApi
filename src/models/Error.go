@@ -4,13 +4,12 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"studyum/src/api"
 )
 
 type Error struct {
-	Error   error       `json:"error" bson:"error"`
-	Code    int         `json:"code" bson:"code"`
-	LogType api.LogType `json:"log" bson:"log"`
+	Error   error   `json:"error" bson:"error"`
+	Code    int     `json:"code" bson:"code"`
+	LogType LogType `json:"log" bson:"log"`
 }
 
 func (err Error) Check() bool {
@@ -19,15 +18,15 @@ func (err Error) Check() bool {
 	}
 
 	switch err.LogType {
-	case api.UNDEFINED:
+	case UNDEFINED:
 		break
-	case api.INFO:
+	case INFO:
 		logrus.Info(err.Error.Error())
 		break
-	case api.WARNING:
+	case WARNING:
 		logrus.Warning(err.Error.Error())
 		break
-	case api.ERROR:
+	case ERROR:
 		logrus.Error(err.Error.Error())
 		break
 	}
@@ -43,11 +42,11 @@ func (err Error) CheckAndResponse(ctx *gin.Context) bool {
 	return true
 }
 
-func BindErrorStr(err string, code int, logType api.LogType) *Error {
+func BindErrorStr(err string, code int, logType LogType) *Error {
 	return BindError(errors.New(err), code, logType)
 }
 
-func BindError(err error, code int, logType api.LogType) *Error {
+func BindError(err error, code int, logType LogType) *Error {
 	return &Error{
 		Error:   err,
 		Code:    code,
@@ -59,6 +58,6 @@ func EmptyError() *Error {
 	return &Error{
 		Error:   nil,
 		Code:    0,
-		LogType: api.UNDEFINED,
+		LogType: UNDEFINED,
 	}
 }

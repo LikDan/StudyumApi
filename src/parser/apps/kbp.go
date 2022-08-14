@@ -4,13 +4,14 @@ import (
 	"bytes"
 	htmlParser "github.com/PuerkitoBio/goquery"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
-	h "studyum/src/api"
 	"studyum/src/db"
 	"studyum/src/models"
+	parserModels "studyum/src/parser/models"
+	"studyum/src/utils"
 	"time"
 )
 
@@ -18,8 +19,8 @@ type KbpParser struct {
 	States     []*models.ScheduleStateInfo
 	TempStates []*models.ScheduleStateInfo
 
-	WeekdaysShift []h.Shift
-	WeekendsShift []h.Shift
+	WeekdaysShift []parserModels.Shift
+	WeekendsShift []parserModels.Shift
 }
 
 var KbpApp = KbpParser{}
@@ -30,17 +31,19 @@ func (p *KbpParser) GetUpdateCronPattern() string { return "@every 30m" }
 
 func (p *KbpParser) ScheduleUpdate(type_ *models.ScheduleTypeInfo) []*models.Lesson {
 	response, err := http.Get("http://kbp.by/rasp/timetable/view_beta_kbp/" + type_.Url)
-	if models.BindError(err, 418, h.UNDEFINED).Check() {
+	if models.BindError(err, 418, models.UNDEFINED).Check() {
 		return nil
 	}
 
 	if response.StatusCode != 200 {
-		models.BindErrorStr("Could not connect to host http://kbp", response.StatusCode, h.UNDEFINED).Check()
+		models.BindErrorStr("Could not connect to host http://kbp", response.StatusCode, models.UNDEFINED).Check()
 		return nil
 	}
 
 	document, err := htmlParser.NewDocumentFromReader(response.Body)
-	h.CheckError(err, h.WARNING)
+	if models.BindError(err, 400, models.UNDEFINED).Check() {
+		return nil
+	}
 
 	time_ := time.Now().AddDate(0, 0, -int(time.Now().Weekday())).Round(0)
 
@@ -113,7 +116,7 @@ func (p *KbpParser) ScheduleUpdate(type_ *models.ScheduleTypeInfo) []*models.Les
 							return
 						}
 
-						date := h.ToDateWithoutTime(time_)
+						date := utils.ToDateWithoutTime(time_)
 
 						var startTime time.Duration
 						var endTime time.Duration
@@ -187,17 +190,19 @@ func (p *KbpParser) ScheduleTypesUpdate() []*models.ScheduleTypeInfo {
 	var types []*models.ScheduleTypeInfo
 
 	response, err := http.Get("https://kbp.by/rasp/timetable/view_beta_kbp/?q=")
-	if models.BindError(err, 418, h.UNDEFINED).Check() {
+	if models.BindError(err, 418, models.UNDEFINED).Check() {
 		return nil
 	}
 
 	if response.StatusCode != 200 {
-		models.BindErrorStr("Could not connect to host http://kbp", response.StatusCode, h.UNDEFINED).Check()
+		models.BindErrorStr("Could not connect to host http://kbp", response.StatusCode, models.UNDEFINED).Check()
 		return nil
 	}
 
 	document, err := htmlParser.NewDocumentFromReader(response.Body)
-	h.CheckError(err, h.WARNING)
+	if models.BindError(err, 400, models.UNDEFINED).Check() {
+		return nil
+	}
 
 	document.Find(".block_back").Find("div").Each(func(ix int, div *htmlParser.Selection) {
 		if div.Find("span").Text() == "группа" {
@@ -238,7 +243,7 @@ func (p *KbpParser) LoginJournal(user *models.ParseJournalUser) *htmlParser.Docu
 	request.Header.Add("Cookie", c)
 	response, _ = http.DefaultClient.Do(request)
 
-	body, _ := ioutil.ReadAll(response.Body)
+	body, _ := io.ReadAll(response.Body)
 	if string(body) != "good" {
 		return nil
 	}
@@ -373,23 +378,23 @@ func (p *KbpParser) Init(lesson models.Lesson) {
 
 	p.States = states
 
-	p.WeekdaysShift = []h.Shift{
-		h.BindShift(8, 00, 9, 35),
-		h.BindShift(9, 45, 11, 20),
-		h.BindShift(11, 50, 13, 25),
-		h.BindShift(13, 45, 15, 20),
-		h.BindShift(15, 40, 17, 15),
-		h.BindShift(17, 25, 19, 0),
-		h.BindShift(19, 10, 20, 45),
+	p.WeekdaysShift = []parserModels.Shift{
+		parserModels.BindShift(8, 00, 9, 35),
+		parserModels.BindShift(9, 45, 11, 20),
+		parserModels.BindShift(11, 50, 13, 25),
+		parserModels.BindShift(13, 45, 15, 20),
+		parserModels.BindShift(15, 40, 17, 15),
+		parserModels.BindShift(17, 25, 19, 0),
+		parserModels.BindShift(19, 10, 20, 45),
 	}
 
-	p.WeekendsShift = []h.Shift{
-		h.BindShift(8, 00, 9, 35),
-		h.BindShift(9, 45, 11, 20),
-		h.BindShift(11, 30, 13, 5),
-		h.BindShift(13, 30, 15, 5),
-		h.BindShift(15, 15, 16, 50),
-		h.BindShift(17, 0, 18, 35),
-		h.BindShift(18, 45, 20, 20),
+	p.WeekendsShift = []parserModels.Shift{
+		parserModels.BindShift(8, 00, 9, 35),
+		parserModels.BindShift(9, 45, 11, 20),
+		parserModels.BindShift(11, 30, 13, 5),
+		parserModels.BindShift(13, 30, 15, 5),
+		parserModels.BindShift(15, 15, 16, 50),
+		parserModels.BindShift(17, 0, 18, 35),
+		parserModels.BindShift(18, 45, 20, 20),
 	}
 }

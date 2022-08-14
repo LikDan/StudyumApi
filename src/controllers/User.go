@@ -7,9 +7,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
-	utils "studyum/src/api"
 	"studyum/src/db"
 	"studyum/src/models"
+	"studyum/src/utils"
 	"time"
 )
 
@@ -21,7 +21,7 @@ func AuthUserViaToken(token string, user *models.User, permissions ...string) *m
 
 	for _, permission := range permissions {
 		if !utils.SliceContains(user_.Permissions, permission) {
-			return models.BindErrorStr("no permission(s)", 403, utils.UNDEFINED)
+			return models.BindErrorStr("no permission(s)", 403, models.UNDEFINED)
 		}
 	}
 
@@ -32,7 +32,7 @@ func AuthUserViaToken(token string, user *models.User, permissions ...string) *m
 func AuthUserViaContext(ctx *gin.Context, user *models.User, permissions ...string) *models.Error {
 	token, err := ctx.Cookie("authToken")
 	if err != nil {
-		return models.BindError(err, 401, utils.UNDEFINED)
+		return models.BindError(err, 401, models.UNDEFINED)
 	}
 
 	if err := AuthUserViaToken(token, user, permissions...); err.Check() {
@@ -60,7 +60,7 @@ func putToken(ctx *gin.Context, user *models.User) *models.Error {
 		}
 
 		if _, err := db.UsersCollection.UpdateOne(ctx, data, bson.M{"$set": bson.M{"token": user.Token}}); err != nil {
-			return models.BindError(err, 418, utils.WARNING)
+			return models.BindError(err, 418, models.WARNING)
 		}
 	}
 
@@ -76,12 +76,12 @@ func putToken(ctx *gin.Context, user *models.User) *models.Error {
 
 func SignUpUser(ctx *gin.Context) {
 	var data models.UserSignUpData
-	if err := ctx.BindJSON(&data); models.BindError(err, 400, utils.UNDEFINED).CheckAndResponse(ctx) {
+	if err := ctx.BindJSON(&data); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
 	}
 
 	if err := validator.New().Struct(&data); err != nil {
-		models.BindErrorStr("provide valid data", 400, utils.UNDEFINED).CheckAndResponse(ctx)
+		models.BindErrorStr("provide valid data", 400, models.UNDEFINED).CheckAndResponse(ctx)
 		return
 	}
 
@@ -121,7 +121,7 @@ func SignUpUserStage1(ctx *gin.Context) {
 	}
 
 	var data models.UserSignUpStage1Data
-	if err := ctx.BindJSON(&data); models.BindError(err, 400, utils.UNDEFINED).CheckAndResponse(ctx) {
+	if err := ctx.BindJSON(&data); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
 	}
 
@@ -156,12 +156,12 @@ func UpdateUser(ctx *gin.Context) {
 	}
 
 	var data models.UserSignUpData
-	if err := ctx.BindJSON(&data); models.BindError(err, 400, utils.UNDEFINED).CheckAndResponse(ctx) {
+	if err := ctx.BindJSON(&data); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
 	}
 
 	if err := validator.New().Struct(&data); err != nil {
-		models.BindErrorStr("provide valid data", 400, utils.UNDEFINED).CheckAndResponse(ctx)
+		models.BindErrorStr("provide valid data", 400, models.UNDEFINED).CheckAndResponse(ctx)
 		return
 	}
 
@@ -186,7 +186,7 @@ func SignOutUser(ctx *gin.Context) {
 
 func LoginUser(ctx *gin.Context) {
 	var data models.UserLoginData
-	if err := ctx.BindJSON(&data); models.BindError(err, 400, utils.UNDEFINED).CheckAndResponse(ctx) {
+	if err := ctx.BindJSON(&data); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
 	}
 
@@ -207,7 +207,7 @@ func LoginUser(ctx *gin.Context) {
 func RevokeToken(ctx *gin.Context) {
 	token, err := ctx.Cookie("authToken")
 	if err != nil {
-		models.BindErrorStr("not authorized", 401, utils.UNDEFINED).CheckAndResponse(ctx)
+		models.BindErrorStr("not authorized", 401, models.UNDEFINED).CheckAndResponse(ctx)
 		return
 	}
 

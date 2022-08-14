@@ -29,7 +29,7 @@ func uptimeHandler(ctx *gin.Context) {
 
 func requestHandler(ctx *gin.Context) {
 	response, err := http.Get("https://" + ctx.Query("host"))
-	if models.BindError(err, 418, h.UNDEFINED).CheckAndResponse(ctx) {
+	if models.BindError(err, 418, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
 	}
 
