@@ -13,6 +13,9 @@ func Bind(engine *gin.Engine) {
 	scheduleGroup := api.Group("/schedule")
 
 	api.GET("/studyPlaces", controllers.GetStudyPlaces)
+	api.GET("/uptime", func(ctx *gin.Context) {
+		ctx.JSON(200, "hi")
+	})
 
 	Schedule(scheduleGroup)
 	Journal(journalGroup)

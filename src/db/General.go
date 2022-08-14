@@ -7,7 +7,7 @@ import (
 
 func GetStudyPlaces() (*models.Error, []*models.StudyPlace) {
 	var studyPlaces []*models.StudyPlace
-	studyPlacesCursor, err := StudyPlacesCollection.Find(nil, bson.M{})
+	studyPlacesCursor, err := studyPlacesCollection.Find(nil, bson.M{})
 	if err != nil {
 		return models.BindError(err, 418, models.WARNING), nil
 	}

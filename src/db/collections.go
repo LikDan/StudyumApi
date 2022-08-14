@@ -8,17 +8,16 @@ import (
 )
 
 var (
-	DataBase *mongo.Database
+	database *mongo.Database
 
-	GeneralLessonsCollection *mongo.Collection
-	LessonsCollection        *mongo.Collection
-	StateCollection          *mongo.Collection
-	StudyPlacesCollection    *mongo.Collection
-	UsersCollection          *mongo.Collection
-	MarksCollection          *mongo.Collection
+	generalLessonsCollection *mongo.Collection
+	lessonsCollection        *mongo.Collection
+	studyPlacesCollection    *mongo.Collection
+	usersCollection          *mongo.Collection
+	marksCollection          *mongo.Collection
 
-	ParseJournalUserCollection   *mongo.Collection
-	ParseScheduleTypesCollection *mongo.Collection
+	parseJournalUserCollection   *mongo.Collection
+	parseScheduleTypesCollection *mongo.Collection
 )
 
 func Init() {
@@ -32,15 +31,14 @@ func Init() {
 		return
 	}
 
-	DataBase = client.Database("Schedule")
+	database = client.Database("Schedule")
 
-	StudyPlacesCollection = DataBase.Collection("StudyPlaces")
-	UsersCollection = DataBase.Collection("Users")
-	LessonsCollection = DataBase.Collection("Lessons")
-	GeneralLessonsCollection = DataBase.Collection("GeneralLessons")
-	StateCollection = DataBase.Collection("States")
-	MarksCollection = DataBase.Collection("Marks")
+	studyPlacesCollection = database.Collection("StudyPlaces")
+	usersCollection = database.Collection("Users")
+	lessonsCollection = database.Collection("Lessons")
+	generalLessonsCollection = database.Collection("GeneralLessons")
+	marksCollection = database.Collection("Marks")
 
-	ParseJournalUserCollection = DataBase.Collection("ParseJournalUsers")
-	ParseScheduleTypesCollection = DataBase.Collection("ParseScheduleTypes")
+	parseJournalUserCollection = database.Collection("ParseJournalUsers")
+	parseScheduleTypesCollection = database.Collection("ParseScheduleTypes")
 }
