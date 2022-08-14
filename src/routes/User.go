@@ -2,7 +2,6 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"studyum/src/api/user"
 	"studyum/src/controllers"
 	"studyum/src/controllers/oauth2"
 )
@@ -22,6 +21,4 @@ func User(root *gin.RouterGroup) {
 
 	root.DELETE("signout", controllers.SignOutUser)
 	root.DELETE("revoke", controllers.RevokeToken)
-
-	user.BuildRequests(root)
 }

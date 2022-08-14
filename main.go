@@ -5,22 +5,12 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
-	h "studyum/src/api"
-	logApi "studyum/src/api/log"
 	"studyum/src/db"
 	"studyum/src/models"
 	"studyum/src/parser"
 	"studyum/src/routes"
 	"studyum/src/utils"
 	"time"
-	//log "github.com/sirupsen/logrus"
-	//logApi "studyum/src/api/log"
-	//"studyum/src/api/parser"
-	//"studyum/src/db"
-	//"studyum/src/parser/apps"
-	//"studyum/src/routes"
-	//"studyum/src/utils"
-	//"time"
 )
 
 func uptimeHandler(ctx *gin.Context) {
@@ -44,13 +34,10 @@ func main() {
 	utils.InitFirebaseApp()
 	parser.InitApps()
 
-	logApi.InitLog()
-
 	r := gin.Default()
 
 	r.HEAD("/api", uptimeHandler)
 	r.GET("/request", requestHandler)
-	defer logApi.CloseLogFile()
 
 	routes.Bind(r)
 
