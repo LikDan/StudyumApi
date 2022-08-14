@@ -145,7 +145,7 @@ func GetStudentJournal(ctx context.Context, journal *models.Journal, userId prim
 		return models.BindError(err, 500, h.WARNING)
 	}
 
-	return nil
+	return models.EmptyError()
 }
 
 func GetJournal(ctx context.Context, journal *models.Journal, group string, subject string, typeName string, studyPlaceId int) *models.Error {
