@@ -24,7 +24,7 @@ func GetJournalAvailableOptions(ctx *gin.Context) {
 		return
 	}
 
-	options, err := db.GetAvailableOptions(ctx, user.Name, h.SliceContains(user.Permissions, "editJournal"))
+	options, err := db.GetAvailableOptions(ctx, user.Name, utils.SliceContains(user.Permissions, "editJournal"))
 	if err.CheckAndResponse(ctx) {
 		return
 	}
@@ -38,8 +38,8 @@ func GetJournal(ctx *gin.Context) {
 		return
 	}
 
-	if !h.CheckNotEmpty(ctx.Param("group"), ctx.Param("subject"), ctx.Param("teacher")) {
-		models.BindErrorStr("provide valid params", 400, h.UNDEFINED).CheckAndResponse(ctx)
+	if !utils.CheckNotEmpty(ctx.Param("group"), ctx.Param("subject"), ctx.Param("teacher")) {
+		models.BindErrorStr("provide valid params", 400, models.UNDEFINED).CheckAndResponse(ctx)
 		return
 	}
 
@@ -71,8 +71,8 @@ func AddMark(ctx *gin.Context) {
 		return
 	}
 
-	if !h.SliceContains(user.Permissions, "editJournal") {
-		models.BindErrorStr("no permission", 400, h.UNDEFINED).CheckAndResponse(ctx)
+	if !utils.SliceContains(user.Permissions, "editJournal") {
+		models.BindErrorStr("no permission", 400, models.UNDEFINED).CheckAndResponse(ctx)
 		return
 	}
 
@@ -133,8 +133,8 @@ func UpdateMark(ctx *gin.Context) {
 		return
 	}
 
-	if !h.SliceContains(user.Permissions, "editJournal") {
-		models.BindErrorStr("no permission", 400, h.UNDEFINED).CheckAndResponse(ctx)
+	if !utils.SliceContains(user.Permissions, "editJournal") {
+		models.BindErrorStr("no permission", 400, models.UNDEFINED).CheckAndResponse(ctx)
 		return
 	}
 
@@ -166,8 +166,8 @@ func DeleteMark(ctx *gin.Context) {
 		return
 	}
 
-	if !h.SliceContains(user.Permissions, "editJournal") {
-		models.BindErrorStr("no permission", 400, h.UNDEFINED).CheckAndResponse(ctx)
+	if !utils.SliceContains(user.Permissions, "editJournal") {
+		models.BindErrorStr("no permission", 400, models.UNDEFINED).CheckAndResponse(ctx)
 		return
 	}
 

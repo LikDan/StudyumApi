@@ -58,8 +58,8 @@ func CallbackOAuth2(ctx *gin.Context) {
 	}
 
 	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		h.CheckError(err, h.WARNING)
+		err = Body.Close()
+		models.BindError(err, 500, models.WARNING).CheckAndResponse(ctx)
 	}(response.Body)
 
 	content, err := io.ReadAll(response.Body)
@@ -81,7 +81,7 @@ func CallbackOAuth2(ctx *gin.Context) {
 		}
 		user = models.User{
 			Id:            primitive.NewObjectID(),
-			Token:         h.GenerateSecureToken(),
+			Token:         utils.GenerateSecureToken(),
 			Email:         googleUser.Email,
 			VerifiedEmail: googleUser.VerifiedEmail,
 			Login:         googleUser.Name,
@@ -100,7 +100,7 @@ func CallbackOAuth2(ctx *gin.Context) {
 	}
 
 	if user.Token == "" {
-		user.Token = h.GenerateSecureToken()
+		user.Token = utils.GenerateSecureToken()
 		if _, err = db.UsersCollection.UpdateOne(ctx, bson.M{"email": user.Email}, bson.M{"$set": bson.M{"token": user.Token}}); err != nil {
 			models.BindError(err, 418, models.WARNING).CheckAndResponse(ctx)
 			return

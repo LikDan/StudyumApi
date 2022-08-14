@@ -39,8 +39,8 @@ func InsertScheduleTypes(types []*models.ScheduleTypeInfo) *models.Error {
 		type_.Id = primitive.NewObjectID()
 	}
 
-	if _, err := ParseScheduleTypesCollection.InsertMany(nil, h.ToInterfaceSlice(types)); err != nil {
-		return models.BindError(err, 418, h.WARNING)
+	if _, err := ParseScheduleTypesCollection.InsertMany(nil, utils.ToInterfaceSlice(types)); err != nil {
+		return models.BindError(err, 418, models.WARNING)
 	}
 
 	return models.EmptyError()
@@ -77,7 +77,7 @@ func UpdateGeneralSchedule(lessons []*models.GeneralLesson) *models.Error {
 		return models.BindError(err, 418, models.WARNING)
 	}
 
-	_, err = GeneralLessonsCollection.InsertMany(nil, h.ToInterfaceSlice(lessons))
+	_, err = GeneralLessonsCollection.InsertMany(nil, utils.ToInterfaceSlice(lessons))
 	if err != nil {
 		return models.BindError(err, 418, models.WARNING)
 	}
