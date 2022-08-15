@@ -5,9 +5,9 @@ go 1.18
 
 require (
 	firebase.google.com/go/v4 v4.7.0
+	github.com/go-playground/validator/v10 v10.11.0
 	github.com/robfig/cron v1.2.0
 	github.com/sirupsen/logrus v1.8.1
-	github.com/waclawthedev/go-sugaring v1.0.1
 	go.mongodb.org/mongo-driver v1.8.1
 	google.golang.org/api v0.40.0
 )
@@ -17,14 +17,12 @@ require (
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
-	github.com/go-playground/validator/v10 v10.11.0 // indirect
 	github.com/json-iterator/go v1.1.9 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
-	golang.org/x/exp v0.0.0-20220407100705-7b9b53b0aca4 // indirect
 	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f // indirect
 	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654 // indirect
 	gopkg.in/yaml.v2 v2.2.8 // indirect

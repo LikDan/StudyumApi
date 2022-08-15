@@ -2,11 +2,13 @@ package controllers
 
 import (
 	"github.com/gin-gonic/gin"
-	"studyum/src/db"
+	"studyum/src/repositories"
 )
 
+var GeneralRepository repositories.IGeneralRepository
+
 func GetStudyPlaces(ctx *gin.Context) {
-	err, studyPlaces := db.GetStudyPlaces()
+	err, studyPlaces := GeneralRepository.GetStudyPlaces(ctx)
 	if err.CheckAndResponse(ctx) {
 		return
 	}

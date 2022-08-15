@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"studyum/src/controllers"
-	"studyum/src/db"
 	"studyum/src/models"
 	"studyum/src/utils"
 	"time"
@@ -38,7 +37,7 @@ func PutAuthToken(ctx *gin.Context) {
 	})
 
 	var user models.User
-	if err := controllers.AuthUserViaToken(token, &user); err.CheckAndResponse(ctx) {
+	if err := controllers.AuthUserViaToken(ctx, token, &user); err.CheckAndResponse(ctx) {
 		return
 	}
 
@@ -74,7 +73,7 @@ func CallbackOAuth2(ctx *gin.Context) {
 
 	var user models.User
 
-	if err = db.GetUserByEmail(ctx, googleUser.Email, &user).Error; err != nil {
+	if err = controllers.UserRepository.GetUserByEmail(ctx, googleUser.Email, &user).Error; err != nil {
 		if err.Error() != "mongo: no documents in result" {
 			models.BindError(err, 418, models.WARNING).CheckAndResponse(ctx)
 			return
@@ -95,7 +94,7 @@ func CallbackOAuth2(ctx *gin.Context) {
 			Blocked:       false,
 		}
 
-		if db.SignUp(&user).CheckAndResponse(ctx) {
+		if controllers.UserRepository.SignUp(ctx, &user).CheckAndResponse(ctx) {
 			return
 		}
 	}
@@ -103,7 +102,7 @@ func CallbackOAuth2(ctx *gin.Context) {
 	if user.Token == "" {
 		user.Token = utils.GenerateSecureToken()
 
-		if db.UpdateUserTokenByEmail(ctx, user.Email, user.Token).CheckAndResponse(ctx) {
+		if controllers.UserRepository.UpdateUserTokenByEmail(ctx, user.Email, user.Token).CheckAndResponse(ctx) {
 			return
 		}
 	}

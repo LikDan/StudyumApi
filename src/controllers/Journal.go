@@ -3,10 +3,12 @@ package controllers
 import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"studyum/src/db"
 	"studyum/src/models"
+	"studyum/src/repositories"
 	"studyum/src/utils"
 )
+
+var JournalRepository repositories.IJournalRepository
 
 func GetJournalAvailableOptions(ctx *gin.Context) {
 	var user models.User
@@ -24,7 +26,7 @@ func GetJournalAvailableOptions(ctx *gin.Context) {
 		return
 	}
 
-	options, err := db.GetAvailableOptions(ctx, user.Name, utils.SliceContains(user.Permissions, "editJournal"))
+	options, err := JournalRepository.GetAvailableOptions(ctx, user.Name, utils.SliceContains(user.Permissions, "editJournal"))
 	if err.CheckAndResponse(ctx) {
 		return
 	}
@@ -44,7 +46,7 @@ func GetJournal(ctx *gin.Context) {
 	}
 
 	var journal models.Journal
-	if err := db.GetJournal(ctx, &journal, ctx.Param("group"), ctx.Param("subject"), user.TypeName, user.StudyPlaceId); err.CheckAndResponse(ctx) {
+	if err := JournalRepository.GetJournal(ctx, &journal, ctx.Param("group"), ctx.Param("subject"), user.TypeName, user.StudyPlaceId); err.CheckAndResponse(ctx) {
 		return
 	}
 
@@ -58,7 +60,7 @@ func GetUserJournal(ctx *gin.Context) {
 	}
 
 	var journal models.Journal
-	if err := db.GetStudentJournal(ctx, &journal, user.Id, user.TypeName, user.StudyPlaceId); err.CheckAndResponse(ctx) {
+	if err := JournalRepository.GetStudentJournal(ctx, &journal, user.Id, user.TypeName, user.StudyPlaceId); err.CheckAndResponse(ctx) {
 		return
 	}
 
@@ -86,11 +88,11 @@ func AddMark(ctx *gin.Context) {
 		return
 	}
 
-	if err := db.AddMark(&mark); err.CheckAndResponse(ctx) {
+	if err := JournalRepository.AddMark(ctx, &mark); err.CheckAndResponse(ctx) {
 		return
 	}
 
-	lesson, err := db.GetLessonById(ctx, mark.UserId, mark.LessonId)
+	lesson, err := JournalRepository.GetLessonById(ctx, mark.UserId, mark.LessonId)
 	if err.CheckAndResponse(ctx) {
 		return
 	}
@@ -119,7 +121,7 @@ func GetMark(ctx *gin.Context) {
 		return
 	}
 
-	lessons, err := db.GetLessons(ctx, userId, group, teacher, subject, user.StudyPlaceId)
+	lessons, err := JournalRepository.GetLessons(ctx, userId, group, teacher, subject, user.StudyPlaceId)
 	if err.CheckAndResponse(ctx) {
 		return
 	}
@@ -148,11 +150,11 @@ func UpdateMark(ctx *gin.Context) {
 		return
 	}
 
-	if err := db.UpdateMark(&mark); err.CheckAndResponse(ctx) {
+	if err := JournalRepository.UpdateMark(ctx, &mark); err.CheckAndResponse(ctx) {
 		return
 	}
 
-	lesson, err := db.GetLessonById(ctx, mark.UserId, mark.LessonId)
+	lesson, err := JournalRepository.GetLessonById(ctx, mark.UserId, mark.LessonId)
 	if err.CheckAndResponse(ctx) {
 		return
 	}
@@ -195,11 +197,11 @@ func DeleteMark(ctx *gin.Context) {
 		return
 	}
 
-	if err := db.DeleteMark(markObjectId, subjectObjectId); err.CheckAndResponse(ctx) {
+	if err := JournalRepository.DeleteMark(ctx, markObjectId, subjectObjectId); err.CheckAndResponse(ctx) {
 		return
 	}
 
-	lesson, err := db.GetLessonById(ctx, userId, subjectObjectId)
+	lesson, err := JournalRepository.GetLessonById(ctx, userId, subjectObjectId)
 	if err.CheckAndResponse(ctx) {
 		return
 	}

@@ -3,11 +3,16 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"io"
 	"net/http"
-	"studyum/src/db"
+	"os"
+	"studyum/src/controllers"
 	"studyum/src/models"
 	"studyum/src/parser"
+	"studyum/src/parser/apps"
+	"studyum/src/repositories"
 	"studyum/src/routes"
 	"studyum/src/utils"
 	"time"
@@ -29,7 +34,22 @@ func requestHandler(ctx *gin.Context) {
 func main() {
 	time.Local = time.FixedZone("GMT", 3*3600)
 
-	db.Init()
+	client, err := mongo.NewClient(options.Client().ApplyURI(os.Getenv("DB_URL")))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err = client.Connect(nil); err != nil {
+		log.Fatalf("Can't connect to database, error: %s", err.Error())
+		return
+	}
+
+	repo := repositories.NewRepository(client)
+	controllers.GeneralRepository = repositories.NewGeneralRepository(repo)
+	controllers.JournalRepository = repositories.NewJournalRepository(repo)
+	controllers.ScheduleRepository = repositories.NewScheduleRepository(repo)
+	controllers.UserRepository = repositories.NewUserRepository(repo)
+	apps.Repository = repositories.NewParserRepository(repo)
 
 	utils.InitFirebaseApp()
 	parser.InitApps()
@@ -43,8 +63,7 @@ func main() {
 
 	log.Info("Application launched")
 
-	err := r.Run()
-	if err != nil {
+	if err = r.Run(); err != nil {
 		log.Fatalf("Error launching server %s", err.Error())
 	}
 }

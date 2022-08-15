@@ -2,18 +2,21 @@ package apps
 
 import (
 	"bytes"
+	"context"
 	htmlParser "github.com/PuerkitoBio/goquery"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
-	"studyum/src/db"
 	"studyum/src/models"
 	parserModels "studyum/src/parser/models"
+	"studyum/src/repositories"
 	"studyum/src/utils"
 	"time"
 )
+
+var Repository repositories.IParserRepository
 
 type KbpParser struct {
 	States     []*models.ScheduleStateInfo
@@ -328,8 +331,11 @@ func (p *KbpParser) JournalUpdate(user *models.ParseJournalUser) []*models.Mark 
 
 			cellSelection.Find("span").Each(func(_ int, selection *htmlParser.Selection) {
 				mark_ := strings.TrimSpace(selection.Text())
+
+				ctx := context.Background()
 				var lesson models.Lesson
-				db.GetLessonByDate(dates[dayIndex], lessonNames[rowIndex], user.AdditionInfo["group"], &lesson)
+
+				Repository.GetLessonByDate(ctx, dates[dayIndex], lessonNames[rowIndex], user.AdditionInfo["group"], &lesson)
 				if lesson.Id == primitive.NilObjectID {
 					return
 				}

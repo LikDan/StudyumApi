@@ -3,11 +3,13 @@ package controllers
 import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"studyum/src/db"
 	"studyum/src/models"
 	"studyum/src/parser"
+	"studyum/src/repositories"
 	"studyum/src/utils"
 )
+
+var ScheduleRepository repositories.IScheduleRepository
 
 func GetSchedule(ctx *gin.Context) {
 	type_ := ctx.Param("type")
@@ -23,7 +25,7 @@ func GetSchedule(ctx *gin.Context) {
 	}
 
 	var schedule models.Schedule
-	if err := db.GetSchedule(user.StudyPlaceId, type_, typeName, &schedule); err.CheckAndResponse(ctx) {
+	if err := ScheduleRepository.GetSchedule(ctx, user.StudyPlaceId, type_, typeName, &schedule); err.CheckAndResponse(ctx) {
 		return
 	}
 
@@ -37,7 +39,7 @@ func GetMySchedule(ctx *gin.Context) {
 	}
 
 	var schedule models.Schedule
-	if err := db.GetSchedule(user.StudyPlaceId, user.Type, user.TypeName, &schedule); err.CheckAndResponse(ctx) {
+	if err := ScheduleRepository.GetSchedule(ctx, user.StudyPlaceId, user.Type, user.TypeName, &schedule); err.CheckAndResponse(ctx) {
 		return
 	}
 
@@ -51,10 +53,10 @@ func GetScheduleTypes(ctx *gin.Context) {
 	}
 
 	types := models.Types{
-		Groups:   db.GetScheduleType(user.StudyPlaceId, "group"),
-		Teachers: db.GetScheduleType(user.StudyPlaceId, "teacher"),
-		Subjects: db.GetScheduleType(user.StudyPlaceId, "subject"),
-		Rooms:    db.GetScheduleType(user.StudyPlaceId, "room"),
+		Groups:   ScheduleRepository.GetScheduleType(ctx, user.StudyPlaceId, "group"),
+		Teachers: ScheduleRepository.GetScheduleType(ctx, user.StudyPlaceId, "teacher"),
+		Subjects: ScheduleRepository.GetScheduleType(ctx, user.StudyPlaceId, "subject"),
+		Rooms:    ScheduleRepository.GetScheduleType(ctx, user.StudyPlaceId, "room"),
 	}
 
 	ctx.JSON(200, types)
@@ -101,7 +103,7 @@ func AddLesson(ctx *gin.Context) {
 		return
 	}
 
-	if err := db.AddLesson(&subject, user.StudyPlaceId); err.CheckAndResponse(ctx) {
+	if err := ScheduleRepository.AddLesson(ctx, &subject, user.StudyPlaceId); err.CheckAndResponse(ctx) {
 		return
 	}
 
@@ -119,7 +121,7 @@ func UpdateLesson(ctx *gin.Context) {
 		return
 	}
 
-	if err := db.UpdateLesson(&subject, user.StudyPlaceId); err.CheckAndResponse(ctx) {
+	if err := ScheduleRepository.UpdateLesson(ctx, &subject, user.StudyPlaceId); err.CheckAndResponse(ctx) {
 		return
 	}
 
@@ -138,7 +140,7 @@ func DeleteLesson(ctx *gin.Context) {
 	}
 
 	id, _ := primitive.ObjectIDFromHex(idHex)
-	if err := db.DeleteLesson(id, user.StudyPlaceId); err.CheckAndResponse(ctx) {
+	if err := ScheduleRepository.DeleteLesson(ctx, id, user.StudyPlaceId); err.CheckAndResponse(ctx) {
 		return
 	}
 
