@@ -5,16 +5,18 @@ import (
 	"studyum/src/controllers"
 )
 
-func Journal(root *gin.RouterGroup) {
-	root.GET("/options", controllers.GetJournalAvailableOptions)
-	root.GET("/:group/:subject/:teacher", controllers.GetJournal)
-	root.GET("", controllers.GetUserJournal)
+var JournalController controllers.IJournalController
 
-	mark := root.Group("/mark")
+func Journal(root *gin.RouterGroup) {
+	root.GET("/options", Auth(), JournalController.GetJournalAvailableOptions)
+	root.GET("/:group/:subject/:teacher", Auth(), JournalController.GetJournal)
+	root.GET("", Auth(), JournalController.GetUserJournal)
+
+	mark := root.Group("/mark", Auth())
 	{
-		mark.POST("", controllers.AddMark)
-		mark.GET("", controllers.GetMark)
-		mark.PUT("", controllers.UpdateMark)
-		mark.DELETE("", controllers.DeleteMark)
+		mark.POST("", JournalController.AddMark)
+		mark.GET("", JournalController.GetMark)
+		mark.PUT("", JournalController.UpdateMark)
+		mark.DELETE("", JournalController.DeleteMark)
 	}
 }

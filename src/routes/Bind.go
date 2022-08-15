@@ -5,6 +5,8 @@ import (
 	"studyum/src/controllers"
 )
 
+var GeneralController controllers.IGeneralController
+
 func Bind(engine *gin.Engine) {
 	api := engine.Group("/api")
 
@@ -12,7 +14,7 @@ func Bind(engine *gin.Engine) {
 	journalGroup := api.Group("/journal")
 	scheduleGroup := api.Group("/schedule")
 
-	api.GET("/studyPlaces", controllers.GetStudyPlaces)
+	api.GET("/studyPlaces", GeneralController.GetStudyPlaces)
 	api.GET("/uptime", func(ctx *gin.Context) {
 		ctx.JSON(200, "hi")
 	})

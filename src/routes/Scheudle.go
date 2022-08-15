@@ -5,15 +5,17 @@ import (
 	"studyum/src/controllers"
 )
 
+var ScheduleController controllers.IScheduleController
+
 func Schedule(root *gin.RouterGroup) {
-	root.GET(":type/:name", controllers.GetSchedule)
-	root.GET("", controllers.GetMySchedule)
-	root.GET("getTypes", controllers.GetScheduleTypes)
+	root.GET(":type/:name", Auth(), ScheduleController.GetSchedule)
+	root.GET("", Auth(), ScheduleController.GetMySchedule)
+	root.GET("getTypes", Auth(), ScheduleController.GetScheduleTypes)
 
-	root.POST("", controllers.AddLesson)
-	root.PUT("", controllers.UpdateLesson)
-	root.DELETE(":id", controllers.DeleteLesson)
+	root.POST("", Auth(), ScheduleController.AddLesson)
+	root.PUT("", Auth(), ScheduleController.UpdateLesson)
+	root.DELETE(":id", Auth(), ScheduleController.DeleteLesson)
 
-	root.POST("update", controllers.UpdateSchedule)
-	root.POST("updateGeneral", controllers.UpdateGeneralSchedule)
+	root.POST("update", Auth(), ScheduleController.UpdateSchedule)
+	root.POST("updateGeneral", Auth(), ScheduleController.UpdateGeneralSchedule)
 }

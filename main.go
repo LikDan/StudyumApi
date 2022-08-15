@@ -45,11 +45,16 @@ func main() {
 	}
 
 	repo := repositories.NewRepository(client)
-	controllers.GeneralRepository = repositories.NewGeneralRepository(repo)
-	controllers.JournalRepository = repositories.NewJournalRepository(repo)
-	controllers.ScheduleRepository = repositories.NewScheduleRepository(repo)
-	controllers.UserRepository = repositories.NewUserRepository(repo)
+	generalRepository := repositories.NewGeneralRepository(repo)
+	journalRepository := repositories.NewJournalRepository(repo)
+	scheduleRepository := repositories.NewScheduleRepository(repo)
+	userRepository := repositories.NewUserRepository(repo)
 	apps.Repository = repositories.NewParserRepository(repo)
+
+	routes.GeneralController = controllers.NewGeneralController(generalRepository)
+	routes.JournalController = controllers.NewJournalController(journalRepository)
+	routes.ScheduleController = controllers.NewScheduleController(scheduleRepository)
+	routes.UserController = controllers.NewUserController(userRepository)
 
 	utils.InitFirebaseApp()
 	parser.InitApps()

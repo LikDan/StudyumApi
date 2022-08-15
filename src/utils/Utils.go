@@ -46,3 +46,23 @@ func Hash(s string) string {
 	hash := md5.Sum([]byte(s))
 	return hex.EncodeToString(hash[:])
 }
+
+func GetUserViaCtx(ctx *gin.Context) models.User {
+	return GetViaCtx[models.User](ctx, "user")
+}
+
+func GetViaCtx[G any](ctx *gin.Context, name string) G {
+	var def G
+
+	i, ok := ctx.Get(name)
+	if !ok {
+		return def
+	}
+
+	g, ok := i.(G)
+	if !ok {
+		return def
+	}
+
+	return g
+}

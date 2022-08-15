@@ -8,13 +8,16 @@ import (
 	"studyum/src/utils"
 )
 
-var JournalRepository repositories.IJournalRepository
+type JournalController struct {
+	repository repositories.IJournalRepository
+}
 
-func GetJournalAvailableOptions(ctx *gin.Context) {
-	var user models.User
-	if err := AuthUserViaContext(ctx, &user); err.CheckAndResponse(ctx) {
-		return
-	}
+func NewJournalController(repository repositories.IJournalRepository) *JournalController {
+	return &JournalController{repository: repository}
+}
+
+func (j *JournalController) GetJournalAvailableOptions(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
 
 	if user.Type == "group" {
 		ctx.JSON(200, []models.JournalAvailableOption{{
@@ -26,7 +29,7 @@ func GetJournalAvailableOptions(ctx *gin.Context) {
 		return
 	}
 
-	options, err := JournalRepository.GetAvailableOptions(ctx, user.Name, utils.SliceContains(user.Permissions, "editJournal"))
+	options, err := j.repository.GetAvailableOptions(ctx, user.Name, utils.SliceContains(user.Permissions, "editJournal"))
 	if err.CheckAndResponse(ctx) {
 		return
 	}
@@ -34,11 +37,8 @@ func GetJournalAvailableOptions(ctx *gin.Context) {
 	ctx.JSON(200, options)
 }
 
-func GetJournal(ctx *gin.Context) {
-	var user models.User
-	if err := AuthUserViaContext(ctx, &user); err.CheckAndResponse(ctx) {
-		return
-	}
+func (j *JournalController) GetJournal(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
 
 	if !utils.CheckNotEmpty(ctx.Param("group"), ctx.Param("subject"), ctx.Param("teacher")) {
 		models.BindErrorStr("provide valid params", 400, models.UNDEFINED).CheckAndResponse(ctx)
@@ -46,32 +46,26 @@ func GetJournal(ctx *gin.Context) {
 	}
 
 	var journal models.Journal
-	if err := JournalRepository.GetJournal(ctx, &journal, ctx.Param("group"), ctx.Param("subject"), user.TypeName, user.StudyPlaceId); err.CheckAndResponse(ctx) {
+	if err := j.repository.GetJournal(ctx, &journal, ctx.Param("group"), ctx.Param("subject"), user.TypeName, user.StudyPlaceId); err.CheckAndResponse(ctx) {
 		return
 	}
 
 	ctx.JSON(200, journal)
 }
 
-func GetUserJournal(ctx *gin.Context) {
-	var user models.User
-	if err := AuthUserViaContext(ctx, &user); err.CheckAndResponse(ctx) {
-		return
-	}
+func (j *JournalController) GetUserJournal(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
 
 	var journal models.Journal
-	if err := JournalRepository.GetStudentJournal(ctx, &journal, user.Id, user.TypeName, user.StudyPlaceId); err.CheckAndResponse(ctx) {
+	if err := j.repository.GetStudentJournal(ctx, &journal, user.Id, user.TypeName, user.StudyPlaceId); err.CheckAndResponse(ctx) {
 		return
 	}
 
 	ctx.JSON(200, journal)
 }
 
-func AddMark(ctx *gin.Context) {
-	var user models.User
-	if err := AuthUserViaContext(ctx, &user); err.CheckAndResponse(ctx) {
-		return
-	}
+func (j *JournalController) AddMark(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
 
 	if !utils.SliceContains(user.Permissions, "editJournal") {
 		models.BindErrorStr("no permission", 400, models.UNDEFINED).CheckAndResponse(ctx)
@@ -88,11 +82,11 @@ func AddMark(ctx *gin.Context) {
 		return
 	}
 
-	if err := JournalRepository.AddMark(ctx, &mark); err.CheckAndResponse(ctx) {
+	if err := j.repository.AddMark(ctx, &mark); err.CheckAndResponse(ctx) {
 		return
 	}
 
-	lesson, err := JournalRepository.GetLessonById(ctx, mark.UserId, mark.LessonId)
+	lesson, err := j.repository.GetLessonById(ctx, mark.UserId, mark.LessonId)
 	if err.CheckAndResponse(ctx) {
 		return
 	}
@@ -100,11 +94,8 @@ func AddMark(ctx *gin.Context) {
 	ctx.JSON(200, lesson)
 }
 
-func GetMark(ctx *gin.Context) {
-	var user models.User
-	if err := AuthUserViaContext(ctx, &user); err.CheckAndResponse(ctx) {
-		return
-	}
+func (j *JournalController) GetMark(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
 
 	group := ctx.Query("group")
 	subject := ctx.Query("subject")
@@ -121,7 +112,7 @@ func GetMark(ctx *gin.Context) {
 		return
 	}
 
-	lessons, err := JournalRepository.GetLessons(ctx, userId, group, teacher, subject, user.StudyPlaceId)
+	lessons, err := j.repository.GetLessons(ctx, userId, group, teacher, subject, user.StudyPlaceId)
 	if err.CheckAndResponse(ctx) {
 		return
 	}
@@ -129,11 +120,8 @@ func GetMark(ctx *gin.Context) {
 	ctx.JSON(200, lessons)
 }
 
-func UpdateMark(ctx *gin.Context) {
-	var user models.User
-	if err := AuthUserViaContext(ctx, &user); err.CheckAndResponse(ctx) {
-		return
-	}
+func (j *JournalController) UpdateMark(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
 
 	if !utils.SliceContains(user.Permissions, "editJournal") {
 		models.BindErrorStr("no permission", 400, models.UNDEFINED).CheckAndResponse(ctx)
@@ -150,11 +138,11 @@ func UpdateMark(ctx *gin.Context) {
 		return
 	}
 
-	if err := JournalRepository.UpdateMark(ctx, &mark); err.CheckAndResponse(ctx) {
+	if err := j.repository.UpdateMark(ctx, &mark); err.CheckAndResponse(ctx) {
 		return
 	}
 
-	lesson, err := JournalRepository.GetLessonById(ctx, mark.UserId, mark.LessonId)
+	lesson, err := j.repository.GetLessonById(ctx, mark.UserId, mark.LessonId)
 	if err.CheckAndResponse(ctx) {
 		return
 	}
@@ -162,11 +150,8 @@ func UpdateMark(ctx *gin.Context) {
 	ctx.JSON(200, lesson)
 }
 
-func DeleteMark(ctx *gin.Context) {
-	var user models.User
-	if err := AuthUserViaContext(ctx, &user); err.CheckAndResponse(ctx) {
-		return
-	}
+func (j *JournalController) DeleteMark(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
 
 	if !utils.SliceContains(user.Permissions, "editJournal") {
 		models.BindErrorStr("no permission", 400, models.UNDEFINED).CheckAndResponse(ctx)
@@ -197,11 +182,11 @@ func DeleteMark(ctx *gin.Context) {
 		return
 	}
 
-	if err := JournalRepository.DeleteMark(ctx, markObjectId, subjectObjectId); err.CheckAndResponse(ctx) {
+	if err := j.repository.DeleteMark(ctx, markObjectId, subjectObjectId); err.CheckAndResponse(ctx) {
 		return
 	}
 
-	lesson, err := JournalRepository.GetLessonById(ctx, userId, subjectObjectId)
+	lesson, err := j.repository.GetLessonById(ctx, userId, subjectObjectId)
 	if err.CheckAndResponse(ctx) {
 		return
 	}

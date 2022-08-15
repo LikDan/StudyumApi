@@ -1,4 +1,4 @@
-package oauth2
+package controllers
 
 import (
 	"golang.org/x/oauth2"
