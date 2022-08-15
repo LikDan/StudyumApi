@@ -1,10 +1,8 @@
 package controllers
 
 import (
-	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	_ "github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"studyum/src/models"
@@ -13,11 +11,22 @@ import (
 	"time"
 )
 
-var UserRepository repositories.IUserRepository
+type UserController struct {
+	repository repositories.IUserRepository
+}
 
-func AuthUserViaToken(ctx context.Context, token string, user *models.User, permissions ...string) *models.Error {
+func NewUserController(repository repositories.IUserRepository) *UserController {
+	return &UserController{repository: repository}
+}
+
+func (u *UserController) AuthUserViaContext(ctx *gin.Context, user *models.User, permissions ...string) *models.Error {
+	token, err := ctx.Cookie("authToken")
+	if err != nil {
+		return models.BindError(err, 401, models.UNDEFINED)
+	}
+
 	var user_ models.User
-	if err := UserRepository.GetUserViaToken(ctx, token, &user_); err.Error != nil {
+	if err := u.repository.GetUserViaToken(ctx, token, &user_); err.Error != nil {
 		return err
 	}
 
@@ -31,29 +40,13 @@ func AuthUserViaToken(ctx context.Context, token string, user *models.User, perm
 	return models.EmptyError()
 }
 
-func AuthUserViaContext(ctx *gin.Context, user *models.User, permissions ...string) *models.Error {
-	token, err := ctx.Cookie("authToken")
-	if err != nil {
-		return models.BindError(err, 401, models.UNDEFINED)
-	}
-
-	if err := AuthUserViaToken(ctx, token, user, permissions...); err.Check() {
-		return err
-	}
-
-	return models.EmptyError()
-}
-
-func GetUser(ctx *gin.Context) {
-	var user models.User
-	if err := AuthUserViaContext(ctx, &user); err.CheckAndResponse(ctx) {
-		return
-	}
+func (u *UserController) GetUser(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
 
 	ctx.JSON(200, user)
 }
 
-func putToken(ctx *gin.Context, user *models.User) *models.Error {
+func (u *UserController) putToken(ctx *gin.Context, user *models.User) *models.Error {
 	if user.Token == "" {
 		user.Token = utils.GenerateSecureToken()
 		data := models.UserLoginData{
@@ -61,7 +54,7 @@ func putToken(ctx *gin.Context, user *models.User) *models.Error {
 			Password: user.Password,
 		}
 
-		if err := UserRepository.UpdateToken(ctx, data, user.Token); err != nil {
+		if err := u.repository.UpdateToken(ctx, data, user.Token); err != nil {
 			return err
 		}
 	}
@@ -76,7 +69,7 @@ func putToken(ctx *gin.Context, user *models.User) *models.Error {
 	return models.EmptyError()
 }
 
-func SignUpUser(ctx *gin.Context) {
+func (u *UserController) SignUpUser(ctx *gin.Context) {
 	var data models.UserSignUpData
 	if err := ctx.BindJSON(&data); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
@@ -105,22 +98,19 @@ func SignUpUser(ctx *gin.Context) {
 		Accepted:      false,
 		Blocked:       false,
 	}
-	if err := UserRepository.SignUp(ctx, &user); err.CheckAndResponse(ctx) {
+	if err := u.repository.SignUp(ctx, &user); err.CheckAndResponse(ctx) {
 		return
 	}
 
-	if err := putToken(ctx, &user); err.CheckAndResponse(ctx) {
+	if err := u.putToken(ctx, &user); err.CheckAndResponse(ctx) {
 		return
 	}
 
 	ctx.JSON(200, user)
 }
 
-func SignUpUserStage1(ctx *gin.Context) {
-	var user models.User
-	if err := AuthUserViaContext(ctx, &user); err.CheckAndResponse(ctx) {
-		return
-	}
+func (u *UserController) SignUpUserStage1(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
 
 	var data models.UserSignUpStage1Data
 	if err := ctx.BindJSON(&data); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
@@ -140,22 +130,19 @@ func SignUpUserStage1(ctx *gin.Context) {
 		return
 	}
 
-	if err := UserRepository.SignUpStage1(ctx, &user); err.CheckAndResponse(ctx) {
+	if err := u.repository.SignUpStage1(ctx, &user); err.CheckAndResponse(ctx) {
 		return
 	}
 
-	if err := putToken(ctx, &user); err.CheckAndResponse(ctx) {
+	if err := u.putToken(ctx, &user); err.CheckAndResponse(ctx) {
 		return
 	}
 
 	ctx.JSON(200, user)
 }
 
-func UpdateUser(ctx *gin.Context) {
-	var user models.User
-	if err := AuthUserViaContext(ctx, &user); err.CheckAndResponse(ctx) {
-		return
-	}
+func (u *UserController) UpdateUser(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
 
 	var data models.UserSignUpData
 	if err := ctx.BindJSON(&data); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
@@ -174,19 +161,19 @@ func UpdateUser(ctx *gin.Context) {
 	user.Login = data.Login
 	user.Name = data.Name
 	user.Email = data.Email
-	if err := UserRepository.UpdateUser(ctx, &user); err.CheckAndResponse(ctx) {
+	if err := u.repository.UpdateUser(ctx, &user); err.CheckAndResponse(ctx) {
 		return
 	}
 
 	ctx.JSON(200, user)
 }
 
-func SignOutUser(ctx *gin.Context) {
+func (u *UserController) SignOutUser(ctx *gin.Context) {
 	ctx.SetCookie("authToken", "", -1, "", "", false, false)
 	ctx.JSON(200, "authToken")
 }
 
-func LoginUser(ctx *gin.Context) {
+func (u *UserController) LoginUser(ctx *gin.Context) {
 	var data models.UserLoginData
 	if err := ctx.BindJSON(&data); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
@@ -195,25 +182,25 @@ func LoginUser(ctx *gin.Context) {
 	data.Password = utils.Hash(data.Password)
 
 	var user models.User
-	if err := UserRepository.Login(ctx, &data, &user); err.CheckAndResponse(ctx) {
+	if err := u.repository.Login(ctx, &data, &user); err.CheckAndResponse(ctx) {
 		return
 	}
 
-	if err := putToken(ctx, &user); err.CheckAndResponse(ctx) {
+	if err := u.putToken(ctx, &user); err.CheckAndResponse(ctx) {
 		return
 	}
 
 	ctx.JSON(200, user)
 }
 
-func RevokeToken(ctx *gin.Context) {
+func (u *UserController) RevokeToken(ctx *gin.Context) {
 	token, err := ctx.Cookie("authToken")
 	if err != nil {
 		models.BindErrorStr("not authorized", 401, models.UNDEFINED).CheckAndResponse(ctx)
 		return
 	}
 
-	if UserRepository.RevokeToken(ctx, token).CheckAndResponse(ctx) {
+	if u.repository.RevokeToken(ctx, token).CheckAndResponse(ctx) {
 		return
 	}
 

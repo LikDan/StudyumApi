@@ -3,22 +3,37 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"studyum/src/controllers"
-	"studyum/src/controllers/oauth2"
+	"studyum/src/models"
 )
 
+var UserController controllers.IUserController
+
 func User(root *gin.RouterGroup) {
-	root.GET("", controllers.GetUser)
-	root.PUT("", controllers.UpdateUser)
+	root.GET("", Auth(), UserController.GetUser)
+	root.PUT("", Auth(), UserController.UpdateUser)
 
-	root.PUT("login", controllers.LoginUser)
-	root.POST("signup", controllers.SignUpUser)
+	root.PUT("login", UserController.LoginUser)
+	root.POST("signup", UserController.SignUpUser)
 
-	root.PUT("signup/stage1", controllers.SignUpUserStage1)
+	root.PUT("signup/stage1", Auth(), UserController.SignUpUserStage1)
 
-	root.GET("auth/:oauth", oauth2.OAuth2)
-	root.GET("callback", oauth2.CallbackOAuth2)
-	root.PUT("auth/token", oauth2.PutAuthToken)
+	root.GET("auth/:oauth", UserController.OAuth2)
+	root.GET("callback", UserController.CallbackOAuth2)
+	root.PUT("auth/token", UserController.PutAuthToken)
 
-	root.DELETE("signout", controllers.SignOutUser)
-	root.DELETE("revoke", controllers.RevokeToken)
+	root.DELETE("signout", UserController.SignOutUser)
+	root.DELETE("revoke", UserController.RevokeToken)
+}
+
+func Auth() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var user models.User
+		err := UserController.AuthUserViaContext(ctx, &user)
+		if err.Check() {
+			_ = ctx.Error(err.Error)
+			return
+		}
+
+		ctx.Set("user", user)
+	}
 }

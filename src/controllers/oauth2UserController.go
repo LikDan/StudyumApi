@@ -1,4 +1,4 @@
-package oauth2
+package controllers
 
 import (
 	"context"
@@ -7,13 +7,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"net/http"
-	"studyum/src/controllers"
 	"studyum/src/models"
 	"studyum/src/utils"
 	"time"
 )
 
-func OAuth2(ctx *gin.Context) {
+func (u *UserController) OAuth2(ctx *gin.Context) {
 	config := Configs[ctx.Param("oauth")]
 
 	if config == nil {
@@ -25,7 +24,7 @@ func OAuth2(ctx *gin.Context) {
 	ctx.Redirect(307, url)
 }
 
-func PutAuthToken(ctx *gin.Context) {
+func (u *UserController) PutAuthToken(ctx *gin.Context) {
 	bytes, _ := ctx.GetRawData()
 	token := string(bytes)
 
@@ -37,14 +36,14 @@ func PutAuthToken(ctx *gin.Context) {
 	})
 
 	var user models.User
-	if err := controllers.AuthUserViaToken(ctx, token, &user); err.CheckAndResponse(ctx) {
+	if err := u.repository.GetUserViaToken(ctx, token, &user); err.CheckAndResponse(ctx) {
 		return
 	}
 
 	ctx.JSON(200, user)
 }
 
-func CallbackOAuth2(ctx *gin.Context) {
+func (u *UserController) CallbackOAuth2(ctx *gin.Context) {
 	token, err := googleOAuthConfig.Exchange(context.Background(), ctx.Query("code"))
 	if models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
 		return
@@ -73,7 +72,7 @@ func CallbackOAuth2(ctx *gin.Context) {
 
 	var user models.User
 
-	if err = controllers.UserRepository.GetUserByEmail(ctx, googleUser.Email, &user).Error; err != nil {
+	if err = u.repository.GetUserByEmail(ctx, googleUser.Email, &user).Error; err != nil {
 		if err.Error() != "mongo: no documents in result" {
 			models.BindError(err, 418, models.WARNING).CheckAndResponse(ctx)
 			return
@@ -94,7 +93,7 @@ func CallbackOAuth2(ctx *gin.Context) {
 			Blocked:       false,
 		}
 
-		if controllers.UserRepository.SignUp(ctx, &user).CheckAndResponse(ctx) {
+		if u.repository.SignUp(ctx, &user).CheckAndResponse(ctx) {
 			return
 		}
 	}
@@ -102,7 +101,7 @@ func CallbackOAuth2(ctx *gin.Context) {
 	if user.Token == "" {
 		user.Token = utils.GenerateSecureToken()
 
-		if controllers.UserRepository.UpdateUserTokenByEmail(ctx, user.Email, user.Token).CheckAndResponse(ctx) {
+		if u.repository.UpdateUserTokenByEmail(ctx, user.Email, user.Token).CheckAndResponse(ctx) {
 			return
 		}
 	}
