@@ -1,4 +1,4 @@
-package db
+package repositories
 
 import (
 	"context"
@@ -6,20 +6,29 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"studyum/src/models"
-	"studyum/src/utils"
 )
 
-func AddMark(mark *models.Mark) *models.Error {
+type JournalRepository struct {
+	*Repository
+}
+
+func NewJournalRepository(repository *Repository) *JournalRepository {
+	return &JournalRepository{
+		Repository: repository,
+	}
+}
+
+func (j *JournalRepository) AddMark(ctx context.Context, mark *models.Mark) *models.Error {
 	mark.Id = primitive.NewObjectID()
-	if _, err := marksCollection.InsertOne(nil, mark); err != nil {
+	if _, err := j.marksCollection.InsertOne(ctx, mark); err != nil {
 		return models.BindError(err, 418, models.WARNING)
 	}
 
 	return models.EmptyError()
 }
 
-func UpdateMark(mark *models.Mark) *models.Error {
-	_, err := marksCollection.UpdateOne(nil, bson.M{"_id": mark.Id, "lessonId": mark.LessonId}, bson.M{"$set": bson.M{"mark": mark.Mark}})
+func (j *JournalRepository) UpdateMark(ctx context.Context, mark *models.Mark) *models.Error {
+	_, err := j.marksCollection.UpdateOne(ctx, bson.M{"_id": mark.Id, "lessonId": mark.LessonId}, bson.M{"$set": bson.M{"mark": mark.Mark}})
 	if err != nil {
 		return models.BindError(err, 500, models.WARNING)
 	}
@@ -27,8 +36,8 @@ func UpdateMark(mark *models.Mark) *models.Error {
 	return models.EmptyError()
 }
 
-func DeleteMark(id primitive.ObjectID, lessonId primitive.ObjectID) *models.Error {
-	_, err := marksCollection.DeleteOne(nil, bson.M{"_id": id, "lessonId": lessonId})
+func (j *JournalRepository) DeleteMark(ctx context.Context, id primitive.ObjectID, lessonId primitive.ObjectID) *models.Error {
+	_, err := j.marksCollection.DeleteOne(ctx, bson.M{"_id": id, "lessonId": lessonId})
 	if err != nil {
 		return models.BindError(err, 500, models.WARNING)
 	}
@@ -36,16 +45,8 @@ func DeleteMark(id primitive.ObjectID, lessonId primitive.ObjectID) *models.Erro
 	return models.EmptyError()
 }
 
-func AddMarks(marks []*models.Mark) *models.Error {
-	if _, err := marksCollection.InsertMany(nil, utils.ToInterfaceSlice(marks)); err != nil {
-		return models.BindError(err, 418, models.WARNING)
-	}
-
-	return models.EmptyError()
-}
-
-func GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]models.JournalAvailableOption, *models.Error) {
-	aggregate, err := lessonsCollection.Aggregate(ctx, bson.A{
+func (j *JournalRepository) GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]models.JournalAvailableOption, *models.Error) {
+	aggregate, err := j.lessonsCollection.Aggregate(ctx, bson.A{
 		bson.M{"$match": bson.M{"teacher": teacher}},
 		bson.M{"$group": bson.M{
 			"_id": bson.M{
@@ -71,8 +72,8 @@ func GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]
 	return options, models.EmptyError()
 }
 
-func GetStudentJournal(ctx context.Context, journal *models.Journal, userId primitive.ObjectID, group string, studyPlaceId int) *models.Error {
-	cursor, err := lessonsCollection.Aggregate(ctx, bson.A{
+func (j *JournalRepository) GetStudentJournal(ctx context.Context, journal *models.Journal, userId primitive.ObjectID, group string, studyPlaceId int) *models.Error {
+	cursor, err := j.lessonsCollection.Aggregate(ctx, bson.A{
 		bson.M{"$match": bson.M{"group": group, "studyPlaceId": studyPlaceId}},
 		bson.M{"$group": bson.M{"_id": "$subject"}},
 		bson.M{"$lookup": bson.M{
@@ -148,8 +149,8 @@ func GetStudentJournal(ctx context.Context, journal *models.Journal, userId prim
 	return models.EmptyError()
 }
 
-func GetJournal(ctx context.Context, journal *models.Journal, group string, subject string, typeName string, studyPlaceId int) *models.Error {
-	cursor, err := usersCollection.Aggregate(ctx, mongo.Pipeline{
+func (j *JournalRepository) GetJournal(ctx context.Context, journal *models.Journal, group string, subject string, typeName string, studyPlaceId int) *models.Error {
+	cursor, err := j.usersCollection.Aggregate(ctx, mongo.Pipeline{
 		bson.D{{"$match", bson.M{"type": "group", "typeName": group, "studyPlaceId": studyPlaceId}}},
 		bson.D{{"$lookup", bson.M{
 			"from":     "Lessons",
@@ -196,8 +197,8 @@ func GetJournal(ctx context.Context, journal *models.Journal, group string, subj
 	return models.EmptyError()
 }
 
-func GetLessonById(ctx context.Context, userId primitive.ObjectID, id primitive.ObjectID) (models.Lesson, *models.Error) {
-	lessonsCursor, err := lessonsCollection.Aggregate(ctx, mongo.Pipeline{
+func (j *JournalRepository) GetLessonById(ctx context.Context, userId primitive.ObjectID, id primitive.ObjectID) (models.Lesson, *models.Error) {
+	lessonsCursor, err := j.lessonsCollection.Aggregate(ctx, mongo.Pipeline{
 		bson.D{{"$match", bson.M{"_id": id}}},
 		bson.D{{"$lookup", bson.M{
 			"from":         "Marks",
@@ -220,8 +221,8 @@ func GetLessonById(ctx context.Context, userId primitive.ObjectID, id primitive.
 	return lesson, models.EmptyError()
 }
 
-func GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId int) ([]models.Lesson, *models.Error) {
-	lessonsCursor, err := lessonsCollection.Aggregate(ctx, mongo.Pipeline{
+func (j *JournalRepository) GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId int) ([]models.Lesson, *models.Error) {
+	lessonsCursor, err := j.lessonsCollection.Aggregate(ctx, mongo.Pipeline{
 		bson.D{{"$lookup", bson.M{
 			"from":         "Marks",
 			"localField":   "_id",

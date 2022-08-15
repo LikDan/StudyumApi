@@ -1,52 +1,58 @@
 package parser
 
 import (
+	"context"
 	"github.com/robfig/cron"
-	"studyum/src/db"
 	"studyum/src/models"
-	apps2 "studyum/src/parser/apps"
+	"studyum/src/parser/apps"
 )
 
-var Apps = []models.IParserApp{&apps2.KbpApp}
+var Apps = []models.IParserApp{&apps.KbpApp}
 
 func UpdateGeneralSchedule(app models.IParserApp) {
+	ctx := context.Background()
+
 	var types []models.ScheduleTypeInfo
-	db.GetScheduleTypesToParse(app.GetName(), &types)
+	apps.Repository.GetScheduleTypesToParse(ctx, app.GetName(), &types)
 
 	for _, type_ := range types {
 		lessons := app.GeneralScheduleUpdate(&type_)
-		db.UpdateGeneralSchedule(lessons)
+		apps.Repository.UpdateGeneralSchedule(ctx, lessons)
 	}
 }
 
 func Update(app models.IParserApp) {
+	ctx := context.Background()
+
 	var users []models.ParseJournalUser
-	db.GetUsersToParse(app.GetName(), &users)
+	apps.Repository.GetUsersToParse(ctx, app.GetName(), &users)
 
 	for _, user := range users {
 		marks := app.JournalUpdate(&user)
-		db.AddMarks(marks)
-		db.UpdateParseJournalUser(&user)
+		apps.Repository.AddMarks(ctx, marks)
+		apps.Repository.UpdateParseJournalUser(ctx, &user)
 	}
 
 	var types []models.ScheduleTypeInfo
-	db.GetScheduleTypesToParse(app.GetName(), &types)
+	apps.Repository.GetScheduleTypesToParse(ctx, app.GetName(), &types)
 
 	for _, type_ := range types {
 		lessons := app.ScheduleUpdate(&type_)
-		db.AddLessons(lessons)
+		apps.Repository.AddLessons(ctx, lessons)
 	}
 }
 
 func InitApps() {
+	ctx := context.Background()
+
 	for _, app := range Apps {
 		var lesson models.Lesson
-		db.GetLastLesson(app.GetStudyPlaceId(), &lesson)
+		apps.Repository.GetLastLesson(ctx, app.GetStudyPlaceId(), &lesson)
 
 		app.Init(lesson)
 
 		types := app.ScheduleTypesUpdate()
-		db.InsertScheduleTypes(types)
+		apps.Repository.InsertScheduleTypes(ctx, types)
 
 		updateCron := cron.New()
 		if err := updateCron.AddFunc(app.GetUpdateCronPattern(), func() { Update(app) }); err != nil {

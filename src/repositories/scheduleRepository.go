@@ -1,17 +1,27 @@
-package db
+package repositories
 
 import (
+	"context"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"studyum/src/models"
 	"studyum/src/utils"
 	"time"
 )
 
-func GetSchedule(studyPlaceId int, type_ string, typeName string, schedule *models.Schedule) *models.Error {
+type ScheduleRepository struct {
+	*Repository
+}
+
+func NewScheduleRepository(repository *Repository) *ScheduleRepository {
+	return &ScheduleRepository{
+		Repository: repository,
+	}
+}
+
+func (s *ScheduleRepository) GetSchedule(ctx context.Context, studyPlaceId int, type_ string, typeName string, schedule *models.Schedule) *models.Error {
 	startWeekDate := utils.Date().AddDate(0, 0, 1-int(time.Now().Weekday()))
-	cursor, err := studyPlacesCollection.Aggregate(nil, bson.A{
+	cursor, err := s.studyPlacesCollection.Aggregate(ctx, bson.A{
 		bson.M{
 			"$match": bson.M{
 				"_id": studyPlaceId,
@@ -119,7 +129,7 @@ func GetSchedule(studyPlaceId int, type_ string, typeName string, schedule *mode
 		return models.BindError(err, 403, models.UNDEFINED)
 	}
 
-	cursor.Next(nil)
+	cursor.Next(ctx)
 	if err = cursor.Decode(&schedule); err != nil {
 		return models.BindError(err, 418, models.WARNING)
 	}
@@ -127,8 +137,8 @@ func GetSchedule(studyPlaceId int, type_ string, typeName string, schedule *mode
 	return models.EmptyError()
 }
 
-func GetScheduleType(studyPlaceId int, type_ string) []string {
-	namesInterface, _ := lessonsCollection.Distinct(nil, type_, bson.M{"studyPlaceId": studyPlaceId})
+func (s *ScheduleRepository) GetScheduleType(ctx context.Context, studyPlaceId int, type_ string) []string {
+	namesInterface, _ := s.lessonsCollection.Distinct(ctx, type_, bson.M{"studyPlaceId": studyPlaceId})
 
 	names := make([]string, len(namesInterface))
 	for i, v := range namesInterface {
@@ -138,51 +148,32 @@ func GetScheduleType(studyPlaceId int, type_ string) []string {
 	return names
 }
 
-func AddLesson(lesson *models.Lesson, studyPlaceId int) *models.Error {
+func (s *ScheduleRepository) AddLesson(ctx context.Context, lesson *models.Lesson, studyPlaceId int) *models.Error {
 	if lesson.Type == "GENERAL" {
 		lesson.Type = "STAY"
 	}
 
 	lesson.Id = primitive.NewObjectID()
 	lesson.StudyPlaceId = studyPlaceId
-	if _, err := lessonsCollection.InsertOne(nil, lesson); err != nil {
+	if _, err := s.lessonsCollection.InsertOne(ctx, lesson); err != nil {
 		return models.BindError(err, 418, models.WARNING)
 	}
 
 	return models.EmptyError()
 }
 
-func AddLessons(lessons []*models.Lesson) *models.Error {
-	if _, err := lessonsCollection.InsertMany(nil, utils.ToInterfaceSlice(lessons)); err != nil {
-		return models.BindError(err, 418, models.WARNING)
-	}
-
-	return models.EmptyError()
-}
-
-func UpdateLesson(lesson *models.Lesson, studyPlaceId int) *models.Error {
+func (s *ScheduleRepository) UpdateLesson(ctx context.Context, lesson *models.Lesson, studyPlaceId int) *models.Error {
 	lesson.StudyPlaceId = studyPlaceId
 
-	if _, err := lessonsCollection.UpdateOne(nil, bson.M{"_id": lesson.Id, "studyPlaceId": studyPlaceId}, bson.M{"$set": lesson}); err != nil {
+	if _, err := s.lessonsCollection.UpdateOne(ctx, bson.M{"_id": lesson.Id, "studyPlaceId": studyPlaceId}, bson.M{"$set": lesson}); err != nil {
 		return models.BindError(err, 418, models.WARNING)
 	}
 
 	return models.EmptyError()
 }
 
-func DeleteLesson(id primitive.ObjectID, studyPlaceId int) *models.Error {
-	if _, err := lessonsCollection.DeleteOne(nil, bson.M{"_id": id, "studyPlaceId": studyPlaceId}); err != nil {
-		return models.BindError(err, 418, models.WARNING)
-	}
-
-	return models.EmptyError()
-}
-
-func GetLastLesson(studyPlaceId int, lesson *models.Lesson) *models.Error {
-	opt := options.FindOne()
-	opt.Sort = bson.M{"startDate": -1}
-
-	if err := lessonsCollection.FindOne(nil, bson.M{"studyPlaceId": studyPlaceId}, opt).Decode(lesson); err != nil {
+func (s *ScheduleRepository) DeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId int) *models.Error {
+	if _, err := s.lessonsCollection.DeleteOne(ctx, bson.M{"_id": id, "studyPlaceId": studyPlaceId}); err != nil {
 		return models.BindError(err, 418, models.WARNING)
 	}
 

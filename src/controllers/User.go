@@ -1,20 +1,23 @@
 package controllers
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	_ "github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
-	"studyum/src/db"
 	"studyum/src/models"
+	"studyum/src/repositories"
 	"studyum/src/utils"
 	"time"
 )
 
-func AuthUserViaToken(token string, user *models.User, permissions ...string) *models.Error {
+var UserRepository repositories.IUserRepository
+
+func AuthUserViaToken(ctx context.Context, token string, user *models.User, permissions ...string) *models.Error {
 	var user_ models.User
-	if err := db.GetUserViaToken(token, &user_); err.Error != nil {
+	if err := UserRepository.GetUserViaToken(ctx, token, &user_); err.Error != nil {
 		return err
 	}
 
@@ -34,7 +37,7 @@ func AuthUserViaContext(ctx *gin.Context, user *models.User, permissions ...stri
 		return models.BindError(err, 401, models.UNDEFINED)
 	}
 
-	if err := AuthUserViaToken(token, user, permissions...); err.Check() {
+	if err := AuthUserViaToken(ctx, token, user, permissions...); err.Check() {
 		return err
 	}
 
@@ -58,7 +61,7 @@ func putToken(ctx *gin.Context, user *models.User) *models.Error {
 			Password: user.Password,
 		}
 
-		if err := db.UpdateToken(ctx, data, user.Token); err != nil {
+		if err := UserRepository.UpdateToken(ctx, data, user.Token); err != nil {
 			return err
 		}
 	}
@@ -102,7 +105,7 @@ func SignUpUser(ctx *gin.Context) {
 		Accepted:      false,
 		Blocked:       false,
 	}
-	if err := db.SignUp(&user); err.CheckAndResponse(ctx) {
+	if err := UserRepository.SignUp(ctx, &user); err.CheckAndResponse(ctx) {
 		return
 	}
 
@@ -137,7 +140,7 @@ func SignUpUserStage1(ctx *gin.Context) {
 		return
 	}
 
-	if err := db.SignUpStage1(&user); err.CheckAndResponse(ctx) {
+	if err := UserRepository.SignUpStage1(ctx, &user); err.CheckAndResponse(ctx) {
 		return
 	}
 
@@ -171,7 +174,7 @@ func UpdateUser(ctx *gin.Context) {
 	user.Login = data.Login
 	user.Name = data.Name
 	user.Email = data.Email
-	if err := db.UpdateUser(&user); err.CheckAndResponse(ctx) {
+	if err := UserRepository.UpdateUser(ctx, &user); err.CheckAndResponse(ctx) {
 		return
 	}
 
@@ -192,7 +195,7 @@ func LoginUser(ctx *gin.Context) {
 	data.Password = utils.Hash(data.Password)
 
 	var user models.User
-	if err := db.Login(&data, &user); err.CheckAndResponse(ctx) {
+	if err := UserRepository.Login(ctx, &data, &user); err.CheckAndResponse(ctx) {
 		return
 	}
 
@@ -210,7 +213,7 @@ func RevokeToken(ctx *gin.Context) {
 		return
 	}
 
-	if db.RevokeToken(token).CheckAndResponse(ctx) {
+	if UserRepository.RevokeToken(ctx, token).CheckAndResponse(ctx) {
 		return
 	}
 
