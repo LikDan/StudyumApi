@@ -5,31 +5,15 @@ import (
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"io"
-	"net/http"
 	"os"
 	"studyum/src/controllers"
-	"studyum/src/models"
+	"studyum/src/handlers"
 	"studyum/src/parser"
 	"studyum/src/parser/apps"
 	"studyum/src/repositories"
-	"studyum/src/routes"
 	"studyum/src/utils"
 	"time"
 )
-
-func uptimeHandler(ctx *gin.Context) {
-	ctx.JSON(200, gin.H{"message": "hi"})
-}
-
-func requestHandler(ctx *gin.Context) {
-	response, err := http.Get("https://" + ctx.Query("host"))
-	if models.BindError(err, 418, models.UNDEFINED).CheckAndResponse(ctx) {
-		return
-	}
-
-	_, _ = io.Copy(ctx.Writer, response.Body)
-}
 
 func main() {
 	time.Local = time.FixedZone("GMT", 3*3600)
@@ -45,30 +29,31 @@ func main() {
 	}
 
 	repo := repositories.NewRepository(client)
+	userRepository := repositories.NewUserRepository(repo)
 	generalRepository := repositories.NewGeneralRepository(repo)
 	journalRepository := repositories.NewJournalRepository(repo)
 	scheduleRepository := repositories.NewScheduleRepository(repo)
-	userRepository := repositories.NewUserRepository(repo)
 	apps.Repository = repositories.NewParserRepository(repo)
 
-	routes.GeneralController = controllers.NewGeneralController(generalRepository)
-	routes.JournalController = controllers.NewJournalController(journalRepository)
-	routes.ScheduleController = controllers.NewScheduleController(scheduleRepository)
-	routes.UserController = controllers.NewUserController(userRepository)
+	authController := controllers.NewAuthController(userRepository)
+	userController := controllers.NewUserController(userRepository)
+	generalController := controllers.NewGeneralController(generalRepository)
+	journalController := controllers.NewJournalController(journalRepository)
+	scheduleController := controllers.NewScheduleController(scheduleRepository)
+
+	engine := gin.Default()
+	api := engine.Group("/api")
+
+	authHandler := handlers.NewAuthHandler(authController)
+	handlers.NewGeneralHandler(generalController, api)
+	handlers.NewUserHandler(authHandler, userController, api.Group("/user"))
+	handlers.NewJournalHandler(authHandler, journalController, api.Group("/journal"))
+	handlers.NewScheduleHandler(authHandler, scheduleController, api.Group("/schedule"))
 
 	utils.InitFirebaseApp()
 	parser.InitApps()
 
-	r := gin.Default()
-
-	r.HEAD("/api", uptimeHandler)
-	r.GET("/request", requestHandler)
-
-	routes.Bind(r)
-
-	log.Info("Application launched")
-
-	if err = r.Run(); err != nil {
+	if err = engine.Run(); err != nil {
 		log.Fatalf("Error launching server %s", err.Error())
 	}
 }

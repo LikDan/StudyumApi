@@ -1,7 +1,10 @@
 package controllers
 
-import "github.com/gin-gonic/gin"
+import (
+	"context"
+	"studyum/src/models"
+)
 
 type IGeneralController interface {
-	GetStudyPlaces(ctx *gin.Context)
+	GetStudyPlaces(ctx context.Context) (*models.Error, []models.StudyPlace)
 }

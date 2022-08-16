@@ -6,5 +6,5 @@ import (
 )
 
 type IGeneralRepository interface {
-	GetStudyPlaces(ctx context.Context) (*models.Error, []*models.StudyPlace)
+	GetAllStudyPlaces(ctx context.Context) (*models.Error, []models.StudyPlace)
 }

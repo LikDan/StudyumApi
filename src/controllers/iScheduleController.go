@@ -1,17 +1,17 @@
 package controllers
 
-import "github.com/gin-gonic/gin"
+import (
+	"context"
+	"studyum/src/models"
+)
 
 type IScheduleController interface {
-	GetSchedule(ctx *gin.Context)
-	GetMySchedule(ctx *gin.Context)
+	GetSchedule(ctx context.Context, type_ string, typeName string, user models.User) (models.Schedule, *models.Error)
+	GetUserSchedule(ctx context.Context, user models.User) (models.Schedule, *models.Error)
 
-	GetScheduleTypes(ctx *gin.Context)
+	GetScheduleTypes(ctx context.Context, user models.User) models.Types
 
-	UpdateSchedule(ctx *gin.Context)
-	UpdateGeneralSchedule(ctx *gin.Context)
-
-	AddLesson(ctx *gin.Context)
-	UpdateLesson(ctx *gin.Context)
-	DeleteLesson(ctx *gin.Context)
+	AddLesson(ctx context.Context, lesson models.Lesson, user models.User) *models.Error
+	UpdateLesson(ctx context.Context, lesson models.Lesson, user models.User) *models.Error
+	DeleteLesson(ctx context.Context, idHex string, user models.User) *models.Error
 }

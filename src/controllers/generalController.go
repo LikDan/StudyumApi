@@ -1,7 +1,8 @@
 package controllers
 
 import (
-	"github.com/gin-gonic/gin"
+	"context"
+	"studyum/src/models"
 	"studyum/src/repositories"
 )
 
@@ -13,11 +14,6 @@ func NewGeneralController(repository repositories.IGeneralRepository) *GeneralCo
 	return &GeneralController{repository: repository}
 }
 
-func (g *GeneralController) GetStudyPlaces(ctx *gin.Context) {
-	err, studyPlaces := g.repository.GetStudyPlaces(ctx)
-	if err.CheckAndResponse(ctx) {
-		return
-	}
-
-	ctx.JSON(200, studyPlaces)
+func (g *GeneralController) GetStudyPlaces(ctx context.Context) (*models.Error, []models.StudyPlace) {
+	return g.repository.GetAllStudyPlaces(ctx)
 }
