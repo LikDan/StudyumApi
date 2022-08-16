@@ -16,8 +16,8 @@ func NewGeneralRepository(repository *Repository) *GeneralRepository {
 	}
 }
 
-func (g *GeneralRepository) GetStudyPlaces(ctx context.Context) (*models.Error, []*models.StudyPlace) {
-	var studyPlaces []*models.StudyPlace
+func (g *GeneralRepository) GetAllStudyPlaces(ctx context.Context) (*models.Error, []models.StudyPlace) {
+	var studyPlaces []models.StudyPlace
 	studyPlacesCursor, err := g.studyPlacesCollection.Find(ctx, bson.M{})
 	if err != nil {
 		return models.BindError(err, 418, models.WARNING), nil

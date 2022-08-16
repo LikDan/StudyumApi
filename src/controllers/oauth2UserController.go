@@ -3,79 +3,58 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"golang.org/x/oauth2"
 	"io"
 	"net/http"
 	"studyum/src/models"
 	"studyum/src/utils"
-	"time"
 )
 
-func (u *UserController) OAuth2(ctx *gin.Context) {
-	config := Configs[ctx.Param("oauth")]
-
-	if config == nil {
-		models.BindErrorStr("no such server", 400, models.UNDEFINED).CheckAndResponse(ctx)
-		return
-	}
-
-	url := config.AuthCodeURL(ctx.Query("host"))
-	ctx.Redirect(307, url)
+func (u *UserController) GetOAuth2ConfigByName(name string) *oauth2.Config {
+	return Configs[name]
 }
 
-func (u *UserController) PutAuthToken(ctx *gin.Context) {
-	bytes, _ := ctx.GetRawData()
-	token := string(bytes)
-
-	http.SetCookie(ctx.Writer, &http.Cookie{
-		Name:    "authToken",
-		Value:   token,
-		Path:    "/",
-		Expires: time.Now().AddDate(1, 0, 0),
-	})
-
+func (u *UserController) GetUserViaToken(ctx context.Context, token string) (models.User, *models.Error) {
 	var user models.User
-	if err := u.repository.GetUserViaToken(ctx, token, &user); err.CheckAndResponse(ctx) {
-		return
+	if err := u.repository.GetUserViaToken(ctx, token, &user); err.Check() {
+		return models.User{}, err
 	}
 
-	ctx.JSON(200, user)
+	return user, models.EmptyError()
 }
 
-func (u *UserController) CallbackOAuth2(ctx *gin.Context) {
-	token, err := googleOAuthConfig.Exchange(context.Background(), ctx.Query("code"))
-	if models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
-		return
+func (u *UserController) CallbackOAuth2(ctx context.Context, code string) (models.User, *models.Error) {
+	token, err := googleOAuthConfig.Exchange(context.Background(), code)
+	if err := models.BindError(err, 400, models.UNDEFINED); err.Check() {
+		return models.User{}, err
 	}
 
 	response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
-	if models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
-		return
+	if err := models.BindError(err, 400, models.UNDEFINED); err.Check() {
+		return models.User{}, err
 	}
 
 	defer func(Body io.ReadCloser) {
-		err = Body.Close()
-		models.BindError(err, 500, models.WARNING).CheckAndResponse(ctx)
+		_ = Body.Close()
 	}(response.Body)
 
 	content, err := io.ReadAll(response.Body)
-	if models.BindError(err, 418, models.WARNING).CheckAndResponse(ctx) {
-		return
+	if err := models.BindError(err, 400, models.UNDEFINED); err.Check() {
+		return models.User{}, err
 	}
 
 	var googleUser models.OAuth2CallbackUser
 	err = json.Unmarshal(content, &googleUser)
-	if models.BindError(err, 418, models.WARNING).CheckAndResponse(ctx) {
-		return
+	if err := models.BindError(err, 400, models.UNDEFINED); err.Check() {
+		return models.User{}, err
 	}
 
 	var user models.User
 
 	if err = u.repository.GetUserByEmail(ctx, googleUser.Email, &user).Error; err != nil {
 		if err.Error() != "mongo: no documents in result" {
-			models.BindError(err, 418, models.WARNING).CheckAndResponse(ctx)
-			return
+			return models.User{}, models.BindError(err, 418, models.WARNING)
 		}
 		user = models.User{
 			Id:            primitive.NewObjectID(),
@@ -93,18 +72,18 @@ func (u *UserController) CallbackOAuth2(ctx *gin.Context) {
 			Blocked:       false,
 		}
 
-		if u.repository.SignUp(ctx, &user).CheckAndResponse(ctx) {
-			return
+		if err := u.repository.SignUp(ctx, &user); err.Check() {
+			return models.User{}, err
 		}
 	}
 
 	if user.Token == "" {
 		user.Token = utils.GenerateSecureToken()
 
-		if u.repository.UpdateUserTokenByEmail(ctx, user.Email, user.Token).CheckAndResponse(ctx) {
-			return
+		if err := u.repository.UpdateUserTokenByEmail(ctx, user.Email, user.Token); err.Check() {
+			return models.User{}, err
 		}
 	}
 
-	ctx.Redirect(307, "http://"+ctx.Query("state")+"/user/receiveToken?token="+user.Token)
+	return user, models.EmptyError()
 }

@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"github.com/gin-gonic/gin"
+	"context"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/src/models"
 	"studyum/src/repositories"
@@ -16,180 +16,120 @@ func NewJournalController(repository repositories.IJournalRepository) *JournalCo
 	return &JournalController{repository: repository}
 }
 
-func (j *JournalController) GetJournalAvailableOptions(ctx *gin.Context) {
-	user := utils.GetUserViaCtx(ctx)
-
+func (j *JournalController) GetJournalAvailableOptions(ctx context.Context, user models.User) ([]models.JournalAvailableOption, *models.Error) {
 	if user.Type == "group" {
-		ctx.JSON(200, []models.JournalAvailableOption{{
+		return []models.JournalAvailableOption{{
 			Teacher:  "",
 			Subject:  "",
 			Group:    user.TypeName,
 			Editable: false,
-		}})
-		return
+		}}, models.EmptyError()
 	}
 
 	options, err := j.repository.GetAvailableOptions(ctx, user.Name, utils.SliceContains(user.Permissions, "editJournal"))
-	if err.CheckAndResponse(ctx) {
-		return
+	if err.Check() {
+		return nil, err
 	}
 
-	ctx.JSON(200, options)
+	return options, models.EmptyError()
 }
 
-func (j *JournalController) GetJournal(ctx *gin.Context) {
-	user := utils.GetUserViaCtx(ctx)
-
-	if !utils.CheckNotEmpty(ctx.Param("group"), ctx.Param("subject"), ctx.Param("teacher")) {
-		models.BindErrorStr("provide valid params", 400, models.UNDEFINED).CheckAndResponse(ctx)
-		return
+func (j *JournalController) GetJournal(ctx context.Context, group string, subject string, teacher string, user models.User) (models.Journal, *models.Error) {
+	if !utils.CheckNotEmpty(group, subject, teacher) {
+		return models.Journal{}, models.BindErrorStr("provide valid params", 400, models.UNDEFINED)
 	}
 
 	var journal models.Journal
-	if err := j.repository.GetJournal(ctx, &journal, ctx.Param("group"), ctx.Param("subject"), user.TypeName, user.StudyPlaceId); err.CheckAndResponse(ctx) {
-		return
+	if err := j.repository.GetJournal(ctx, &journal, group, subject, user.TypeName, user.StudyPlaceId); err.Check() {
+		return models.Journal{}, err
 	}
 
-	ctx.JSON(200, journal)
+	return journal, models.EmptyError()
 }
 
-func (j *JournalController) GetUserJournal(ctx *gin.Context) {
-	user := utils.GetUserViaCtx(ctx)
-
+func (j *JournalController) GetUserJournal(ctx context.Context, user models.User) (models.Journal, *models.Error) {
 	var journal models.Journal
-	if err := j.repository.GetStudentJournal(ctx, &journal, user.Id, user.TypeName, user.StudyPlaceId); err.CheckAndResponse(ctx) {
-		return
+	if err := j.repository.GetStudentJournal(ctx, &journal, user.Id, user.TypeName, user.StudyPlaceId); err.Check() {
+		return models.Journal{}, err
 	}
 
-	ctx.JSON(200, journal)
+	return journal, models.EmptyError()
 }
 
-func (j *JournalController) AddMark(ctx *gin.Context) {
-	user := utils.GetUserViaCtx(ctx)
-
+func (j *JournalController) AddMark(ctx context.Context, mark models.Mark, user models.User) (models.Lesson, *models.Error) {
 	if !utils.SliceContains(user.Permissions, "editJournal") {
-		models.BindErrorStr("no permission", 400, models.UNDEFINED).CheckAndResponse(ctx)
-		return
-	}
-
-	var mark models.Mark
-	if err := ctx.BindJSON(&mark); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
-		return
+		return models.Lesson{}, models.BindErrorStr("no permission", 400, models.UNDEFINED)
 	}
 
 	if mark.Mark == "" || mark.UserId.IsZero() || mark.LessonId.IsZero() {
-		models.BindErrorStr("provide valid params", 400, models.UNDEFINED).CheckAndResponse(ctx)
-		return
+		return models.Lesson{}, models.BindErrorStr("provide valid params", 400, models.UNDEFINED)
 	}
 
-	if err := j.repository.AddMark(ctx, &mark); err.CheckAndResponse(ctx) {
-		return
+	if err := j.repository.AddMark(ctx, &mark); err.Check() {
+		return models.Lesson{}, err
 	}
 
-	lesson, err := j.repository.GetLessonById(ctx, mark.UserId, mark.LessonId)
-	if err.CheckAndResponse(ctx) {
-		return
-	}
-
-	ctx.JSON(200, lesson)
+	return j.repository.GetLessonById(ctx, mark.UserId, mark.LessonId)
 }
 
-func (j *JournalController) GetMark(ctx *gin.Context) {
-	user := utils.GetUserViaCtx(ctx)
-
-	group := ctx.Query("group")
-	subject := ctx.Query("subject")
-	userIdHex := ctx.Query("userId")
+func (j *JournalController) GetMark(ctx context.Context, group string, subject string, userIdHex string, user models.User) ([]models.Lesson, *models.Error) {
 	teacher := user.Name
 
 	if group == "" || subject == "" || userIdHex == "" {
-		models.BindErrorStr("provide valid params", 400, models.UNDEFINED).CheckAndResponse(ctx)
-		return
+		return nil, models.BindErrorStr("provide valid params", 400, models.UNDEFINED)
 	}
 
 	userId, err_ := primitive.ObjectIDFromHex(userIdHex)
-	if models.BindError(err_, 400, models.UNDEFINED).CheckAndResponse(ctx) {
-		return
+	if err := models.BindError(err_, 400, models.UNDEFINED); err.Check() {
+		return nil, err
 	}
 
-	lessons, err := j.repository.GetLessons(ctx, userId, group, teacher, subject, user.StudyPlaceId)
-	if err.CheckAndResponse(ctx) {
-		return
-	}
-
-	ctx.JSON(200, lessons)
+	return j.repository.GetLessons(ctx, userId, group, teacher, subject, user.StudyPlaceId)
 }
 
-func (j *JournalController) UpdateMark(ctx *gin.Context) {
-	user := utils.GetUserViaCtx(ctx)
-
+func (j *JournalController) UpdateMark(ctx context.Context, mark models.Mark, user models.User) (models.Lesson, *models.Error) {
 	if !utils.SliceContains(user.Permissions, "editJournal") {
-		models.BindErrorStr("no permission", 400, models.UNDEFINED).CheckAndResponse(ctx)
-		return
-	}
-
-	var mark models.Mark
-	if err := ctx.BindJSON(&mark); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
-		return
+		return models.Lesson{}, models.BindErrorStr("no permission", 400, models.UNDEFINED)
 	}
 
 	if mark.Mark == "" || mark.Id.IsZero() || mark.UserId.IsZero() || mark.LessonId.IsZero() {
-		models.BindErrorStr("provide valid params", 400, models.UNDEFINED)
-		return
+		return models.Lesson{}, models.BindErrorStr("provide valid params", 400, models.UNDEFINED)
 	}
 
-	if err := j.repository.UpdateMark(ctx, &mark); err.CheckAndResponse(ctx) {
-		return
+	if err := j.repository.UpdateMark(ctx, &mark); err.Check() {
+		return models.Lesson{}, err
 	}
 
-	lesson, err := j.repository.GetLessonById(ctx, mark.UserId, mark.LessonId)
-	if err.CheckAndResponse(ctx) {
-		return
-	}
-
-	ctx.JSON(200, lesson)
+	return j.repository.GetLessonById(ctx, mark.UserId, mark.LessonId)
 }
 
-func (j *JournalController) DeleteMark(ctx *gin.Context) {
-	user := utils.GetUserViaCtx(ctx)
-
+func (j *JournalController) DeleteMark(ctx context.Context, markIdHex string, userIdHex string, subjectIdHex string, user models.User) (models.Lesson, *models.Error) {
 	if !utils.SliceContains(user.Permissions, "editJournal") {
-		models.BindErrorStr("no permission", 400, models.UNDEFINED).CheckAndResponse(ctx)
-		return
+		return models.Lesson{}, models.BindErrorStr("no permission", 400, models.UNDEFINED)
 	}
 
-	markId := ctx.Query("markId")
-	userIdHex := ctx.Query("userId")
-	subjectId := ctx.Query("subjectId")
-
-	if markId == "" || userIdHex == "" || subjectId == "" {
-		models.BindErrorStr("provide valid params", 400, models.UNDEFINED).CheckAndResponse(ctx)
-		return
+	if markIdHex == "" || userIdHex == "" || subjectIdHex == "" {
+		return models.Lesson{}, models.BindErrorStr("provide valid params", 400, models.UNDEFINED)
 	}
 
 	userId, err_ := primitive.ObjectIDFromHex(userIdHex)
-	if models.BindError(err_, 400, models.UNDEFINED).CheckAndResponse(ctx) {
-		return
+	if err := models.BindError(err_, 400, models.UNDEFINED); err.Check() {
+		return models.Lesson{}, err
 	}
 
-	markObjectId, err_ := primitive.ObjectIDFromHex(markId)
-	if models.BindError(err_, 400, models.UNDEFINED).CheckAndResponse(ctx) {
-		return
+	markId, err_ := primitive.ObjectIDFromHex(markIdHex)
+	if err := models.BindError(err_, 400, models.UNDEFINED); err.Check() {
+		return models.Lesson{}, err
 	}
 
-	subjectObjectId, err_ := primitive.ObjectIDFromHex(subjectId)
-	if models.BindError(err_, 400, models.UNDEFINED).CheckAndResponse(ctx) {
-		return
+	subjectId, err_ := primitive.ObjectIDFromHex(subjectIdHex)
+	if err := models.BindError(err_, 400, models.UNDEFINED); err.Check() {
+		return models.Lesson{}, err
 	}
 
-	if err := j.repository.DeleteMark(ctx, markObjectId, subjectObjectId); err.CheckAndResponse(ctx) {
-		return
+	if err := j.repository.DeleteMark(ctx, markId, subjectId); err.Check() {
+		return models.Lesson{}, err
 	}
 
-	lesson, err := j.repository.GetLessonById(ctx, userId, subjectObjectId)
-	if err.CheckAndResponse(ctx) {
-		return
-	}
-
-	ctx.JSON(200, lesson)
+	return j.repository.GetLessonById(ctx, userId, subjectId)
 }
