@@ -8,8 +8,9 @@ import (
 	"os"
 	"studyum/src/controllers"
 	"studyum/src/handlers"
-	"studyum/src/parser"
-	"studyum/src/parser/apps"
+	"studyum/src/parser/controller"
+	"studyum/src/parser/handler"
+	"studyum/src/parser/repository"
 	"studyum/src/repositories"
 	"studyum/src/utils"
 	"time"
@@ -33,13 +34,14 @@ func main() {
 	generalRepository := repositories.NewGeneralRepository(repo)
 	journalRepository := repositories.NewJournalRepository(repo)
 	scheduleRepository := repositories.NewScheduleRepository(repo)
-	apps.Repository = repositories.NewParserRepository(repo)
+	parserRepository := repository.NewParserRepository(client)
 
 	authController := controllers.NewAuthController(userRepository)
 	userController := controllers.NewUserController(userRepository)
 	generalController := controllers.NewGeneralController(generalRepository)
 	journalController := controllers.NewJournalController(journalRepository)
 	scheduleController := controllers.NewScheduleController(scheduleRepository)
+	parserController := controller.NewParserController(parserRepository)
 
 	engine := gin.Default()
 	api := engine.Group("/api")
@@ -50,8 +52,9 @@ func main() {
 	handlers.NewJournalHandler(authHandler, journalController, api.Group("/journal"))
 	handlers.NewScheduleHandler(authHandler, scheduleController, api.Group("/schedule"))
 
+	handler.NewParserHandler(parserController)
+
 	utils.InitFirebaseApp()
-	parser.InitApps()
 
 	if err = engine.Run(); err != nil {
 		log.Fatalf("Error launching server %s", err.Error())

@@ -9,42 +9,37 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"studyum/src/models"
-	parserModels "studyum/src/parser/models"
-	"studyum/src/repositories"
+	"studyum/src/parser/entities"
 	"studyum/src/utils"
 	"time"
 )
 
-var Repository repositories.IParserRepository
-
 type KbpParser struct {
-	States     []*models.ScheduleStateInfo
-	TempStates []*models.ScheduleStateInfo
+	States     []*entities.ScheduleStateInfo
+	TempStates []*entities.ScheduleStateInfo
 
-	WeekdaysShift []parserModels.Shift
-	WeekendsShift []parserModels.Shift
+	WeekdaysShift []entities.Shift
+	WeekendsShift []entities.Shift
 }
 
 var KbpApp = KbpParser{}
 
 func (p *KbpParser) GetName() string              { return "kbp" }
-func (p *KbpParser) GetStudyPlaceId() int         { return 0 }
+func (p *KbpParser) StudyPlaceId() int            { return 0 }
 func (p *KbpParser) GetUpdateCronPattern() string { return "@every 30m" }
 
-func (p *KbpParser) ScheduleUpdate(type_ *models.ScheduleTypeInfo) []*models.Lesson {
+func (p *KbpParser) ScheduleUpdate(type_ *entities.ScheduleTypeInfo) []*entities.Lesson {
 	response, err := http.Get("http://kbp.by/rasp/timetable/view_beta_kbp/" + type_.Url)
-	if models.BindError(err, 418, models.UNDEFINED).Check() {
+	if err != nil {
 		return nil
 	}
 
 	if response.StatusCode != 200 {
-		models.BindErrorStr("Could not connect to host http://kbp", response.StatusCode, models.UNDEFINED).Check()
 		return nil
 	}
 
 	document, err := htmlParser.NewDocumentFromReader(response.Body)
-	if models.BindError(err, 400, models.UNDEFINED).Check() {
+	if err != nil {
 		return nil
 	}
 
@@ -55,9 +50,9 @@ func (p *KbpParser) ScheduleUpdate(type_ *models.ScheduleTypeInfo) []*models.Les
 		return nil
 	}
 
-	var lessons []*models.Lesson
+	var lessons []*entities.Lesson
 
-	var states []*models.ScheduleStateInfo
+	var states []*entities.ScheduleStateInfo
 
 	weeks.Each(func(tableIndex int, table *htmlParser.Selection) {
 		weekDate := time.Now().AddDate(0, 0, tableIndex*7)
@@ -74,16 +69,16 @@ func (p *KbpParser) ScheduleUpdate(type_ *models.ScheduleTypeInfo) []*models.Les
 						return
 					}
 
-					stateInfo := models.ScheduleStateInfo{
+					stateInfo := entities.ScheduleStateInfo{
 						WeekIndex: weekIndex,
 						DayIndex:  columnIndex - 1,
 					}
 
 					state := strings.TrimSpace(selection.Text())
 					if state == "" {
-						stateInfo.State = models.NotUpdated
+						stateInfo.State = entities.NotUpdated
 					} else {
-						stateInfo.State = models.Updated
+						stateInfo.State = entities.Updated
 					}
 
 					states = append(states, &stateInfo)
@@ -108,7 +103,7 @@ func (p *KbpParser) ScheduleUpdate(type_ *models.ScheduleTypeInfo) []*models.Les
 
 					if div.HasClass("added") {
 						type_ = "ADDED"
-					} else if div.HasClass("removed") && models.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, states).State == models.Updated {
+					} else if div.HasClass("removed") && entities.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, states).State == entities.Updated {
 						type_ = "REMOVED"
 					} else {
 						type_ = "STAY"
@@ -132,7 +127,7 @@ func (p *KbpParser) ScheduleUpdate(type_ *models.ScheduleTypeInfo) []*models.Les
 							endTime = p.WeekendsShift[rowIndex].End
 						}
 
-						lesson := models.Lesson{
+						lesson := entities.Lesson{
 							Id:           primitive.NewObjectID(),
 							StudyPlaceId: 0,
 							Type:         type_,
@@ -144,7 +139,7 @@ func (p *KbpParser) ScheduleUpdate(type_ *models.ScheduleTypeInfo) []*models.Les
 							Room:         div.Find(".place").Text(),
 						}
 
-						if models.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, states).State == models.Updated && models.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, p.States).State == models.NotUpdated {
+						if entities.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, states).State == entities.Updated && entities.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, p.States).State == entities.NotUpdated {
 							lessons = append(lessons, &lesson)
 						}
 					})
@@ -159,8 +154,8 @@ func (p *KbpParser) ScheduleUpdate(type_ *models.ScheduleTypeInfo) []*models.Les
 	return lessons
 }
 
-func (p *KbpParser) GeneralScheduleUpdate(type_ *models.ScheduleTypeInfo) []*models.GeneralLesson {
-	var generalLessons []*models.GeneralLesson
+func (p *KbpParser) GeneralScheduleUpdate(type_ *entities.ScheduleTypeInfo) []*entities.GeneralLesson {
+	var generalLessons []*entities.GeneralLesson
 
 	lessons := p.ScheduleUpdate(type_)
 	for _, lesson := range lessons {
@@ -170,7 +165,7 @@ func (p *KbpParser) GeneralScheduleUpdate(type_ *models.ScheduleTypeInfo) []*mod
 
 		weekIndex, _ := lesson.StartDate.ISOWeek()
 
-		generalLesson := models.GeneralLesson{
+		generalLesson := entities.GeneralLesson{
 			Id:           lesson.Id,
 			StudyPlaceId: lesson.StudyPlaceId,
 			EndTime:      lesson.EndDate.Format("15:04"),
@@ -189,21 +184,20 @@ func (p *KbpParser) GeneralScheduleUpdate(type_ *models.ScheduleTypeInfo) []*mod
 	return generalLessons
 }
 
-func (p *KbpParser) ScheduleTypesUpdate() []*models.ScheduleTypeInfo {
-	var types []*models.ScheduleTypeInfo
+func (p *KbpParser) ScheduleTypesUpdate() []*entities.ScheduleTypeInfo {
+	var types []*entities.ScheduleTypeInfo
 
 	response, err := http.Get("https://kbp.by/rasp/timetable/view_beta_kbp/?q=")
-	if models.BindError(err, 418, models.UNDEFINED).Check() {
+	if err != nil {
 		return nil
 	}
 
 	if response.StatusCode != 200 {
-		models.BindErrorStr("Could not connect to host http://kbp", response.StatusCode, models.UNDEFINED).Check()
 		return nil
 	}
 
 	document, err := htmlParser.NewDocumentFromReader(response.Body)
-	if models.BindError(err, 400, models.UNDEFINED).Check() {
+	if err != nil {
 		return nil
 	}
 
@@ -216,7 +210,7 @@ func (p *KbpParser) ScheduleTypesUpdate() []*models.ScheduleTypeInfo {
 				return
 			}
 
-			type_ := models.ScheduleTypeInfo{
+			type_ := entities.ScheduleTypeInfo{
 				ParserAppName: p.GetName(),
 				Group:         name,
 				Url:           url,
@@ -228,7 +222,7 @@ func (p *KbpParser) ScheduleTypesUpdate() []*models.ScheduleTypeInfo {
 	return types
 }
 
-func (p *KbpParser) LoginJournal(user *models.ParseJournalUser) *htmlParser.Document {
+func (p *KbpParser) LoginJournal(user *entities.JournalUser) *htmlParser.Document {
 	request, _ := http.NewRequest("GET", "https://kbp.by/ej/templates/login_parent.php", nil)
 	response, _ := http.DefaultClient.Do(request)
 	document, _ := htmlParser.NewDocumentFromReader(response.Body)
@@ -260,7 +254,7 @@ func (p *KbpParser) LoginJournal(user *models.ParseJournalUser) *htmlParser.Docu
 	return document
 }
 
-func (p *KbpParser) JournalUpdate(user *models.ParseJournalUser) []*models.Mark {
+func (p *KbpParser) JournalUpdate(user *entities.JournalUser, getLessonByDate func(context.Context, time.Time, string, string) (entities.Lesson, error)) []*entities.Mark {
 	document := p.LoginJournal(user)
 	lessonNames := document.Find("tbody").First().Find(".pupilName").Map(func(i int, selection *htmlParser.Selection) string {
 		return strings.TrimSpace(selection.Text())
@@ -316,7 +310,7 @@ func (p *KbpParser) JournalUpdate(user *models.ParseJournalUser) []*models.Mark 
 		currentDay++
 	})
 
-	var marks []*models.Mark
+	var marks []*entities.Mark
 
 	marksTable.Each(func(rowIndex int, rowSelection *htmlParser.Selection) {
 		if rowIndex < 2 {
@@ -333,14 +327,13 @@ func (p *KbpParser) JournalUpdate(user *models.ParseJournalUser) []*models.Mark 
 				mark_ := strings.TrimSpace(selection.Text())
 
 				ctx := context.Background()
-				var lesson models.Lesson
 
-				Repository.GetLessonByDate(ctx, dates[dayIndex], lessonNames[rowIndex], user.AdditionInfo["group"], &lesson)
-				if lesson.Id == primitive.NilObjectID {
+				lesson, err := getLessonByDate(ctx, dates[dayIndex], lessonNames[rowIndex], user.AdditionInfo["group"])
+				if err != nil || lesson.Id == primitive.NilObjectID {
 					return
 				}
 
-				mark := models.Mark{
+				mark := entities.Mark{
 					Id:           primitive.NewObjectID(),
 					Mark:         mark_,
 					UserId:       user.ID,
@@ -361,19 +354,19 @@ func (p *KbpParser) CommitUpdate() {
 	p.TempStates = nil
 }
 
-func (p *KbpParser) Init(lesson models.Lesson) {
-	var states []*models.ScheduleStateInfo
+func (p *KbpParser) Init(lesson entities.Lesson) {
+	var states []*entities.ScheduleStateInfo
 
 	date := lesson.StartDate.AddDate(0, 0, -int(lesson.StartDate.Weekday()))
 	for len(states) != 14 {
 		_, weekIndex := date.ISOWeek()
 
-		state := models.NotUpdated
+		state := entities.NotUpdated
 		if date.Before(lesson.StartDate) {
-			state = models.Updated
+			state = entities.Updated
 		}
 
-		states = append(states, &models.ScheduleStateInfo{
+		states = append(states, &entities.ScheduleStateInfo{
 			State:     state,
 			WeekIndex: weekIndex % 2,
 			DayIndex:  int(date.Weekday()),
@@ -384,23 +377,23 @@ func (p *KbpParser) Init(lesson models.Lesson) {
 
 	p.States = states
 
-	p.WeekdaysShift = []parserModels.Shift{
-		parserModels.BindShift(8, 00, 9, 35),
-		parserModels.BindShift(9, 45, 11, 20),
-		parserModels.BindShift(11, 50, 13, 25),
-		parserModels.BindShift(13, 45, 15, 20),
-		parserModels.BindShift(15, 40, 17, 15),
-		parserModels.BindShift(17, 25, 19, 0),
-		parserModels.BindShift(19, 10, 20, 45),
+	p.WeekdaysShift = []entities.Shift{
+		entities.NewShift(8, 00, 9, 35),
+		entities.NewShift(9, 45, 11, 20),
+		entities.NewShift(11, 50, 13, 25),
+		entities.NewShift(13, 45, 15, 20),
+		entities.NewShift(15, 40, 17, 15),
+		entities.NewShift(17, 25, 19, 0),
+		entities.NewShift(19, 10, 20, 45),
 	}
 
-	p.WeekendsShift = []parserModels.Shift{
-		parserModels.BindShift(8, 00, 9, 35),
-		parserModels.BindShift(9, 45, 11, 20),
-		parserModels.BindShift(11, 30, 13, 5),
-		parserModels.BindShift(13, 30, 15, 5),
-		parserModels.BindShift(15, 15, 16, 50),
-		parserModels.BindShift(17, 0, 18, 35),
-		parserModels.BindShift(18, 45, 20, 20),
+	p.WeekendsShift = []entities.Shift{
+		entities.NewShift(8, 00, 9, 35),
+		entities.NewShift(9, 45, 11, 20),
+		entities.NewShift(11, 30, 13, 5),
+		entities.NewShift(13, 30, 15, 5),
+		entities.NewShift(15, 15, 16, 50),
+		entities.NewShift(17, 0, 18, 35),
+		entities.NewShift(18, 45, 20, 20),
 	}
 }
