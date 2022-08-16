@@ -16,14 +16,6 @@ func CheckEmpty(strings ...string) bool {
 	}
 	return false
 }
-func CheckEmptyAndResponse(ctx *gin.Context, err *models.Error, strings ...string) bool {
-	if !CheckEmpty(strings...) {
-		return false
-	}
-
-	ctx.JSON(err.Code, err.Error)
-	return true
-}
 
 func CheckNotEmpty(strings ...string) bool {
 	for _, s := range strings {
