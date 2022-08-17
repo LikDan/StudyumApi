@@ -8,15 +8,6 @@ import (
 	"studyum/src/models"
 )
 
-func CheckEmpty(strings ...string) bool {
-	for _, s := range strings {
-		if s == "" {
-			return true
-		}
-	}
-	return false
-}
-
 func CheckNotEmpty(strings ...string) bool {
 	for _, s := range strings {
 		if s == "" {

@@ -14,6 +14,6 @@ func NewGeneralController(repository repositories.IGeneralRepository) *GeneralCo
 	return &GeneralController{repository: repository}
 }
 
-func (g *GeneralController) GetStudyPlaces(ctx context.Context) (*models.Error, []models.StudyPlace) {
+func (g *GeneralController) GetStudyPlaces(ctx context.Context) (error, []models.StudyPlace) {
 	return g.repository.GetAllStudyPlaces(ctx)
 }

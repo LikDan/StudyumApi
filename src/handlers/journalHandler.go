@@ -9,15 +9,15 @@ import (
 )
 
 type JournalHandler struct {
-	IAuthHandler
+	IHandler
 
 	controller controllers.IJournalController
 
 	Group *gin.RouterGroup
 }
 
-func NewJournalHandler(authHandler IAuthHandler, controller controllers.IJournalController, group *gin.RouterGroup) *JournalHandler {
-	h := &JournalHandler{IAuthHandler: authHandler, controller: controller, Group: group}
+func NewJournalHandler(authHandler IHandler, controller controllers.IJournalController, group *gin.RouterGroup) *JournalHandler {
+	h := &JournalHandler{IHandler: authHandler, controller: controller, Group: group}
 
 	group.GET("/options", h.Auth(), h.GetJournalAvailableOptions)
 	group.GET("/:group/:subject/:teacher", h.Auth(), h.GetJournal)
@@ -33,99 +33,108 @@ func NewJournalHandler(authHandler IAuthHandler, controller controllers.IJournal
 	return h
 }
 
-func (h *JournalHandler) GetJournalAvailableOptions(ctx *gin.Context) {
+func (j *JournalHandler) GetJournalAvailableOptions(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
-	options, err := h.controller.GetJournalAvailableOptions(ctx, user)
-	if err.CheckAndResponse(ctx) {
+	options, err := j.controller.GetJournalAvailableOptions(ctx, user)
+	if err != nil {
+		j.Error(ctx, err)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, options)
 }
 
-func (h *JournalHandler) GetJournal(ctx *gin.Context) {
+func (j *JournalHandler) GetJournal(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	group := ctx.Param("group")
 	subject := ctx.Param("subject")
 	teacher := ctx.Param("teacher")
 
-	journal, err := h.controller.GetJournal(ctx, group, subject, teacher, user)
-	if err.CheckAndResponse(ctx) {
+	journal, err := j.controller.GetJournal(ctx, group, subject, teacher, user)
+	if err != nil {
+		j.Error(ctx, err)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, journal)
 }
 
-func (h *JournalHandler) GetUserJournal(ctx *gin.Context) {
+func (j *JournalHandler) GetUserJournal(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
-	journal, err := h.controller.GetUserJournal(ctx, user)
-	if err.CheckAndResponse(ctx) {
+	journal, err := j.controller.GetUserJournal(ctx, user)
+	if err != nil {
+		j.Error(ctx, err)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, journal)
 }
 
-func (h *JournalHandler) AddMark(ctx *gin.Context) {
+func (j *JournalHandler) AddMark(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	var mark models.Mark
-	if err := ctx.BindJSON(&mark); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
+	if err := ctx.BindJSON(&mark); err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
 
-	lesson, err := h.controller.AddMark(ctx, mark, user)
-	if err.CheckAndResponse(ctx) {
+	lesson, err := j.controller.AddMark(ctx, mark, user)
+	if err != nil {
+		j.Error(ctx, err)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, lesson)
 }
 
-func (h *JournalHandler) GetMark(ctx *gin.Context) {
+func (j *JournalHandler) GetMark(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	group := ctx.Query("group")
 	subject := ctx.Query("subject")
 	userIdHex := ctx.Query("userId")
 
-	lessons, err := h.controller.GetMark(ctx, group, subject, userIdHex, user)
-	if err.CheckAndResponse(ctx) {
+	lessons, err := j.controller.GetMark(ctx, group, subject, userIdHex, user)
+	if err != nil {
+		j.Error(ctx, err)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, lessons)
 }
 
-func (h *JournalHandler) UpdateMark(ctx *gin.Context) {
+func (j *JournalHandler) UpdateMark(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	var mark models.Mark
-	if err := ctx.BindJSON(&mark); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
+	if err := ctx.BindJSON(&mark); err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
 
-	lesson, err := h.controller.UpdateMark(ctx, mark, user)
-	if err.CheckAndResponse(ctx) {
+	lesson, err := j.controller.UpdateMark(ctx, mark, user)
+	if err != nil {
+		j.Error(ctx, err)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, lesson)
 }
 
-func (h *JournalHandler) DeleteMark(ctx *gin.Context) {
+func (j *JournalHandler) DeleteMark(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	markId := ctx.Query("markId")
 	userId := ctx.Query("userId")
 	subjectId := ctx.Query("subjectId")
 
-	lesson, err := h.controller.DeleteMark(ctx, markId, userId, subjectId, user)
-	if err.CheckAndResponse(ctx) {
+	lesson, err := j.controller.DeleteMark(ctx, markId, userId, subjectId, user)
+	if err != nil {
+		j.Error(ctx, err)
 		return
 	}
 

@@ -15,23 +15,23 @@ func (u *UserController) GetOAuth2ConfigByName(name string) *oauth2.Config {
 	return Configs[name]
 }
 
-func (u *UserController) GetUserViaToken(ctx context.Context, token string) (models.User, *models.Error) {
+func (u *UserController) GetUserViaToken(ctx context.Context, token string) (models.User, error) {
 	var user models.User
-	if err := u.repository.GetUserViaToken(ctx, token, &user); err.Check() {
+	if err := u.repository.GetUserViaToken(ctx, token, &user); err != nil {
 		return models.User{}, err
 	}
 
-	return user, models.EmptyError()
+	return user, nil
 }
 
-func (u *UserController) CallbackOAuth2(ctx context.Context, code string) (models.User, *models.Error) {
+func (u *UserController) CallbackOAuth2(ctx context.Context, code string) (models.User, error) {
 	token, err := googleOAuthConfig.Exchange(context.Background(), code)
-	if err := models.BindError(err, 400, models.UNDEFINED); err.Check() {
+	if err != nil {
 		return models.User{}, err
 	}
 
 	response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
-	if err := models.BindError(err, 400, models.UNDEFINED); err.Check() {
+	if err != nil {
 		return models.User{}, err
 	}
 
@@ -40,21 +40,21 @@ func (u *UserController) CallbackOAuth2(ctx context.Context, code string) (model
 	}(response.Body)
 
 	content, err := io.ReadAll(response.Body)
-	if err := models.BindError(err, 400, models.UNDEFINED); err.Check() {
+	if err != nil {
 		return models.User{}, err
 	}
 
 	var googleUser models.OAuth2CallbackUser
 	err = json.Unmarshal(content, &googleUser)
-	if err := models.BindError(err, 400, models.UNDEFINED); err.Check() {
+	if err != nil {
 		return models.User{}, err
 	}
 
 	var user models.User
 
-	if err = u.repository.GetUserByEmail(ctx, googleUser.Email, &user).Error; err != nil {
+	if err = u.repository.GetUserByEmail(ctx, googleUser.Email, &user); err != nil {
 		if err.Error() != "mongo: no documents in result" {
-			return models.User{}, models.BindError(err, 418, models.WARNING)
+			return models.User{}, err
 		}
 		user = models.User{
 			Id:            primitive.NewObjectID(),
@@ -72,7 +72,7 @@ func (u *UserController) CallbackOAuth2(ctx context.Context, code string) (model
 			Blocked:       false,
 		}
 
-		if err := u.repository.SignUp(ctx, &user); err.Check() {
+		if err := u.repository.SignUp(ctx, &user); err != nil {
 			return models.User{}, err
 		}
 	}
@@ -80,10 +80,10 @@ func (u *UserController) CallbackOAuth2(ctx context.Context, code string) (model
 	if user.Token == "" {
 		user.Token = utils.GenerateSecureToken()
 
-		if err := u.repository.UpdateUserTokenByEmail(ctx, user.Email, user.Token); err.Check() {
+		if err = u.repository.UpdateUserTokenByEmail(ctx, user.Email, user.Token); err != nil {
 			return models.User{}, err
 		}
 	}
 
-	return user, models.EmptyError()
+	return user, nil
 }

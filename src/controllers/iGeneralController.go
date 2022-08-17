@@ -6,5 +6,5 @@ import (
 )
 
 type IGeneralController interface {
-	GetStudyPlaces(ctx context.Context) (*models.Error, []models.StudyPlace)
+	GetStudyPlaces(ctx context.Context) (error, []models.StudyPlace)
 }

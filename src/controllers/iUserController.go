@@ -7,15 +7,16 @@ import (
 )
 
 type IUserController interface {
-	UpdateUser(ctx context.Context, user models.User, data models.UserSignUpData) (models.User, *models.Error)
+	UpdateUser(ctx context.Context, user models.User, data models.UserSignUpData) (models.User, error)
 
-	LoginUser(ctx context.Context, data models.UserLoginData) (models.User, *models.Error)
-	SignUpUser(ctx context.Context, data models.UserSignUpData) (models.User, *models.Error)
-	SignUpUserStage1(ctx context.Context, user models.User, data models.UserSignUpStage1Data) (models.User, *models.Error)
+	LoginUser(ctx context.Context, data models.UserLoginData) (models.User, error)
+	SignUpUser(ctx context.Context, data models.UserSignUpData) (models.User, error)
+	SignUpUserStage1(ctx context.Context, user models.User, data models.UserSignUpStage1Data) (models.User, error)
 
-	RevokeToken(ctx context.Context, token string) *models.Error
+	UpdateToken(ctx context.Context, data models.UserLoginData, token string) error
+	RevokeToken(ctx context.Context, token string) error
 
-	GetUserViaToken(ctx context.Context, token string) (models.User, *models.Error)
-	CallbackOAuth2(ctx context.Context, code string) (models.User, *models.Error)
+	GetUserViaToken(ctx context.Context, token string) (models.User, error)
+	CallbackOAuth2(ctx context.Context, code string) (models.User, error)
 	GetOAuth2ConfigByName(name string) *oauth2.Config
 }

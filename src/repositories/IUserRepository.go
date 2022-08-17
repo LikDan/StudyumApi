@@ -6,17 +6,17 @@ import (
 )
 
 type IUserRepository interface {
-	GetUserViaToken(ctx context.Context, token string, user *models.User) *models.Error
-	GetUserByEmail(ctx context.Context, email string, user *models.User) *models.Error
+	GetUserViaToken(ctx context.Context, token string, user *models.User) error
+	GetUserByEmail(ctx context.Context, email string, user *models.User) error
 
-	SignUp(ctx context.Context, user *models.User) *models.Error
-	SignUpStage1(ctx context.Context, user *models.User) *models.Error
+	SignUp(ctx context.Context, user *models.User) error
+	SignUpStage1(ctx context.Context, user *models.User) error
 
-	Login(ctx context.Context, data *models.UserLoginData, user *models.User) *models.Error
+	Login(ctx context.Context, data *models.UserLoginData, user *models.User) error
 
-	UpdateUser(ctx context.Context, user *models.User) *models.Error
+	UpdateUser(ctx context.Context, user *models.User) error
 
-	RevokeToken(ctx context.Context, token string) *models.Error
-	UpdateToken(ctx context.Context, data models.UserLoginData, token string) *models.Error
-	UpdateUserTokenByEmail(ctx context.Context, email, token string) *models.Error
+	RevokeToken(ctx context.Context, token string) error
+	UpdateToken(ctx context.Context, data models.UserLoginData, token string) error
+	UpdateUserTokenByEmail(ctx context.Context, email, token string) error
 }
