@@ -1,4 +1,4 @@
-package models
+package entities
 
 import "go.mongodb.org/mongo-driver/bson/primitive"
 
@@ -17,4 +17,12 @@ type User struct {
 	Permissions   []string           `json:"permissions" bson:"permissions"`
 	Accepted      bool               `json:"accepted" bson:"accepted"`
 	Blocked       bool               `json:"blocked" bson:"blocked"`
+}
+
+type OAuth2CallbackUser struct {
+	Id            string `json:"id" bson:"_id"`
+	Email         string `json:"email" bson:"email"`
+	VerifiedEmail bool   `json:"verified_email" bson:"verifiedEmail"`
+	Name          string `json:"name" bson:"login"`
+	PictureUrl    string `json:"picture" bson:"picture"`
 }

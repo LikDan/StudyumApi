@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"context"
-	"studyum/src/models"
+	"studyum/src/entities"
 	"studyum/src/repositories"
 )
 
@@ -14,6 +14,6 @@ func NewGeneralController(repository repositories.IGeneralRepository) *GeneralCo
 	return &GeneralController{repository: repository}
 }
 
-func (g *GeneralController) GetStudyPlaces(ctx context.Context) (error, []models.StudyPlace) {
+func (g *GeneralController) GetStudyPlaces(ctx context.Context) (error, []entities.StudyPlace) {
 	return g.repository.GetAllStudyPlaces(ctx)
 }

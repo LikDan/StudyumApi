@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"context"
-	"studyum/src/models"
+	"studyum/src/entities"
 )
 
 type IController interface {
-	Auth(ctx context.Context, token string) (models.User, error)
+	Auth(ctx context.Context, token string) (entities.User, error)
 }

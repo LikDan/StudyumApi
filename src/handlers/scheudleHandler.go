@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"studyum/src/controllers"
-	"studyum/src/models"
+	"studyum/src/entities"
 	"studyum/src/utils"
 )
 
@@ -68,7 +68,7 @@ func (s *ScheduleHandler) GetScheduleTypes(ctx *gin.Context) {
 func (s *ScheduleHandler) AddLesson(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
-	var lesson models.Lesson
+	var lesson entities.Lesson
 	if err := ctx.BindJSON(&lesson); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
@@ -86,7 +86,7 @@ func (s *ScheduleHandler) AddLesson(ctx *gin.Context) {
 func (s *ScheduleHandler) UpdateLesson(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
-	var lesson models.Lesson
+	var lesson entities.Lesson
 	if err := ctx.BindJSON(&lesson); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return

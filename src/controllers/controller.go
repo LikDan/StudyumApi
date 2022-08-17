@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"context"
-	"studyum/src/models"
+	"studyum/src/entities"
 	"studyum/src/repositories"
 )
 
@@ -14,8 +14,8 @@ func NewController(repository repositories.IUserRepository) *Controller {
 	return &Controller{repository: repository}
 }
 
-func (a *Controller) Auth(ctx context.Context, token string) (models.User, error) {
-	var user models.User
+func (a *Controller) Auth(ctx context.Context, token string) (entities.User, error) {
+	var user entities.User
 	err := a.repository.GetUserViaToken(ctx, token, &user)
 
 	return user, err

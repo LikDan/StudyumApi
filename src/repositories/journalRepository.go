@@ -5,7 +5,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"studyum/src/models"
+	"studyum/src/entities"
 )
 
 type JournalRepository struct {
@@ -18,7 +18,7 @@ func NewJournalRepository(repository *Repository) *JournalRepository {
 	}
 }
 
-func (j *JournalRepository) AddMark(ctx context.Context, mark *models.Mark) error {
+func (j *JournalRepository) AddMark(ctx context.Context, mark *entities.Mark) error {
 	mark.Id = primitive.NewObjectID()
 	if _, err := j.marksCollection.InsertOne(ctx, mark); err != nil {
 		return err
@@ -27,7 +27,7 @@ func (j *JournalRepository) AddMark(ctx context.Context, mark *models.Mark) erro
 	return nil
 }
 
-func (j *JournalRepository) UpdateMark(ctx context.Context, mark *models.Mark) error {
+func (j *JournalRepository) UpdateMark(ctx context.Context, mark *entities.Mark) error {
 	_, err := j.marksCollection.UpdateOne(ctx, bson.M{"_id": mark.Id, "lessonId": mark.LessonId}, bson.M{"$set": bson.M{"mark": mark.Mark}})
 	if err != nil {
 		return err
@@ -45,7 +45,7 @@ func (j *JournalRepository) DeleteMark(ctx context.Context, id primitive.ObjectI
 	return nil
 }
 
-func (j *JournalRepository) GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]models.JournalAvailableOption, error) {
+func (j *JournalRepository) GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]entities.JournalAvailableOption, error) {
 	aggregate, err := j.lessonsCollection.Aggregate(ctx, bson.A{
 		bson.M{"$match": bson.M{"teacher": teacher}},
 		bson.M{"$group": bson.M{
@@ -64,7 +64,7 @@ func (j *JournalRepository) GetAvailableOptions(ctx context.Context, teacher str
 		return nil, err
 	}
 
-	var options []models.JournalAvailableOption
+	var options []entities.JournalAvailableOption
 	if err = aggregate.All(ctx, &options); err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (j *JournalRepository) GetAvailableOptions(ctx context.Context, teacher str
 	return options, nil
 }
 
-func (j *JournalRepository) GetStudentJournal(ctx context.Context, journal *models.Journal, userId primitive.ObjectID, group string, studyPlaceId int) error {
+func (j *JournalRepository) GetStudentJournal(ctx context.Context, journal *entities.Journal, userId primitive.ObjectID, group string, studyPlaceId int) error {
 	cursor, err := j.lessonsCollection.Aggregate(ctx, bson.A{
 		bson.M{"$match": bson.M{"group": group, "studyPlaceId": studyPlaceId}},
 		bson.M{"$group": bson.M{"_id": "$subject"}},
@@ -149,7 +149,7 @@ func (j *JournalRepository) GetStudentJournal(ctx context.Context, journal *mode
 	return nil
 }
 
-func (j *JournalRepository) GetJournal(ctx context.Context, journal *models.Journal, group string, subject string, typeName string, studyPlaceId int) error {
+func (j *JournalRepository) GetJournal(ctx context.Context, journal *entities.Journal, group string, subject string, typeName string, studyPlaceId int) error {
 	cursor, err := j.usersCollection.Aggregate(ctx, mongo.Pipeline{
 		bson.D{{"$match", bson.M{"type": "group", "typeName": group, "studyPlaceId": studyPlaceId}}},
 		bson.D{{"$lookup", bson.M{
@@ -197,7 +197,7 @@ func (j *JournalRepository) GetJournal(ctx context.Context, journal *models.Jour
 	return nil
 }
 
-func (j *JournalRepository) GetLessonById(ctx context.Context, userId primitive.ObjectID, id primitive.ObjectID) (models.Lesson, error) {
+func (j *JournalRepository) GetLessonById(ctx context.Context, userId primitive.ObjectID, id primitive.ObjectID) (entities.Lesson, error) {
 	lessonsCursor, err := j.lessonsCollection.Aggregate(ctx, mongo.Pipeline{
 		bson.D{{"$match", bson.M{"_id": id}}},
 		bson.D{{"$lookup", bson.M{
@@ -212,16 +212,16 @@ func (j *JournalRepository) GetLessonById(ctx context.Context, userId primitive.
 		bson.D{{"$sort", bson.M{"date": 1}}},
 	})
 
-	var lesson models.Lesson
+	var lesson entities.Lesson
 	lessonsCursor.Next(ctx)
 	if err = lessonsCursor.Decode(&lesson); err != nil {
-		return models.Lesson{}, err
+		return entities.Lesson{}, err
 	}
 
 	return lesson, nil
 }
 
-func (j *JournalRepository) GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId int) ([]models.Lesson, error) {
+func (j *JournalRepository) GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId int) ([]entities.Lesson, error) {
 	lessonsCursor, err := j.lessonsCollection.Aggregate(ctx, mongo.Pipeline{
 		bson.D{{"$lookup", bson.M{
 			"from":         "Marks",
@@ -236,7 +236,7 @@ func (j *JournalRepository) GetLessons(ctx context.Context, userId primitive.Obj
 		bson.D{{"$sort", bson.M{"date": 1}}},
 	})
 
-	var marks []models.Lesson
+	var marks []entities.Lesson
 	if err = lessonsCursor.All(ctx, &marks); err != nil {
 		return nil, err
 	}

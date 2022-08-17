@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"context"
-	"studyum/src/models"
+	"studyum/src/entities"
 )
 
 type IGeneralController interface {
-	GetStudyPlaces(ctx context.Context) (error, []models.StudyPlace)
+	GetStudyPlaces(ctx context.Context) (error, []entities.StudyPlace)
 }
