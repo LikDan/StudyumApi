@@ -5,17 +5,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"github.com/gin-gonic/gin"
-	"studyum/src/models"
+	"studyum/src/entities"
 )
-
-func CheckNotEmpty(strings ...string) bool {
-	for _, s := range strings {
-		if s == "" {
-			return false
-		}
-	}
-	return true
-}
 
 func GenerateSecureToken() string {
 	b := make([]byte, 128)
@@ -30,8 +21,8 @@ func Hash(s string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func GetUserViaCtx(ctx *gin.Context) models.User {
-	return GetViaCtx[models.User](ctx, "user")
+func GetUserViaCtx(ctx *gin.Context) entities.User {
+	return GetViaCtx[entities.User](ctx, "user")
 }
 
 func GetViaCtx[G any](ctx *gin.Context, name string) G {
