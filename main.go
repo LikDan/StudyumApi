@@ -7,12 +7,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
 	"studyum/src/controllers"
+	fb "studyum/src/firebase"
 	"studyum/src/handlers"
 	pController "studyum/src/parser/controller"
 	pHandler "studyum/src/parser/handler"
 	"studyum/src/parser/repository"
 	"studyum/src/repositories"
-	"studyum/src/utils"
 	"time"
 )
 
@@ -43,6 +43,9 @@ func main() {
 	scheduleController := controllers.NewScheduleController(scheduleRepository)
 	parserController := pController.NewParserController(parserRepository)
 
+	firebaseCredentials := []byte(os.Getenv("FIREBASE_CREDENTIALS"))
+	firebase := fb.NewFirebase(firebaseCredentials)
+
 	engine := gin.Default()
 	api := engine.Group("/api")
 
@@ -52,9 +55,7 @@ func main() {
 	handlers.NewJournalHandler(handler, journalController, api.Group("/journal"))
 	handlers.NewScheduleHandler(handler, scheduleController, api.Group("/schedule"))
 
-	pHandler.NewParserHandler(parserController)
-
-	utils.InitFirebaseApp()
+	pHandler.NewParserHandler(firebase, parserController)
 
 	if err = engine.Run(); err != nil {
 		logrus.Fatalf("Error launching server %s", err.Error())
