@@ -4,18 +4,19 @@ import (
 	"context"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
+	"studyum/src/firebase"
 	"studyum/src/parser/controller"
 	"studyum/src/parser/entities"
 )
 
 type Handler struct {
+	firebase firebase.IFirebase
+
 	controller controller.IController
 }
 
-func NewParserHandler(controller controller.IController) *Handler {
-	handler := &Handler{
-		controller: controller,
-	}
+func NewParserHandler(firebase firebase.IFirebase, controller controller.IController) *Handler {
+	handler := &Handler{firebase: firebase, controller: controller}
 
 	for _, app := range controller.Apps() {
 		ctx := context.Background()

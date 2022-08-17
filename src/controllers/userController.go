@@ -4,7 +4,8 @@ import (
 	"context"
 	"github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"studyum/src/models"
+	"studyum/src/dto"
+	"studyum/src/entities"
 	"studyum/src/repositories"
 	"studyum/src/utils"
 )
@@ -17,14 +18,14 @@ func NewUserController(repository repositories.IUserRepository) *UserController 
 	return &UserController{repository: repository}
 }
 
-func (u *UserController) SignUpUser(ctx context.Context, data models.UserSignUpData) (models.User, error) {
+func (u *UserController) SignUpUser(ctx context.Context, data dto.UserSignUpData) (entities.User, error) {
 	if err := validator.New().Struct(&data); err != nil {
-		return models.User{}, NotValidParams
+		return entities.User{}, NotValidParams
 	}
 
 	data.Password = utils.Hash(data.Password)
 
-	user := models.User{
+	user := entities.User{
 		Id:            primitive.NilObjectID,
 		Token:         "",
 		Password:      data.Password,
@@ -41,13 +42,13 @@ func (u *UserController) SignUpUser(ctx context.Context, data models.UserSignUpD
 		Blocked:       false,
 	}
 	if err := u.repository.SignUp(ctx, &user); err != nil {
-		return models.User{}, err
+		return entities.User{}, err
 	}
 
 	return user, nil
 }
 
-func (u *UserController) SignUpUserStage1(ctx context.Context, user models.User, data models.UserSignUpStage1Data) (models.User, error) {
+func (u *UserController) SignUpUserStage1(ctx context.Context, user entities.User, data dto.UserSignUpStage1Data) (entities.User, error) {
 	switch data.Type {
 	case "group", "teacher":
 		user.Type = data.Type
@@ -55,19 +56,19 @@ func (u *UserController) SignUpUserStage1(ctx context.Context, user models.User,
 		user.TypeName = data.TypeName
 		break
 	default:
-		return models.User{}, NotValidParams
+		return entities.User{}, NotValidParams
 	}
 
 	if err := u.repository.SignUpStage1(ctx, &user); err != nil {
-		return models.User{}, err
+		return entities.User{}, err
 	}
 
 	return user, nil
 }
 
-func (u *UserController) UpdateUser(ctx context.Context, user models.User, data models.UserSignUpData) (models.User, error) {
+func (u *UserController) UpdateUser(ctx context.Context, user entities.User, data dto.UserSignUpData) (entities.User, error) {
 	if err := validator.New().Struct(&data); err != nil {
-		return models.User{}, NotValidParams
+		return entities.User{}, NotValidParams
 	}
 
 	if data.Password != "" && len(data.Password) > 8 {
@@ -78,24 +79,24 @@ func (u *UserController) UpdateUser(ctx context.Context, user models.User, data 
 	user.Name = data.Name
 	user.Email = data.Email
 	if err := u.repository.UpdateUser(ctx, &user); err != nil {
-		return models.User{}, err
+		return entities.User{}, err
 	}
 
 	return user, nil
 }
 
-func (u *UserController) LoginUser(ctx context.Context, data models.UserLoginData) (models.User, error) {
+func (u *UserController) LoginUser(ctx context.Context, data dto.UserLoginData) (entities.User, error) {
 	data.Password = utils.Hash(data.Password)
 
-	var user models.User
+	var user entities.User
 	if err := u.repository.Login(ctx, &data, &user); err != nil {
-		return models.User{}, err
+		return entities.User{}, err
 	}
 
 	return user, nil
 }
 
-func (u *UserController) UpdateToken(ctx context.Context, data models.UserLoginData, token string) error {
+func (u *UserController) UpdateToken(ctx context.Context, data dto.UserLoginData, token string) error {
 	return u.repository.UpdateToken(ctx, data, token)
 }
 

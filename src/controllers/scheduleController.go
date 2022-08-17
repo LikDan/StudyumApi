@@ -4,9 +4,8 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"studyum/src/models"
+	"studyum/src/entities"
 	"studyum/src/repositories"
-	"studyum/src/utils"
 )
 
 type ScheduleController struct {
@@ -17,30 +16,30 @@ func NewScheduleController(repository repositories.IScheduleRepository) *Schedul
 	return &ScheduleController{repository: repository}
 }
 
-func (s *ScheduleController) GetSchedule(ctx context.Context, type_ string, typeName string, user models.User) (models.Schedule, error) {
-	if !utils.CheckNotEmpty(type_, typeName) {
-		return models.Schedule{}, NotValidParams
+func (s *ScheduleController) GetSchedule(ctx context.Context, type_ string, typeName string, user entities.User) (entities.Schedule, error) {
+	if type_ == "" || typeName == "" {
+		return entities.Schedule{}, NotValidParams
 	}
 
-	var schedule models.Schedule
+	var schedule entities.Schedule
 	if err := s.repository.GetSchedule(ctx, user.StudyPlaceId, type_, typeName, &schedule); err != nil {
-		return models.Schedule{}, err
+		return entities.Schedule{}, err
 	}
 
 	return schedule, nil
 }
 
-func (s *ScheduleController) GetUserSchedule(ctx context.Context, user models.User) (models.Schedule, error) {
-	var schedule models.Schedule
+func (s *ScheduleController) GetUserSchedule(ctx context.Context, user entities.User) (entities.Schedule, error) {
+	var schedule entities.Schedule
 	if err := s.repository.GetSchedule(ctx, user.StudyPlaceId, user.Type, user.TypeName, &schedule); err != nil {
-		return models.Schedule{}, err
+		return entities.Schedule{}, err
 	}
 
 	return schedule, nil
 }
 
-func (s *ScheduleController) GetScheduleTypes(ctx context.Context, user models.User) models.Types {
-	return models.Types{
+func (s *ScheduleController) GetScheduleTypes(ctx context.Context, user entities.User) entities.Types {
+	return entities.Types{
 		Groups:   s.repository.GetScheduleType(ctx, user.StudyPlaceId, "group"),
 		Teachers: s.repository.GetScheduleType(ctx, user.StudyPlaceId, "teacher"),
 		Subjects: s.repository.GetScheduleType(ctx, user.StudyPlaceId, "subject"),
@@ -48,15 +47,15 @@ func (s *ScheduleController) GetScheduleTypes(ctx context.Context, user models.U
 	}
 }
 
-func (s *ScheduleController) AddLesson(ctx context.Context, lesson models.Lesson, user models.User) error {
+func (s *ScheduleController) AddLesson(ctx context.Context, lesson entities.Lesson, user entities.User) error {
 	return s.repository.AddLesson(ctx, &lesson, user.StudyPlaceId)
 }
 
-func (s *ScheduleController) UpdateLesson(ctx context.Context, lesson models.Lesson, user models.User) error {
+func (s *ScheduleController) UpdateLesson(ctx context.Context, lesson entities.Lesson, user entities.User) error {
 	return s.repository.UpdateLesson(ctx, &lesson, user.StudyPlaceId)
 }
 
-func (s *ScheduleController) DeleteLesson(ctx context.Context, idHex string, user models.User) error {
+func (s *ScheduleController) DeleteLesson(ctx context.Context, idHex string, user entities.User) error {
 	if !primitive.IsValidObjectID(idHex) {
 		return errors.Wrap(NotValidParams, "id")
 	}

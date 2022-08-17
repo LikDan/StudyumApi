@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"studyum/src/controllers"
-	"studyum/src/models"
+	"studyum/src/dto"
 	"studyum/src/utils"
 	"time"
 )
@@ -58,7 +58,7 @@ func (u *UserHandler) GetUser(ctx *gin.Context) {
 func (u *UserHandler) UpdateUser(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
-	var data models.UserSignUpData
+	var data dto.UserSignUpData
 	if err := ctx.BindJSON(&data); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
@@ -74,7 +74,7 @@ func (u *UserHandler) UpdateUser(ctx *gin.Context) {
 }
 
 func (u *UserHandler) LoginUser(ctx *gin.Context) {
-	var data models.UserLoginData
+	var data dto.UserLoginData
 	if err := ctx.BindJSON(&data); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
@@ -94,7 +94,7 @@ func (u *UserHandler) LoginUser(ctx *gin.Context) {
 }
 
 func (u *UserHandler) SignUpUser(ctx *gin.Context) {
-	var data models.UserSignUpData
+	var data dto.UserSignUpData
 	if err := ctx.BindJSON(&data); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
@@ -116,7 +116,7 @@ func (u *UserHandler) SignUpUser(ctx *gin.Context) {
 func (u *UserHandler) SignUpUserStage1(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
-	var data models.UserSignUpStage1Data
+	var data dto.UserSignUpStage1Data
 	if err := ctx.BindJSON(&data); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return

@@ -3,7 +3,7 @@ package repositories
 import (
 	"context"
 	"go.mongodb.org/mongo-driver/bson"
-	"studyum/src/models"
+	"studyum/src/entities"
 )
 
 type GeneralRepository struct {
@@ -16,8 +16,8 @@ func NewGeneralRepository(repository *Repository) *GeneralRepository {
 	}
 }
 
-func (g *GeneralRepository) GetAllStudyPlaces(ctx context.Context) (error, []models.StudyPlace) {
-	var studyPlaces []models.StudyPlace
+func (g *GeneralRepository) GetAllStudyPlaces(ctx context.Context) (error, []entities.StudyPlace) {
+	var studyPlaces []entities.StudyPlace
 	studyPlacesCursor, err := g.studyPlacesCollection.Find(ctx, bson.M{})
 	if err != nil {
 		return err, nil

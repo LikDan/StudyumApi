@@ -2,9 +2,9 @@ package repositories
 
 import (
 	"context"
-	"studyum/src/models"
+	"studyum/src/entities"
 )
 
 type IGeneralRepository interface {
-	GetAllStudyPlaces(ctx context.Context) (error, []models.StudyPlace)
+	GetAllStudyPlaces(ctx context.Context) (error, []entities.StudyPlace)
 }

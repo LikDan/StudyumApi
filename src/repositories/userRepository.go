@@ -5,7 +5,8 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"studyum/src/models"
+	"studyum/src/dto"
+	"studyum/src/entities"
 )
 
 var NotAuthorizationError = errors.New("not authorized")
@@ -20,7 +21,7 @@ func NewUserRepository(repository *Repository) *UserRepository {
 	}
 }
 
-func (u *UserRepository) GetUserViaToken(ctx context.Context, token string, user *models.User) error {
+func (u *UserRepository) GetUserViaToken(ctx context.Context, token string, user *entities.User) error {
 	if err := u.usersCollection.FindOne(ctx, bson.M{"token": token}).Decode(user); err != nil {
 		if err.Error() == "mongo: no documents in result" {
 			return NotAuthorizationError
@@ -32,7 +33,7 @@ func (u *UserRepository) GetUserViaToken(ctx context.Context, token string, user
 	return nil
 }
 
-func (u *UserRepository) SignUp(ctx context.Context, user *models.User) error {
+func (u *UserRepository) SignUp(ctx context.Context, user *entities.User) error {
 	user.Id = primitive.NewObjectID()
 	if _, err := u.usersCollection.InsertOne(ctx, user); err != nil {
 		return err
@@ -41,7 +42,7 @@ func (u *UserRepository) SignUp(ctx context.Context, user *models.User) error {
 	return nil
 }
 
-func (u *UserRepository) SignUpStage1(ctx context.Context, user *models.User) error {
+func (u *UserRepository) SignUpStage1(ctx context.Context, user *entities.User) error {
 	if _, err := u.usersCollection.UpdateOne(ctx, bson.M{"token": user.Token}, bson.M{"$set": user}); err != nil {
 		return err
 	}
@@ -49,7 +50,7 @@ func (u *UserRepository) SignUpStage1(ctx context.Context, user *models.User) er
 	return nil
 }
 
-func (u *UserRepository) Login(ctx context.Context, data *models.UserLoginData, user *models.User) error {
+func (u *UserRepository) Login(ctx context.Context, data *dto.UserLoginData, user *entities.User) error {
 	if err := u.usersCollection.FindOne(ctx, data).Decode(&user); err != nil {
 		if err.Error() == "mongo: no documents in result" {
 			return NotAuthorizationError
@@ -61,7 +62,7 @@ func (u *UserRepository) Login(ctx context.Context, data *models.UserLoginData, 
 	return nil
 }
 
-func (u *UserRepository) UpdateUser(ctx context.Context, user *models.User) error {
+func (u *UserRepository) UpdateUser(ctx context.Context, user *entities.User) error {
 	if _, err := u.usersCollection.UpdateOne(ctx, bson.M{"token": user.Token}, bson.M{"$set": user}); err != nil {
 		return err
 	}
@@ -77,7 +78,7 @@ func (u *UserRepository) RevokeToken(ctx context.Context, token string) error {
 	return nil
 }
 
-func (u *UserRepository) UpdateToken(ctx context.Context, data models.UserLoginData, token string) error {
+func (u *UserRepository) UpdateToken(ctx context.Context, data dto.UserLoginData, token string) error {
 	if _, err := u.usersCollection.UpdateOne(ctx, data, bson.M{"$set": bson.M{"token": token}}); err != nil {
 		return err
 	}
@@ -93,7 +94,7 @@ func (u *UserRepository) UpdateUserTokenByEmail(ctx context.Context, email, toke
 	return nil
 }
 
-func (u *UserRepository) GetUserByEmail(ctx context.Context, email string, user *models.User) error {
+func (u *UserRepository) GetUserByEmail(ctx context.Context, email string, user *entities.User) error {
 	if err := u.usersCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user); err != nil {
 		return err
 	}

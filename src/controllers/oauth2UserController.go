@@ -7,7 +7,7 @@ import (
 	"golang.org/x/oauth2"
 	"io"
 	"net/http"
-	"studyum/src/models"
+	"studyum/src/entities"
 	"studyum/src/utils"
 )
 
@@ -15,24 +15,24 @@ func (u *UserController) GetOAuth2ConfigByName(name string) *oauth2.Config {
 	return Configs[name]
 }
 
-func (u *UserController) GetUserViaToken(ctx context.Context, token string) (models.User, error) {
-	var user models.User
+func (u *UserController) GetUserViaToken(ctx context.Context, token string) (entities.User, error) {
+	var user entities.User
 	if err := u.repository.GetUserViaToken(ctx, token, &user); err != nil {
-		return models.User{}, err
+		return entities.User{}, err
 	}
 
 	return user, nil
 }
 
-func (u *UserController) CallbackOAuth2(ctx context.Context, code string) (models.User, error) {
+func (u *UserController) CallbackOAuth2(ctx context.Context, code string) (entities.User, error) {
 	token, err := googleOAuthConfig.Exchange(context.Background(), code)
 	if err != nil {
-		return models.User{}, err
+		return entities.User{}, err
 	}
 
 	response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
 	if err != nil {
-		return models.User{}, err
+		return entities.User{}, err
 	}
 
 	defer func(Body io.ReadCloser) {
@@ -41,22 +41,22 @@ func (u *UserController) CallbackOAuth2(ctx context.Context, code string) (model
 
 	content, err := io.ReadAll(response.Body)
 	if err != nil {
-		return models.User{}, err
+		return entities.User{}, err
 	}
 
-	var googleUser models.OAuth2CallbackUser
+	var googleUser entities.OAuth2CallbackUser
 	err = json.Unmarshal(content, &googleUser)
 	if err != nil {
-		return models.User{}, err
+		return entities.User{}, err
 	}
 
-	var user models.User
+	var user entities.User
 
 	if err = u.repository.GetUserByEmail(ctx, googleUser.Email, &user); err != nil {
 		if err.Error() != "mongo: no documents in result" {
-			return models.User{}, err
+			return entities.User{}, err
 		}
-		user = models.User{
+		user = entities.User{
 			Id:            primitive.NewObjectID(),
 			Token:         utils.GenerateSecureToken(),
 			Email:         googleUser.Email,
@@ -73,7 +73,7 @@ func (u *UserController) CallbackOAuth2(ctx context.Context, code string) (model
 		}
 
 		if err := u.repository.SignUp(ctx, &user); err != nil {
-			return models.User{}, err
+			return entities.User{}, err
 		}
 	}
 
@@ -81,7 +81,7 @@ func (u *UserController) CallbackOAuth2(ctx context.Context, code string) (model
 		user.Token = utils.GenerateSecureToken()
 
 		if err = u.repository.UpdateUserTokenByEmail(ctx, user.Email, user.Token); err != nil {
-			return models.User{}, err
+			return entities.User{}, err
 		}
 	}
 

@@ -2,16 +2,16 @@ package controllers
 
 import (
 	"context"
-	"studyum/src/models"
+	"studyum/src/entities"
 )
 
 type IScheduleController interface {
-	GetSchedule(ctx context.Context, type_ string, typeName string, user models.User) (models.Schedule, error)
-	GetUserSchedule(ctx context.Context, user models.User) (models.Schedule, error)
+	GetSchedule(ctx context.Context, type_ string, typeName string, user entities.User) (entities.Schedule, error)
+	GetUserSchedule(ctx context.Context, user entities.User) (entities.Schedule, error)
 
-	GetScheduleTypes(ctx context.Context, user models.User) models.Types
+	GetScheduleTypes(ctx context.Context, user entities.User) entities.Types
 
-	AddLesson(ctx context.Context, lesson models.Lesson, user models.User) error
-	UpdateLesson(ctx context.Context, lesson models.Lesson, user models.User) error
-	DeleteLesson(ctx context.Context, idHex string, user models.User) error
+	AddLesson(ctx context.Context, lesson entities.Lesson, user entities.User) error
+	UpdateLesson(ctx context.Context, lesson entities.Lesson, user entities.User) error
+	DeleteLesson(ctx context.Context, idHex string, user entities.User) error
 }

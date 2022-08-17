@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"studyum/src/controllers"
-	"studyum/src/models"
+	"studyum/src/entities"
 	"studyum/src/utils"
 )
 
@@ -76,7 +76,7 @@ func (j *JournalHandler) GetUserJournal(ctx *gin.Context) {
 func (j *JournalHandler) AddMark(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
-	var mark models.Mark
+	var mark entities.Mark
 	if err := ctx.BindJSON(&mark); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
@@ -110,7 +110,7 @@ func (j *JournalHandler) GetMark(ctx *gin.Context) {
 func (j *JournalHandler) UpdateMark(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
-	var mark models.Mark
+	var mark entities.Mark
 	if err := ctx.BindJSON(&mark); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return

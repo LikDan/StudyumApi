@@ -4,7 +4,7 @@ import (
 	"context"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"studyum/src/models"
+	"studyum/src/entities"
 	"studyum/src/utils"
 	"time"
 )
@@ -19,7 +19,7 @@ func NewScheduleRepository(repository *Repository) *ScheduleRepository {
 	}
 }
 
-func (s *ScheduleRepository) GetSchedule(ctx context.Context, studyPlaceId int, type_ string, typeName string, schedule *models.Schedule) error {
+func (s *ScheduleRepository) GetSchedule(ctx context.Context, studyPlaceId int, type_ string, typeName string, schedule *entities.Schedule) error {
 	startWeekDate := utils.Date().AddDate(0, 0, 1-int(time.Now().Weekday()))
 	cursor, err := s.studyPlacesCollection.Aggregate(ctx, bson.A{
 		bson.M{
@@ -148,7 +148,7 @@ func (s *ScheduleRepository) GetScheduleType(ctx context.Context, studyPlaceId i
 	return names
 }
 
-func (s *ScheduleRepository) AddLesson(ctx context.Context, lesson *models.Lesson, studyPlaceId int) error {
+func (s *ScheduleRepository) AddLesson(ctx context.Context, lesson *entities.Lesson, studyPlaceId int) error {
 	if lesson.Type == "GENERAL" {
 		lesson.Type = "STAY"
 	}
@@ -162,7 +162,7 @@ func (s *ScheduleRepository) AddLesson(ctx context.Context, lesson *models.Lesso
 	return nil
 }
 
-func (s *ScheduleRepository) UpdateLesson(ctx context.Context, lesson *models.Lesson, studyPlaceId int) error {
+func (s *ScheduleRepository) UpdateLesson(ctx context.Context, lesson *entities.Lesson, studyPlaceId int) error {
 	lesson.StudyPlaceId = studyPlaceId
 
 	if _, err := s.lessonsCollection.UpdateOne(ctx, bson.M{"_id": lesson.Id, "studyPlaceId": studyPlaceId}, bson.M{"$set": lesson}); err != nil {
