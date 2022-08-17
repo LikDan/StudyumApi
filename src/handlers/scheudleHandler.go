@@ -9,15 +9,15 @@ import (
 )
 
 type ScheduleHandler struct {
-	IAuthHandler
+	IHandler
 
 	controller controllers.IScheduleController
 
 	Group *gin.RouterGroup
 }
 
-func NewScheduleHandler(authHandler IAuthHandler, controller controllers.IScheduleController, group *gin.RouterGroup) *ScheduleHandler {
-	h := &ScheduleHandler{IAuthHandler: authHandler, controller: controller, Group: group}
+func NewScheduleHandler(authHandler IHandler, controller controllers.IScheduleController, group *gin.RouterGroup) *ScheduleHandler {
+	h := &ScheduleHandler{IHandler: authHandler, controller: controller, Group: group}
 
 	group.GET(":type/:name", h.Auth(), h.GetSchedule)
 	group.GET("", h.Auth(), h.GetUserSchedule)
@@ -37,7 +37,8 @@ func (s *ScheduleHandler) GetSchedule(ctx *gin.Context) {
 	typeName := ctx.Param("name")
 
 	schedule, err := s.controller.GetSchedule(ctx, type_, typeName, user)
-	if err.CheckAndResponse(ctx) {
+	if err != nil {
+		s.Error(ctx, err)
 		return
 	}
 
@@ -48,7 +49,8 @@ func (s *ScheduleHandler) GetUserSchedule(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	schedule, err := s.controller.GetUserSchedule(ctx, user)
-	if err.CheckAndResponse(ctx) {
+	if err != nil {
+		s.Error(ctx, err)
 		return
 	}
 
@@ -67,12 +69,14 @@ func (s *ScheduleHandler) AddLesson(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	var lesson models.Lesson
-	if err := ctx.BindJSON(&lesson); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
+	if err := ctx.BindJSON(&lesson); err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
 
 	err := s.controller.AddLesson(ctx, lesson, user)
-	if err.CheckAndResponse(ctx) {
+	if err != nil {
+		s.Error(ctx, err)
 		return
 	}
 
@@ -83,12 +87,14 @@ func (s *ScheduleHandler) UpdateLesson(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	var lesson models.Lesson
-	if err := ctx.BindJSON(&lesson); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
+	if err := ctx.BindJSON(&lesson); err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
 
 	err := s.controller.UpdateLesson(ctx, lesson, user)
-	if err.CheckAndResponse(ctx) {
+	if err != nil {
+		s.Error(ctx, err)
 		return
 	}
 
@@ -100,7 +106,8 @@ func (s *ScheduleHandler) DeleteLesson(ctx *gin.Context) {
 	id := ctx.Param("id")
 
 	err := s.controller.DeleteLesson(ctx, id, user)
-	if err.CheckAndResponse(ctx) {
+	if err != nil {
+		s.Error(ctx, err)
 		return
 	}
 

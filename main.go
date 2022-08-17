@@ -2,14 +2,14 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
 	"studyum/src/controllers"
 	"studyum/src/handlers"
-	"studyum/src/parser/controller"
-	"studyum/src/parser/handler"
+	pController "studyum/src/parser/controller"
+	pHandler "studyum/src/parser/handler"
 	"studyum/src/parser/repository"
 	"studyum/src/repositories"
 	"studyum/src/utils"
@@ -21,11 +21,11 @@ func main() {
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(os.Getenv("DB_URL")))
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 
 	if err = client.Connect(nil); err != nil {
-		log.Fatalf("Can't connect to database, error: %s", err.Error())
+		logrus.Fatalf("Can't connect to database, error: %s", err.Error())
 		return
 	}
 
@@ -36,27 +36,27 @@ func main() {
 	scheduleRepository := repositories.NewScheduleRepository(repo)
 	parserRepository := repository.NewParserRepository(client)
 
-	authController := controllers.NewAuthController(userRepository)
+	controller := controllers.NewController(userRepository)
 	userController := controllers.NewUserController(userRepository)
 	generalController := controllers.NewGeneralController(generalRepository)
 	journalController := controllers.NewJournalController(journalRepository)
 	scheduleController := controllers.NewScheduleController(scheduleRepository)
-	parserController := controller.NewParserController(parserRepository)
+	parserController := pController.NewParserController(parserRepository)
 
 	engine := gin.Default()
 	api := engine.Group("/api")
 
-	authHandler := handlers.NewAuthHandler(authController)
-	handlers.NewGeneralHandler(generalController, api)
-	handlers.NewUserHandler(authHandler, userController, api.Group("/user"))
-	handlers.NewJournalHandler(authHandler, journalController, api.Group("/journal"))
-	handlers.NewScheduleHandler(authHandler, scheduleController, api.Group("/schedule"))
+	handler := handlers.NewHandler(controller)
+	handlers.NewGeneralHandler(handler, generalController, api)
+	handlers.NewUserHandler(handler, userController, api.Group("/user"))
+	handlers.NewJournalHandler(handler, journalController, api.Group("/journal"))
+	handlers.NewScheduleHandler(handler, scheduleController, api.Group("/schedule"))
 
-	handler.NewParserHandler(parserController)
+	pHandler.NewParserHandler(parserController)
 
 	utils.InitFirebaseApp()
 
 	if err = engine.Run(); err != nil {
-		log.Fatalf("Error launching server %s", err.Error())
+		logrus.Fatalf("Error launching server %s", err.Error())
 	}
 }

@@ -10,15 +10,15 @@ import (
 )
 
 type UserHandler struct {
-	IAuthHandler
+	IHandler
 
 	controller controllers.IUserController
 
 	Group *gin.RouterGroup
 }
 
-func NewUserHandler(authHandler IAuthHandler, controller controllers.IUserController, group *gin.RouterGroup) *UserHandler {
-	h := &UserHandler{IAuthHandler: authHandler, controller: controller, Group: group}
+func NewUserHandler(authHandler IHandler, controller controllers.IUserController, group *gin.RouterGroup) *UserHandler {
+	h := &UserHandler{IHandler: authHandler, controller: controller, Group: group}
 
 	group.GET("", h.Auth(), h.GetUser)
 	group.PUT("", h.Auth(), h.UpdateUser)
@@ -38,6 +38,17 @@ func NewUserHandler(authHandler IAuthHandler, controller controllers.IUserContro
 	return h
 }
 
+func (u *UserHandler) putToken(ctx *gin.Context, token string) error {
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name:    "authToken",
+		Value:   token,
+		Path:    "/",
+		Expires: time.Now().AddDate(1, 0, 0),
+	})
+
+	return nil
+}
+
 func (u *UserHandler) GetUser(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
@@ -48,12 +59,14 @@ func (u *UserHandler) UpdateUser(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	var data models.UserSignUpData
-	if err := ctx.BindJSON(&data); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
+	if err := ctx.BindJSON(&data); err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
 
 	user, err := u.controller.UpdateUser(ctx, user, data)
-	if err.CheckAndResponse(ctx) {
+	if err != nil {
+		u.Error(ctx, err)
 		return
 	}
 
@@ -62,13 +75,19 @@ func (u *UserHandler) UpdateUser(ctx *gin.Context) {
 
 func (u *UserHandler) LoginUser(ctx *gin.Context) {
 	var data models.UserLoginData
-	if err := ctx.BindJSON(&data); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
+	if err := ctx.BindJSON(&data); err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
 
 	user, err := u.controller.LoginUser(ctx, data)
-	if err.CheckAndResponse(ctx) {
+	if err != nil {
+		u.Error(ctx, err)
 		return
+	}
+
+	if err = u.putToken(ctx, user.Token); err != nil {
+		u.Error(ctx, err)
 	}
 
 	ctx.JSON(http.StatusOK, user)
@@ -76,13 +95,19 @@ func (u *UserHandler) LoginUser(ctx *gin.Context) {
 
 func (u *UserHandler) SignUpUser(ctx *gin.Context) {
 	var data models.UserSignUpData
-	if err := ctx.BindJSON(&data); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
+	if err := ctx.BindJSON(&data); err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
 
 	user, err := u.controller.SignUpUser(ctx, data)
-	if err.CheckAndResponse(ctx) {
+	if err != nil {
+		u.Error(ctx, err)
 		return
+	}
+
+	if err = u.putToken(ctx, user.Token); err != nil {
+		u.Error(ctx, err)
 	}
 
 	ctx.JSON(http.StatusOK, user)
@@ -92,12 +117,14 @@ func (u *UserHandler) SignUpUserStage1(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	var data models.UserSignUpStage1Data
-	if err := ctx.BindJSON(&data); models.BindError(err, 400, models.UNDEFINED).CheckAndResponse(ctx) {
+	if err := ctx.BindJSON(&data); err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
 
 	user, err := u.controller.SignUpUserStage1(ctx, user, data)
-	if err.CheckAndResponse(ctx) {
+	if err != nil {
+		u.Error(ctx, err)
 		return
 	}
 
@@ -109,7 +136,7 @@ func (u *UserHandler) OAuth2(ctx *gin.Context) {
 	config := u.controller.GetOAuth2ConfigByName(configName)
 
 	if config == nil {
-		models.BindErrorStr("no such server", 400, models.UNDEFINED).CheckAndResponse(ctx)
+		ctx.JSON(http.StatusBadRequest, "no such server")
 		return
 	}
 
@@ -121,7 +148,8 @@ func (u *UserHandler) CallbackOAuth2(ctx *gin.Context) {
 	code := ctx.Query("code")
 
 	user, err := u.controller.CallbackOAuth2(ctx, code)
-	if err.CheckAndResponse(ctx) {
+	if err != nil {
+		u.Error(ctx, err)
 		return
 	}
 
@@ -132,15 +160,13 @@ func (u *UserHandler) PutAuthToken(ctx *gin.Context) {
 	bytes, _ := ctx.GetRawData()
 	token := string(bytes)
 
-	http.SetCookie(ctx.Writer, &http.Cookie{
-		Name:    "authToken",
-		Value:   token,
-		Path:    "/",
-		Expires: time.Now().AddDate(1, 0, 0),
-	})
+	if err := u.putToken(ctx, token); err != nil {
+		u.Error(ctx, err)
+	}
 
 	user, err := u.controller.GetUserViaToken(ctx, token)
-	if err.CheckAndResponse(ctx) {
+	if err != nil {
+		u.Error(ctx, err)
 		return
 	}
 
@@ -159,8 +185,9 @@ func (u *UserHandler) RevokeToken(ctx *gin.Context) {
 		return
 	}
 
-	err_ := u.controller.RevokeToken(ctx, token)
-	if err_.CheckAndResponse(ctx) {
+	err = u.controller.RevokeToken(ctx, token)
+	if err != nil {
+		u.Error(ctx, err)
 		return
 	}
 

@@ -7,15 +7,15 @@ import (
 )
 
 type IJournalRepository interface {
-	AddMark(ctx context.Context, mark *models.Mark) *models.Error
-	UpdateMark(ctx context.Context, mark *models.Mark) *models.Error
-	DeleteMark(ctx context.Context, id primitive.ObjectID, lessonId primitive.ObjectID) *models.Error
+	AddMark(ctx context.Context, mark *models.Mark) error
+	UpdateMark(ctx context.Context, mark *models.Mark) error
+	DeleteMark(ctx context.Context, id primitive.ObjectID, lessonId primitive.ObjectID) error
 
-	GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]models.JournalAvailableOption, *models.Error)
+	GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]models.JournalAvailableOption, error)
 
-	GetStudentJournal(ctx context.Context, journal *models.Journal, userId primitive.ObjectID, group string, studyPlaceId int) *models.Error
-	GetJournal(ctx context.Context, journal *models.Journal, group string, subject string, typeName string, studyPlaceId int) *models.Error
+	GetStudentJournal(ctx context.Context, journal *models.Journal, userId primitive.ObjectID, group string, studyPlaceId int) error
+	GetJournal(ctx context.Context, journal *models.Journal, group string, subject string, typeName string, studyPlaceId int) error
 
-	GetLessonById(ctx context.Context, userId primitive.ObjectID, id primitive.ObjectID) (models.Lesson, *models.Error)
-	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId int) ([]models.Lesson, *models.Error)
+	GetLessonById(ctx context.Context, userId primitive.ObjectID, id primitive.ObjectID) (models.Lesson, error)
+	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId int) ([]models.Lesson, error)
 }

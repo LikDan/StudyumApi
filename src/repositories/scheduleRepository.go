@@ -19,7 +19,7 @@ func NewScheduleRepository(repository *Repository) *ScheduleRepository {
 	}
 }
 
-func (s *ScheduleRepository) GetSchedule(ctx context.Context, studyPlaceId int, type_ string, typeName string, schedule *models.Schedule) *models.Error {
+func (s *ScheduleRepository) GetSchedule(ctx context.Context, studyPlaceId int, type_ string, typeName string, schedule *models.Schedule) error {
 	startWeekDate := utils.Date().AddDate(0, 0, 1-int(time.Now().Weekday()))
 	cursor, err := s.studyPlacesCollection.Aggregate(ctx, bson.A{
 		bson.M{
@@ -126,15 +126,15 @@ func (s *ScheduleRepository) GetSchedule(ctx context.Context, studyPlaceId int, 
 		},
 	})
 	if err != nil {
-		return models.BindError(err, 403, models.UNDEFINED)
+		return err
 	}
 
 	cursor.Next(ctx)
 	if err = cursor.Decode(&schedule); err != nil {
-		return models.BindError(err, 418, models.WARNING)
+		return err
 	}
 
-	return models.EmptyError()
+	return nil
 }
 
 func (s *ScheduleRepository) GetScheduleType(ctx context.Context, studyPlaceId int, type_ string) []string {
@@ -148,7 +148,7 @@ func (s *ScheduleRepository) GetScheduleType(ctx context.Context, studyPlaceId i
 	return names
 }
 
-func (s *ScheduleRepository) AddLesson(ctx context.Context, lesson *models.Lesson, studyPlaceId int) *models.Error {
+func (s *ScheduleRepository) AddLesson(ctx context.Context, lesson *models.Lesson, studyPlaceId int) error {
 	if lesson.Type == "GENERAL" {
 		lesson.Type = "STAY"
 	}
@@ -156,26 +156,26 @@ func (s *ScheduleRepository) AddLesson(ctx context.Context, lesson *models.Lesso
 	lesson.Id = primitive.NewObjectID()
 	lesson.StudyPlaceId = studyPlaceId
 	if _, err := s.lessonsCollection.InsertOne(ctx, lesson); err != nil {
-		return models.BindError(err, 418, models.WARNING)
+		return err
 	}
 
-	return models.EmptyError()
+	return nil
 }
 
-func (s *ScheduleRepository) UpdateLesson(ctx context.Context, lesson *models.Lesson, studyPlaceId int) *models.Error {
+func (s *ScheduleRepository) UpdateLesson(ctx context.Context, lesson *models.Lesson, studyPlaceId int) error {
 	lesson.StudyPlaceId = studyPlaceId
 
 	if _, err := s.lessonsCollection.UpdateOne(ctx, bson.M{"_id": lesson.Id, "studyPlaceId": studyPlaceId}, bson.M{"$set": lesson}); err != nil {
-		return models.BindError(err, 418, models.WARNING)
+		return err
 	}
 
-	return models.EmptyError()
+	return nil
 }
 
-func (s *ScheduleRepository) DeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId int) *models.Error {
+func (s *ScheduleRepository) DeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId int) error {
 	if _, err := s.lessonsCollection.DeleteOne(ctx, bson.M{"_id": id, "studyPlaceId": studyPlaceId}); err != nil {
-		return models.BindError(err, 418, models.WARNING)
+		return err
 	}
 
-	return models.EmptyError()
+	return nil
 }

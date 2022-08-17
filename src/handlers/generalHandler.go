@@ -5,17 +5,18 @@ import (
 	"io"
 	"net/http"
 	"studyum/src/controllers"
-	"studyum/src/models"
 )
 
 type GeneralHandler struct {
+	IHandler
+
 	controller controllers.IGeneralController
 
 	Group *gin.RouterGroup
 }
 
-func NewGeneralHandler(controller controllers.IGeneralController, group *gin.RouterGroup) *GeneralHandler {
-	h := &GeneralHandler{controller: controller, Group: group}
+func NewGeneralHandler(handler IHandler, controller controllers.IGeneralController, group *gin.RouterGroup) *GeneralHandler {
+	h := &GeneralHandler{IHandler: handler, controller: controller, Group: group}
 
 	group.GET("/studyPlaces", h.GetStudyPlaces)
 	group.GET("/uptime", h.Uptime)
@@ -29,7 +30,8 @@ func (g *GeneralHandler) Uptime(ctx *gin.Context) {
 
 func (g *GeneralHandler) GetStudyPlaces(ctx *gin.Context) {
 	err, studyPlaces := g.controller.GetStudyPlaces(ctx)
-	if err.CheckAndResponse(ctx) {
+	if err != nil {
+		g.Error(ctx, err)
 		return
 	}
 
@@ -38,7 +40,8 @@ func (g *GeneralHandler) GetStudyPlaces(ctx *gin.Context) {
 
 func (g *GeneralHandler) RequestHandler(ctx *gin.Context) {
 	response, err := http.Get("https://" + ctx.Query("host"))
-	if models.BindError(err, 418, models.UNDEFINED).CheckAndResponse(ctx) {
+	if err != nil {
+		ctx.JSON(400, err)
 		return
 	}
 
