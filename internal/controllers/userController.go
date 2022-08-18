@@ -2,23 +2,44 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/oauth2"
+	"io"
+	"net/http"
 	"studyum/internal/dto"
 	"studyum/internal/entities"
 	"studyum/internal/repositories"
 	"studyum/internal/utils"
 )
 
-type UserController struct {
+type UserController interface {
+	UpdateUser(ctx context.Context, user entities.User, data dto.UserSignUpData) (entities.User, error)
+
+	LoginUser(ctx context.Context, data dto.UserLoginData) (entities.User, error)
+	SignUpUser(ctx context.Context, data dto.UserSignUpData) (entities.User, error)
+	SignUpUserStage1(ctx context.Context, user entities.User, data dto.UserSignUpStage1Data) (entities.User, error)
+
+	UpdateTokenByID(ctx context.Context, id primitive.ObjectID, token string) error
+	RevokeToken(ctx context.Context, token string) error
+
+	GetUserViaToken(ctx context.Context, token string) (entities.User, error)
+	CallbackOAuth2(ctx context.Context, code string) (entities.User, error)
+	GetOAuth2ConfigByName(name string) *oauth2.Config
+}
+
+type userController struct {
 	repository repositories.UserRepository
 }
 
-func NewUserController(repository repositories.UserRepository) *UserController {
-	return &UserController{repository: repository}
+func NewUserController(repository repositories.UserRepository) UserController {
+	return &userController{repository: repository}
 }
 
-func (u *UserController) SignUpUser(ctx context.Context, data dto.UserSignUpData) (entities.User, error) {
+func (u *userController) SignUpUser(ctx context.Context, data dto.UserSignUpData) (entities.User, error) {
 	if err := validator.New().Struct(&data); err != nil {
 		return entities.User{}, NotValidParams
 	}
@@ -48,7 +69,7 @@ func (u *UserController) SignUpUser(ctx context.Context, data dto.UserSignUpData
 	return user, nil
 }
 
-func (u *UserController) SignUpUserStage1(ctx context.Context, user entities.User, data dto.UserSignUpStage1Data) (entities.User, error) {
+func (u *userController) SignUpUserStage1(ctx context.Context, user entities.User, data dto.UserSignUpStage1Data) (entities.User, error) {
 	switch data.Type {
 	case "group", "teacher":
 		user.Type = data.Type
@@ -66,7 +87,7 @@ func (u *UserController) SignUpUserStage1(ctx context.Context, user entities.Use
 	return user, nil
 }
 
-func (u *UserController) UpdateUser(ctx context.Context, user entities.User, data dto.UserSignUpData) (entities.User, error) {
+func (u *userController) UpdateUser(ctx context.Context, user entities.User, data dto.UserSignUpData) (entities.User, error) {
 	if err := validator.New().Struct(&data); err != nil {
 		return entities.User{}, NotValidParams
 	}
@@ -85,21 +106,87 @@ func (u *UserController) UpdateUser(ctx context.Context, user entities.User, dat
 	return user, nil
 }
 
-func (u *UserController) LoginUser(ctx context.Context, data dto.UserLoginData) (entities.User, error) {
+func (u *userController) LoginUser(ctx context.Context, data dto.UserLoginData) (entities.User, error) {
 	data.Password = utils.Hash(data.Password)
 
-	var user entities.User
-	if _, err := u.repository.Login(ctx, "", ""); err != nil {
-		return entities.User{}, err
-	}
-
-	return user, nil
+	return u.repository.Login(ctx, data.Email, data.Password)
 }
 
-func (u *UserController) UpdateTokenByID(ctx context.Context, id primitive.ObjectID, token string) error {
+func (u *userController) UpdateTokenByID(ctx context.Context, id primitive.ObjectID, token string) error {
 	return u.repository.UpdateToken(ctx, id, token)
 }
 
-func (u *UserController) RevokeToken(ctx context.Context, token string) error {
+func (u *userController) RevokeToken(ctx context.Context, token string) error {
 	return u.repository.RevokeToken(ctx, token)
+}
+func (u *userController) GetOAuth2ConfigByName(name string) *oauth2.Config {
+	return Configs[name]
+}
+
+func (u *userController) GetUserViaToken(ctx context.Context, token string) (entities.User, error) {
+	return u.repository.GetUserViaToken(ctx, token)
+}
+
+func (u *userController) CallbackOAuth2(ctx context.Context, code string) (entities.User, error) {
+	token, err := googleOAuthConfig.Exchange(context.Background(), code)
+	if err != nil {
+		return entities.User{}, err
+	}
+
+	response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
+	if err != nil {
+		return entities.User{}, err
+	}
+
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(response.Body)
+
+	content, err := io.ReadAll(response.Body)
+	if err != nil {
+		return entities.User{}, err
+	}
+
+	var googleUser entities.OAuth2CallbackUser
+	err = json.Unmarshal(content, &googleUser)
+	if err != nil {
+		return entities.User{}, err
+	}
+
+	var user entities.User
+
+	if _, err = u.repository.GetUserByEmail(ctx, googleUser.Email); err != nil {
+		if !errors.Is(mongo.ErrNoDocuments, err) {
+			return entities.User{}, err
+		}
+		user = entities.User{
+			Id:            primitive.NewObjectID(),
+			Token:         utils.GenerateSecureToken(),
+			Email:         googleUser.Email,
+			VerifiedEmail: googleUser.VerifiedEmail,
+			Login:         googleUser.Name,
+			Name:          googleUser.Name,
+			PictureUrl:    googleUser.PictureUrl,
+			Type:          "",
+			TypeName:      "",
+			StudyPlaceId:  0,
+			Permissions:   nil,
+			Accepted:      false,
+			Blocked:       false,
+		}
+
+		if _, err := u.repository.SignUp(ctx, user); err != nil {
+			return entities.User{}, err
+		}
+	}
+
+	if user.Token == "" {
+		user.Token = utils.GenerateSecureToken()
+
+		if err = u.repository.UpdateUserTokenByEmail(ctx, user.Email, user.Token); err != nil {
+			return entities.User{}, err
+		}
+	}
+
+	return user, nil
 }

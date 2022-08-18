@@ -10,12 +10,12 @@ import (
 type GeneralHandler struct {
 	IHandler
 
-	controller controllers.IGeneralController
+	controller controllers.GeneralController
 
 	Group *gin.RouterGroup
 }
 
-func NewGeneralHandler(handler IHandler, controller controllers.IGeneralController, group *gin.RouterGroup) *GeneralHandler {
+func NewGeneralHandler(handler IHandler, controller controllers.GeneralController, group *gin.RouterGroup) *GeneralHandler {
 	h := &GeneralHandler{IHandler: handler, controller: controller, Group: group}
 
 	group.GET("/studyPlaces", h.GetStudyPlaces)

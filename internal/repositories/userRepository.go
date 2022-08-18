@@ -8,7 +8,7 @@ import (
 )
 
 type UserRepository interface {
-	GetUserViaToken(ctx context.Context, token string) (entities.User, error)
+	GetUserViaToken(ctx context.Context, token string, permissions ...string) (entities.User, error)
 	GetUserByEmail(ctx context.Context, email string) (entities.User, error)
 
 	SignUp(ctx context.Context, user entities.User) (primitive.ObjectID, error)
@@ -31,9 +31,9 @@ func NewUserRepository(repository *Repository) UserRepository {
 	return &userRepository{Repository: repository}
 }
 
-func (u *userRepository) GetUserViaToken(ctx context.Context, token string) (entities.User, error) {
+func (u *userRepository) GetUserViaToken(ctx context.Context, token string, permissions ...string) (entities.User, error) {
 	var user entities.User
-	err := u.usersCollection.FindOne(ctx, bson.M{"token": token}).Decode(user)
+	err := u.usersCollection.FindOne(ctx, bson.M{"token": token, "permissions": bson.M{"$all": permissions}}).Decode(user)
 	return user, err
 }
 

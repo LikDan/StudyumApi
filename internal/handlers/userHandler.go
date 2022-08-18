@@ -12,12 +12,12 @@ import (
 type UserHandler struct {
 	IHandler
 
-	controller controllers.IUserController
+	controller controllers.UserController
 
 	Group *gin.RouterGroup
 }
 
-func NewUserHandler(authHandler IHandler, controller controllers.IUserController, group *gin.RouterGroup) *UserHandler {
+func NewUserHandler(authHandler IHandler, controller controllers.UserController, group *gin.RouterGroup) *UserHandler {
 	h := &UserHandler{IHandler: authHandler, controller: controller, Group: group}
 
 	group.GET("", h.Auth(), h.GetUser)

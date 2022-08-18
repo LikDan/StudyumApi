@@ -9,14 +9,14 @@ import (
 )
 
 type Handler struct {
-	controller controllers.IController
+	controller controllers.Controller
 }
 
-func NewHandler(controller controllers.IController) *Handler {
+func NewHandler(controller controllers.Controller) *Handler {
 	return &Handler{controller: controller}
 }
 
-func (h *Handler) Auth() gin.HandlerFunc {
+func (h *Handler) Auth(permissions ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		token, err := ctx.Cookie("authToken")
 		if err != nil {
@@ -25,7 +25,7 @@ func (h *Handler) Auth() gin.HandlerFunc {
 			return
 		}
 
-		user, err := h.controller.Auth(ctx, token)
+		user, err := h.controller.Auth(ctx, token, permissions...)
 		if err != nil {
 			h.Error(ctx, err)
 			return
