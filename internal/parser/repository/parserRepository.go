@@ -12,7 +12,22 @@ import (
 	"time"
 )
 
-type ParserRepository struct {
+type ParserRepository interface {
+	GetUsersToParse(ctx context.Context, parserAppName string, users []entities.JournalUser) error
+	UpdateParseJournalUser(ctx context.Context, user entities.JournalUser) error
+
+	InsertScheduleTypes(ctx context.Context, types []entities.ScheduleTypeInfo) error
+	GetScheduleTypesToParse(ctx context.Context, parserAppName string, types []entities.ScheduleTypeInfo) error
+
+	UpdateGeneralSchedule(ctx context.Context, lessons []entities.GeneralLesson) error
+	GetLessonByDate(ctx context.Context, date time.Time, name string, group string) (entities.Lesson, error)
+	GetLastLesson(ctx context.Context, studyPlaceId int, lesson entities.Lesson) error
+	AddLessons(ctx context.Context, lessons []entities.Lesson) error
+
+	AddMarks(ctx context.Context, marks []entities.Mark) error
+}
+
+type parserRepository struct {
 	generalLessonsCollection *mongo.Collection
 	lessonsCollection        *mongo.Collection
 	marksCollection          *mongo.Collection
@@ -21,10 +36,10 @@ type ParserRepository struct {
 	parseScheduleTypesCollection *mongo.Collection
 }
 
-func NewParserRepository(client *mongo.Client) *ParserRepository {
+func NewParserRepository(client *mongo.Client) ParserRepository {
 	database := client.Database("Schedule")
 
-	return &ParserRepository{
+	return &parserRepository{
 		generalLessonsCollection: database.Collection("GeneralLessons"),
 		lessonsCollection:        database.Collection("Lessons"),
 		marksCollection:          database.Collection("Marks"),
@@ -34,7 +49,7 @@ func NewParserRepository(client *mongo.Client) *ParserRepository {
 	}
 }
 
-func (p *ParserRepository) GetUsersToParse(ctx context.Context, parserAppName string, users *[]entities.JournalUser) error {
+func (p *parserRepository) GetUsersToParse(ctx context.Context, parserAppName string, users []entities.JournalUser) error {
 	result, err := p.parseJournalUserCollection.Find(ctx, bson.M{"parserAppName": parserAppName})
 	if err != nil {
 		return err
@@ -47,7 +62,7 @@ func (p *ParserRepository) GetUsersToParse(ctx context.Context, parserAppName st
 	return nil
 }
 
-func (p *ParserRepository) InsertScheduleTypes(ctx context.Context, types []*entities.ScheduleTypeInfo) error {
+func (p *parserRepository) InsertScheduleTypes(ctx context.Context, types []entities.ScheduleTypeInfo) error {
 	if len(types) == 0 {
 		return errors.New("empty types array")
 	}
@@ -67,7 +82,7 @@ func (p *ParserRepository) InsertScheduleTypes(ctx context.Context, types []*ent
 	return nil
 }
 
-func (p *ParserRepository) GetScheduleTypesToParse(ctx context.Context, parserAppName string, types *[]entities.ScheduleTypeInfo) error {
+func (p *parserRepository) GetScheduleTypesToParse(ctx context.Context, parserAppName string, types []entities.ScheduleTypeInfo) error {
 	result, err := p.parseScheduleTypesCollection.Find(ctx, bson.M{"parserAppName": parserAppName})
 	if err != nil {
 		return err
@@ -80,7 +95,7 @@ func (p *ParserRepository) GetScheduleTypesToParse(ctx context.Context, parserAp
 	return nil
 }
 
-func (p *ParserRepository) UpdateParseJournalUser(ctx context.Context, user *entities.JournalUser) error {
+func (p *parserRepository) UpdateParseJournalUser(ctx context.Context, user entities.JournalUser) error {
 	if _, err := p.parseJournalUserCollection.UpdateByID(ctx, user.ID, bson.M{"$set": user}); err != nil {
 		return err
 	}
@@ -88,7 +103,7 @@ func (p *ParserRepository) UpdateParseJournalUser(ctx context.Context, user *ent
 	return nil
 }
 
-func (p *ParserRepository) UpdateGeneralSchedule(ctx context.Context, lessons []*entities.GeneralLesson) error {
+func (p *parserRepository) UpdateGeneralSchedule(ctx context.Context, lessons []entities.GeneralLesson) error {
 	if len(lessons) == 0 {
 		return errors.New("empty lessons array")
 	}
@@ -106,7 +121,7 @@ func (p *ParserRepository) UpdateGeneralSchedule(ctx context.Context, lessons []
 	return nil
 }
 
-func (p *ParserRepository) GetLessonByDate(ctx context.Context, date time.Time, name string, group string) (entities.Lesson, error) {
+func (p *parserRepository) GetLessonByDate(ctx context.Context, date time.Time, name string, group string) (entities.Lesson, error) {
 	var lesson entities.Lesson
 
 	result := p.lessonsCollection.FindOne(ctx, bson.M{"subject": name, "group": group, "startDate": bson.M{"$gte": date, "$lt": date.AddDate(0, 0, 1)}})
@@ -117,7 +132,7 @@ func (p *ParserRepository) GetLessonByDate(ctx context.Context, date time.Time, 
 	return lesson, nil
 }
 
-func (p *ParserRepository) GetLastLesson(ctx context.Context, studyPlaceId int, lesson *entities.Lesson) error {
+func (p *parserRepository) GetLastLesson(ctx context.Context, studyPlaceId int, lesson entities.Lesson) error {
 	opt := options.FindOne()
 	opt.Sort = bson.M{"startDate": -1}
 
@@ -128,7 +143,7 @@ func (p *ParserRepository) GetLastLesson(ctx context.Context, studyPlaceId int, 
 	return nil
 }
 
-func (p *ParserRepository) AddLessons(ctx context.Context, lessons []*entities.Lesson) error {
+func (p *parserRepository) AddLessons(ctx context.Context, lessons []entities.Lesson) error {
 	if _, err := p.lessonsCollection.InsertMany(ctx, utils.ToInterfaceSlice(lessons)); err != nil {
 		return err
 	}
@@ -136,7 +151,7 @@ func (p *ParserRepository) AddLessons(ctx context.Context, lessons []*entities.L
 	return nil
 }
 
-func (p *ParserRepository) AddMarks(ctx context.Context, marks []*entities.Mark) error {
+func (p *parserRepository) AddMarks(ctx context.Context, marks []entities.Mark) error {
 	if _, err := p.marksCollection.InsertMany(ctx, utils.ToInterfaceSlice(marks)); err != nil {
 		return err
 	}

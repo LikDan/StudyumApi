@@ -15,8 +15,8 @@ import (
 )
 
 type KbpParser struct {
-	States     []*entities.ScheduleStateInfo
-	TempStates []*entities.ScheduleStateInfo
+	States     []entities.ScheduleStateInfo
+	TempStates []entities.ScheduleStateInfo
 
 	WeekdaysShift []entities.Shift
 	WeekendsShift []entities.Shift
@@ -28,7 +28,7 @@ func (p *KbpParser) GetName() string              { return "kbp" }
 func (p *KbpParser) StudyPlaceId() int            { return 0 }
 func (p *KbpParser) GetUpdateCronPattern() string { return "@every 30m" }
 
-func (p *KbpParser) ScheduleUpdate(type_ *entities.ScheduleTypeInfo) []*entities.Lesson {
+func (p *KbpParser) ScheduleUpdate(type_ entities.ScheduleTypeInfo) []entities.Lesson {
 	response, err := http.Get("http://kbp.by/rasp/timetable/view_beta_kbp/" + type_.Url)
 	if err != nil {
 		return nil
@@ -50,9 +50,9 @@ func (p *KbpParser) ScheduleUpdate(type_ *entities.ScheduleTypeInfo) []*entities
 		return nil
 	}
 
-	var lessons []*entities.Lesson
+	var lessons []entities.Lesson
 
-	var states []*entities.ScheduleStateInfo
+	var states []entities.ScheduleStateInfo
 
 	weeks.Each(func(tableIndex int, table *htmlParser.Selection) {
 		weekDate := time.Now().AddDate(0, 0, tableIndex*7)
@@ -81,7 +81,7 @@ func (p *KbpParser) ScheduleUpdate(type_ *entities.ScheduleTypeInfo) []*entities
 						stateInfo.State = entities.Updated
 					}
 
-					states = append(states, &stateInfo)
+					states = append(states, stateInfo)
 				})
 				return
 			}
@@ -140,7 +140,7 @@ func (p *KbpParser) ScheduleUpdate(type_ *entities.ScheduleTypeInfo) []*entities
 						}
 
 						if entities.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, states).State == entities.Updated && entities.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, p.States).State == entities.NotUpdated {
-							lessons = append(lessons, &lesson)
+							lessons = append(lessons, lesson)
 						}
 					})
 				})
@@ -154,8 +154,8 @@ func (p *KbpParser) ScheduleUpdate(type_ *entities.ScheduleTypeInfo) []*entities
 	return lessons
 }
 
-func (p *KbpParser) GeneralScheduleUpdate(type_ *entities.ScheduleTypeInfo) []*entities.GeneralLesson {
-	var generalLessons []*entities.GeneralLesson
+func (p *KbpParser) GeneralScheduleUpdate(type_ entities.ScheduleTypeInfo) []entities.GeneralLesson {
+	var generalLessons []entities.GeneralLesson
 
 	lessons := p.ScheduleUpdate(type_)
 	for _, lesson := range lessons {
@@ -178,14 +178,14 @@ func (p *KbpParser) GeneralScheduleUpdate(type_ *entities.ScheduleTypeInfo) []*e
 			WeekIndex:    lesson.StartDate.Day(),
 		}
 
-		generalLessons = append(generalLessons, &generalLesson)
+		generalLessons = append(generalLessons, generalLesson)
 	}
 
 	return generalLessons
 }
 
-func (p *KbpParser) ScheduleTypesUpdate() []*entities.ScheduleTypeInfo {
-	var types []*entities.ScheduleTypeInfo
+func (p *KbpParser) ScheduleTypesUpdate() []entities.ScheduleTypeInfo {
+	var types []entities.ScheduleTypeInfo
 
 	response, err := http.Get("https://kbp.by/rasp/timetable/view_beta_kbp/?q=")
 	if err != nil {
@@ -216,13 +216,13 @@ func (p *KbpParser) ScheduleTypesUpdate() []*entities.ScheduleTypeInfo {
 				Url:           url,
 			}
 
-			types = append(types, &type_)
+			types = append(types, type_)
 		}
 	})
 	return types
 }
 
-func (p *KbpParser) LoginJournal(user *entities.JournalUser) *htmlParser.Document {
+func (p *KbpParser) LoginJournal(user entities.JournalUser) *htmlParser.Document {
 	request, _ := http.NewRequest("GET", "https://kbp.by/ej/templates/login_parent.php", nil)
 	response, _ := http.DefaultClient.Do(request)
 	document, _ := htmlParser.NewDocumentFromReader(response.Body)
@@ -254,7 +254,7 @@ func (p *KbpParser) LoginJournal(user *entities.JournalUser) *htmlParser.Documen
 	return document
 }
 
-func (p *KbpParser) JournalUpdate(user *entities.JournalUser, getLessonByDate func(context.Context, time.Time, string, string) (entities.Lesson, error)) []*entities.Mark {
+func (p *KbpParser) JournalUpdate(user entities.JournalUser, getLessonByDate func(context.Context, time.Time, string, string) (entities.Lesson, error)) []entities.Mark {
 	document := p.LoginJournal(user)
 	lessonNames := document.Find("tbody").First().Find(".pupilName").Map(func(i int, selection *htmlParser.Selection) string {
 		return strings.TrimSpace(selection.Text())
@@ -310,7 +310,7 @@ func (p *KbpParser) JournalUpdate(user *entities.JournalUser, getLessonByDate fu
 		currentDay++
 	})
 
-	var marks []*entities.Mark
+	var marks []entities.Mark
 
 	marksTable.Each(func(rowIndex int, rowSelection *htmlParser.Selection) {
 		if rowIndex < 2 {
@@ -340,7 +340,7 @@ func (p *KbpParser) JournalUpdate(user *entities.JournalUser, getLessonByDate fu
 					LessonId:     lesson.Id,
 					StudyPlaceId: 0,
 				}
-				marks = append(marks, &mark)
+				marks = append(marks, mark)
 			})
 		})
 	})
@@ -355,7 +355,7 @@ func (p *KbpParser) CommitUpdate() {
 }
 
 func (p *KbpParser) Init(lesson entities.Lesson) {
-	var states []*entities.ScheduleStateInfo
+	var states []entities.ScheduleStateInfo
 
 	date := lesson.StartDate.AddDate(0, 0, -int(lesson.StartDate.Weekday()))
 	for len(states) != 14 {
@@ -366,7 +366,7 @@ func (p *KbpParser) Init(lesson entities.Lesson) {
 			state = entities.Updated
 		}
 
-		states = append(states, &entities.ScheduleStateInfo{
+		states = append(states, entities.ScheduleStateInfo{
 			State:     state,
 			WeekIndex: weekIndex % 2,
 			DayIndex:  int(date.Weekday()),
