@@ -9,10 +9,10 @@ import (
 )
 
 type ScheduleController struct {
-	repository repositories.IScheduleRepository
+	repository repositories.ScheduleRepository
 }
 
-func NewScheduleController(repository repositories.IScheduleRepository) *ScheduleController {
+func NewScheduleController(repository repositories.ScheduleRepository) *ScheduleController {
 	return &ScheduleController{repository: repository}
 }
 
@@ -22,7 +22,7 @@ func (s *ScheduleController) GetSchedule(ctx context.Context, type_ string, type
 	}
 
 	var schedule entities.Schedule
-	if err := s.repository.GetSchedule(ctx, user.StudyPlaceId, type_, typeName, &schedule); err != nil {
+	if _, err := s.repository.GetSchedule(ctx, user.StudyPlaceId, type_, typeName); err != nil {
 		return entities.Schedule{}, err
 	}
 
@@ -31,7 +31,7 @@ func (s *ScheduleController) GetSchedule(ctx context.Context, type_ string, type
 
 func (s *ScheduleController) GetUserSchedule(ctx context.Context, user entities.User) (entities.Schedule, error) {
 	var schedule entities.Schedule
-	if err := s.repository.GetSchedule(ctx, user.StudyPlaceId, user.Type, user.TypeName, &schedule); err != nil {
+	if _, err := s.repository.GetSchedule(ctx, user.StudyPlaceId, user.Type, user.TypeName); err != nil {
 		return entities.Schedule{}, err
 	}
 
@@ -48,11 +48,12 @@ func (s *ScheduleController) GetScheduleTypes(ctx context.Context, user entities
 }
 
 func (s *ScheduleController) AddLesson(ctx context.Context, lesson entities.Lesson, user entities.User) error {
-	return s.repository.AddLesson(ctx, &lesson, user.StudyPlaceId)
+	lesson.StudyPlaceId = user.StudyPlaceId
+	return s.repository.AddLesson(ctx, lesson)
 }
 
 func (s *ScheduleController) UpdateLesson(ctx context.Context, lesson entities.Lesson, user entities.User) error {
-	return s.repository.UpdateLesson(ctx, &lesson, user.StudyPlaceId)
+	return s.repository.UpdateLesson(ctx, lesson, user.StudyPlaceId)
 }
 
 func (s *ScheduleController) DeleteLesson(ctx context.Context, idHex string, user entities.User) error {

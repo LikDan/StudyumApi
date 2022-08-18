@@ -6,7 +6,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 	"studyum/internal/controllers"
-	"studyum/internal/repositories"
 )
 
 type Handler struct {
@@ -51,13 +50,14 @@ func (h *Handler) Error(ctx *gin.Context, err error) {
 		break
 	case
 		errors.Is(mongo.ErrNilDocument, err),
+		errors.Is(mongo.ErrNoDocuments, err),
 		errors.Is(mongo.ErrNilValue, err),
 		errors.Is(mongo.ErrEmptySlice, err),
 		errors.Is(mongo.ErrNilCursor, err),
 		errors.Is(controllers.NotValidParams, err):
 		code = http.StatusBadRequest
 		break
-	case errors.Is(repositories.NotAuthorizationError, err):
+	case errors.Is(controllers.NotAuthorizationError, err):
 		code = http.StatusUnauthorized
 		break
 	case errors.Is(controllers.NoPermission, err):
@@ -66,6 +66,7 @@ func (h *Handler) Error(ctx *gin.Context, err error) {
 	default:
 		code = http.StatusInternalServerError
 	}
+
 	ctx.JSON(code, err.Error())
 	_ = ctx.Error(err)
 	ctx.Abort()

@@ -15,10 +15,10 @@ var (
 )
 
 type JournalController struct {
-	repository repositories.IJournalRepository
+	repository repositories.JournalRepository
 }
 
-func NewJournalController(repository repositories.IJournalRepository) *JournalController {
+func NewJournalController(repository repositories.JournalRepository) *JournalController {
 	return &JournalController{repository: repository}
 }
 
@@ -46,7 +46,7 @@ func (j *JournalController) GetJournal(ctx context.Context, group string, subjec
 	}
 
 	var journal entities.Journal
-	if err := j.repository.GetJournal(ctx, &journal, group, subject, user.TypeName, user.StudyPlaceId); err != nil {
+	if _, err := j.repository.GetJournal(ctx, group, subject, user.TypeName, user.StudyPlaceId); err != nil {
 		return entities.Journal{}, err
 	}
 
@@ -55,7 +55,7 @@ func (j *JournalController) GetJournal(ctx context.Context, group string, subjec
 
 func (j *JournalController) GetUserJournal(ctx context.Context, user entities.User) (entities.Journal, error) {
 	var journal entities.Journal
-	if err := j.repository.GetStudentJournal(ctx, &journal, user.Id, user.TypeName, user.StudyPlaceId); err != nil {
+	if _, err := j.repository.GetStudentJournal(ctx, user.Id, user.TypeName, user.StudyPlaceId); err != nil {
 		return entities.Journal{}, err
 	}
 
@@ -71,11 +71,11 @@ func (j *JournalController) AddMark(ctx context.Context, mark entities.Mark, use
 		return entities.Lesson{}, NotValidParams
 	}
 
-	if err := j.repository.AddMark(ctx, &mark); err != nil {
+	if _, err := j.repository.AddMark(ctx, mark); err != nil {
 		return entities.Lesson{}, err
 	}
 
-	return j.repository.GetLessonById(ctx, mark.UserId, mark.LessonId)
+	return j.repository.GetLessonByIDAndUserID(ctx, mark.UserId, mark.LessonId)
 }
 
 func (j *JournalController) GetMark(ctx context.Context, group string, subject string, userIdHex string, user entities.User) ([]entities.Lesson, error) {
@@ -102,11 +102,11 @@ func (j *JournalController) UpdateMark(ctx context.Context, mark entities.Mark, 
 		return entities.Lesson{}, NotValidParams
 	}
 
-	if err := j.repository.UpdateMark(ctx, &mark); err != nil {
+	if err := j.repository.UpdateMark(ctx, mark); err != nil {
 		return entities.Lesson{}, err
 	}
 
-	return j.repository.GetLessonById(ctx, mark.UserId, mark.LessonId)
+	return j.repository.GetLessonByIDAndUserID(ctx, mark.UserId, mark.LessonId)
 }
 
 func (j *JournalController) DeleteMark(ctx context.Context, markIdHex string, userIdHex string, subjectIdHex string, user entities.User) (entities.Lesson, error) {
@@ -133,9 +133,9 @@ func (j *JournalController) DeleteMark(ctx context.Context, markIdHex string, us
 		return entities.Lesson{}, err
 	}
 
-	if err := j.repository.DeleteMark(ctx, markId, subjectId); err != nil {
+	if err := j.repository.DeleteMarkByIDAndLessonID(ctx, markId, subjectId); err != nil {
 		return entities.Lesson{}, err
 	}
 
-	return j.repository.GetLessonById(ctx, userId, subjectId)
+	return j.repository.GetLessonByIDAndUserID(ctx, userId, subjectId)
 }

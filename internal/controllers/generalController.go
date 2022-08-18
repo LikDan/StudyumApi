@@ -7,10 +7,10 @@ import (
 )
 
 type GeneralController struct {
-	repository repositories.IGeneralRepository
+	repository repositories.GeneralRepository
 }
 
-func NewGeneralController(repository repositories.IGeneralRepository) *GeneralController {
+func NewGeneralController(repository repositories.GeneralRepository) *GeneralController {
 	return &GeneralController{repository: repository}
 }
 
