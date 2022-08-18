@@ -2,13 +2,12 @@ package apps
 
 import (
 	"bytes"
-	"context"
 	htmlParser "github.com/PuerkitoBio/goquery"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
+	"studyum/internal/parser/dto"
 	"studyum/internal/parser/entities"
 	"studyum/internal/utils"
 	"time"
@@ -28,13 +27,13 @@ func (p *KbpParser) GetName() string              { return "kbp" }
 func (p *KbpParser) StudyPlaceId() int            { return 0 }
 func (p *KbpParser) GetUpdateCronPattern() string { return "@every 30m" }
 
-func (p *KbpParser) ScheduleUpdate(type_ entities.ScheduleTypeInfo) []entities.Lesson {
-	response, err := http.Get("http://kbp.by/rasp/timetable/view_beta_kbp/" + type_.Url)
+func (p *KbpParser) ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.LessonDTO {
+	response, err := http.Get("https://kbp.by/rasp/timetable/view_beta_kbp/" + typeInfo.Url)
 	if err != nil {
 		return nil
 	}
 
-	if response.StatusCode != 200 {
+	if response.StatusCode != http.StatusOK {
 		return nil
 	}
 
@@ -50,7 +49,7 @@ func (p *KbpParser) ScheduleUpdate(type_ entities.ScheduleTypeInfo) []entities.L
 		return nil
 	}
 
-	var lessons []entities.Lesson
+	var lessons []dto.LessonDTO
 
 	var states []entities.ScheduleStateInfo
 
@@ -114,29 +113,23 @@ func (p *KbpParser) ScheduleUpdate(type_ entities.ScheduleTypeInfo) []entities.L
 							return
 						}
 
-						date := utils.ToDateWithoutTime(time_)
-
-						var startTime time.Duration
-						var endTime time.Duration
+						var shift entities.Shift
 
 						if columnIndex < 5 {
-							startTime = p.WeekdaysShift[rowIndex].Start
-							endTime = p.WeekdaysShift[rowIndex].End
+							shift = p.WeekdaysShift[rowIndex]
 						} else {
-							startTime = p.WeekendsShift[rowIndex].Start
-							endTime = p.WeekendsShift[rowIndex].End
+							shift = p.WeekendsShift[rowIndex]
 						}
 
-						lesson := entities.Lesson{
-							Id:           primitive.NewObjectID(),
-							StudyPlaceId: 0,
-							Type:         type_,
-							StartDate:    date.Add(startTime),
-							EndDate:      date.Add(endTime),
-							Subject:      div.Find(".subject").Text(),
-							Group:        div.Find(".group").Text(),
-							Teacher:      teacherDiv.Text(),
-							Room:         div.Find(".place").Text(),
+						shift.Date = utils.ToDateWithoutTime(time_)
+
+						lesson := dto.LessonDTO{
+							Shift:   shift,
+							Type:    type_,
+							Subject: div.Find(".subject").Text(),
+							Group:   div.Find(".group").Text(),
+							Teacher: teacherDiv.Text(),
+							Room:    div.Find(".place").Text(),
 						}
 
 						if entities.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, states).State == entities.Updated && entities.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, p.States).State == entities.NotUpdated {
@@ -154,28 +147,24 @@ func (p *KbpParser) ScheduleUpdate(type_ entities.ScheduleTypeInfo) []entities.L
 	return lessons
 }
 
-func (p *KbpParser) GeneralScheduleUpdate(type_ entities.ScheduleTypeInfo) []entities.GeneralLesson {
-	var generalLessons []entities.GeneralLesson
+func (p *KbpParser) GeneralScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.GeneralLessonDTO {
+	var generalLessons []dto.GeneralLessonDTO
 
-	lessons := p.ScheduleUpdate(type_)
+	lessons := p.ScheduleUpdate(typeInfo)
 	for _, lesson := range lessons {
 		if lesson.Type == "ADDED" {
 			continue
 		}
 
-		weekIndex, _ := lesson.StartDate.ISOWeek()
+		weekIndex, _ := lesson.Shift.Date.ISOWeek()
 
-		generalLesson := entities.GeneralLesson{
-			Id:           lesson.Id,
-			StudyPlaceId: lesson.StudyPlaceId,
-			EndTime:      lesson.EndDate.Format("15:04"),
-			StartTime:    lesson.StartDate.Format("15:04"),
-			Subject:      lesson.Subject,
-			Group:        lesson.Group,
-			Teacher:      lesson.Teacher,
-			Room:         lesson.Room,
-			DayIndex:     weekIndex,
-			WeekIndex:    lesson.StartDate.Day(),
+		generalLesson := dto.GeneralLessonDTO{
+			Shift:     lesson.Shift,
+			Subject:   lesson.Subject,
+			Group:     lesson.Group,
+			Teacher:   lesson.Teacher,
+			Room:      lesson.Room,
+			WeekIndex: weekIndex,
 		}
 
 		generalLessons = append(generalLessons, generalLesson)
@@ -192,7 +181,7 @@ func (p *KbpParser) ScheduleTypesUpdate() []entities.ScheduleTypeInfo {
 		return nil
 	}
 
-	if response.StatusCode != 200 {
+	if response.StatusCode != http.StatusOK {
 		return nil
 	}
 
@@ -222,7 +211,7 @@ func (p *KbpParser) ScheduleTypesUpdate() []entities.ScheduleTypeInfo {
 	return types
 }
 
-func (p *KbpParser) LoginJournal(user entities.JournalUser) *htmlParser.Document {
+func (p *KbpParser) loginJournal(user entities.JournalUser) *htmlParser.Document {
 	request, _ := http.NewRequest("GET", "https://kbp.by/ej/templates/login_parent.php", nil)
 	response, _ := http.DefaultClient.Do(request)
 	document, _ := htmlParser.NewDocumentFromReader(response.Body)
@@ -254,8 +243,8 @@ func (p *KbpParser) LoginJournal(user entities.JournalUser) *htmlParser.Document
 	return document
 }
 
-func (p *KbpParser) JournalUpdate(user entities.JournalUser, getLessonByDate func(context.Context, time.Time, string, string) (entities.Lesson, error)) []entities.Mark {
-	document := p.LoginJournal(user)
+func (p *KbpParser) JournalUpdate(user entities.JournalUser) []dto.MarkDTO {
+	document := p.loginJournal(user)
 	lessonNames := document.Find("tbody").First().Find(".pupilName").Map(func(i int, selection *htmlParser.Selection) string {
 		return strings.TrimSpace(selection.Text())
 	})
@@ -310,7 +299,7 @@ func (p *KbpParser) JournalUpdate(user entities.JournalUser, getLessonByDate fun
 		currentDay++
 	})
 
-	var marks []entities.Mark
+	var marks []dto.MarkDTO
 
 	marksTable.Each(func(rowIndex int, rowSelection *htmlParser.Selection) {
 		if rowIndex < 2 {
@@ -324,21 +313,12 @@ func (p *KbpParser) JournalUpdate(user entities.JournalUser, getLessonByDate fun
 			}
 
 			cellSelection.Find("span").Each(func(_ int, selection *htmlParser.Selection) {
-				mark_ := strings.TrimSpace(selection.Text())
-
-				ctx := context.Background()
-
-				lesson, err := getLessonByDate(ctx, dates[dayIndex], lessonNames[rowIndex], user.AdditionInfo["group"])
-				if err != nil || lesson.Id == primitive.NilObjectID {
-					return
-				}
-
-				mark := entities.Mark{
-					Id:           primitive.NewObjectID(),
-					Mark:         mark_,
-					UserId:       user.ID,
-					LessonId:     lesson.Id,
-					StudyPlaceId: 0,
+				mark := dto.MarkDTO{
+					Mark:       strings.TrimSpace(selection.Text()),
+					UserId:     user.ID,
+					LessonDate: dates[dayIndex],
+					Subject:    lessonNames[rowIndex],
+					Group:      user.AdditionInfo["group"],
 				}
 				marks = append(marks, mark)
 			})
