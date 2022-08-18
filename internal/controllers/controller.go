@@ -23,8 +23,7 @@ func NewController(repository repositories.UserRepository) Controller {
 }
 
 func (a *controller) Auth(ctx context.Context, token string, permissions ...string) (entities.User, error) {
-	var user entities.User
-	_, err := a.repository.GetUserViaToken(ctx, token, permissions...)
+	user, err := a.repository.GetUserViaToken(ctx, token, permissions...)
 	if err != nil {
 		if errors.Is(mongo.ErrNoDocuments, err) {
 			return entities.User{}, NotAuthorizationError
