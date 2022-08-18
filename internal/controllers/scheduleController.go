@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"studyum/internal/dto"
 	"studyum/internal/entities"
 	"studyum/internal/repositories"
 )
@@ -14,8 +15,8 @@ type ScheduleController interface {
 
 	GetScheduleTypes(ctx context.Context, user entities.User) entities.Types
 
-	AddLesson(ctx context.Context, lesson entities.Lesson, user entities.User) error
-	UpdateLesson(ctx context.Context, lesson entities.Lesson, user entities.User) error
+	AddLesson(ctx context.Context, lesson dto.AddLessonDTO, user entities.User) error
+	UpdateLesson(ctx context.Context, lesson dto.UpdateLessonDTO, user entities.User) error
 	DeleteLesson(ctx context.Context, idHex string, user entities.User) error
 }
 
@@ -48,12 +49,32 @@ func (s *scheduleController) GetScheduleTypes(ctx context.Context, user entities
 	}
 }
 
-func (s *scheduleController) AddLesson(ctx context.Context, lesson entities.Lesson, user entities.User) error {
-	lesson.StudyPlaceId = user.StudyPlaceId
+func (s *scheduleController) AddLesson(ctx context.Context, dto dto.AddLessonDTO, user entities.User) error {
+	lesson := entities.Lesson{
+		StudyPlaceId: user.StudyPlaceId,
+		Type:         dto.Type,
+		EndDate:      dto.EndDate,
+		StartDate:    dto.StartDate,
+		Subject:      dto.Subject,
+		Group:        dto.Group,
+		Teacher:      dto.Teacher,
+		Room:         dto.Room,
+	}
 	return s.repository.AddLesson(ctx, lesson)
 }
 
-func (s *scheduleController) UpdateLesson(ctx context.Context, lesson entities.Lesson, user entities.User) error {
+func (s *scheduleController) UpdateLesson(ctx context.Context, dto dto.UpdateLessonDTO, user entities.User) error {
+	lesson := entities.Lesson{
+		Id:           dto.Id,
+		StudyPlaceId: user.StudyPlaceId,
+		Subject:      dto.Subject,
+		Group:        dto.Group,
+		Teacher:      dto.Teacher,
+		Room:         dto.Room,
+		Title:        dto.Title,
+		Homework:     dto.Homework,
+		Description:  dto.Description,
+	}
 	return s.repository.UpdateLesson(ctx, lesson, user.StudyPlaceId)
 }
 
