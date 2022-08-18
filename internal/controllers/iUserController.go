@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/oauth2"
 	"studyum/internal/dto"
 	"studyum/internal/entities"
@@ -14,7 +15,7 @@ type IUserController interface {
 	SignUpUser(ctx context.Context, data dto.UserSignUpData) (entities.User, error)
 	SignUpUserStage1(ctx context.Context, user entities.User, data dto.UserSignUpStage1Data) (entities.User, error)
 
-	UpdateToken(ctx context.Context, data dto.UserLoginData, token string) error
+	UpdateTokenByID(ctx context.Context, id primitive.ObjectID, token string) error
 	RevokeToken(ctx context.Context, token string) error
 
 	GetUserViaToken(ctx context.Context, token string) (entities.User, error)

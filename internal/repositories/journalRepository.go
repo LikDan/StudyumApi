@@ -8,44 +8,48 @@ import (
 	"studyum/internal/entities"
 )
 
-type JournalRepository struct {
+type JournalRepository interface {
+	AddMark(ctx context.Context, mark entities.Mark) (primitive.ObjectID, error)
+	UpdateMark(ctx context.Context, mark entities.Mark) error
+	DeleteMarkByIDAndLessonID(ctx context.Context, id primitive.ObjectID, lessonId primitive.ObjectID) error
+
+	GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]entities.JournalAvailableOption, error)
+
+	GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId int) (entities.Journal, error)
+	GetJournal(ctx context.Context, group string, subject string, typeName string, studyPlaceId int) (entities.Journal, error)
+
+	GetLessonByIDAndUserID(ctx context.Context, userId primitive.ObjectID, id primitive.ObjectID) (entities.Lesson, error)
+	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId int) ([]entities.Lesson, error)
+}
+
+type journalRepository struct {
 	*Repository
 }
 
-func NewJournalRepository(repository *Repository) *JournalRepository {
-	return &JournalRepository{
-		Repository: repository,
-	}
+func NewJournalRepository(repository *Repository) JournalRepository {
+	return &journalRepository{Repository: repository}
 }
 
-func (j *JournalRepository) AddMark(ctx context.Context, mark *entities.Mark) error {
+func (j *journalRepository) AddMark(ctx context.Context, mark entities.Mark) (primitive.ObjectID, error) {
 	mark.Id = primitive.NewObjectID()
 	if _, err := j.marksCollection.InsertOne(ctx, mark); err != nil {
-		return err
+		return primitive.NilObjectID, err
 	}
 
-	return nil
+	return mark.Id, nil
 }
 
-func (j *JournalRepository) UpdateMark(ctx context.Context, mark *entities.Mark) error {
+func (j *journalRepository) UpdateMark(ctx context.Context, mark entities.Mark) error {
 	_, err := j.marksCollection.UpdateOne(ctx, bson.M{"_id": mark.Id, "lessonId": mark.LessonId}, bson.M{"$set": bson.M{"mark": mark.Mark}})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
-func (j *JournalRepository) DeleteMark(ctx context.Context, id primitive.ObjectID, lessonId primitive.ObjectID) error {
+func (j *journalRepository) DeleteMarkByIDAndLessonID(ctx context.Context, id primitive.ObjectID, lessonId primitive.ObjectID) error {
 	_, err := j.marksCollection.DeleteOne(ctx, bson.M{"_id": id, "lessonId": lessonId})
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
-func (j *JournalRepository) GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]entities.JournalAvailableOption, error) {
+func (j *journalRepository) GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]entities.JournalAvailableOption, error) {
 	aggregate, err := j.lessonsCollection.Aggregate(ctx, bson.A{
 		bson.M{"$match": bson.M{"teacher": teacher}},
 		bson.M{"$group": bson.M{
@@ -72,7 +76,7 @@ func (j *JournalRepository) GetAvailableOptions(ctx context.Context, teacher str
 	return options, nil
 }
 
-func (j *JournalRepository) GetStudentJournal(ctx context.Context, journal *entities.Journal, userId primitive.ObjectID, group string, studyPlaceId int) error {
+func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId int) (entities.Journal, error) {
 	cursor, err := j.lessonsCollection.Aggregate(ctx, bson.A{
 		bson.M{"$match": bson.M{"group": group, "studyPlaceId": studyPlaceId}},
 		bson.M{"$group": bson.M{"_id": "$subject"}},
@@ -138,18 +142,19 @@ func (j *JournalRepository) GetStudentJournal(ctx context.Context, journal *enti
 		bson.M{"$project": bson.M{"_id": 0}},
 	})
 	if err != nil {
-		return err
+		return entities.Journal{}, err
 	}
 
 	cursor.Next(ctx)
+	var journal entities.Journal
 	if err = cursor.Decode(&journal); err != nil {
-		return err
+		return entities.Journal{}, err
 	}
 
-	return nil
+	return journal, nil
 }
 
-func (j *JournalRepository) GetJournal(ctx context.Context, journal *entities.Journal, group string, subject string, typeName string, studyPlaceId int) error {
+func (j *journalRepository) GetJournal(ctx context.Context, group string, subject string, typeName string, studyPlaceId int) (entities.Journal, error) {
 	cursor, err := j.usersCollection.Aggregate(ctx, mongo.Pipeline{
 		bson.D{{"$match", bson.M{"type": "group", "typeName": group, "studyPlaceId": studyPlaceId}}},
 		bson.D{{"$lookup", bson.M{
@@ -186,18 +191,19 @@ func (j *JournalRepository) GetJournal(ctx context.Context, journal *entities.Jo
 		}}}},
 	})
 	if err != nil {
-		return err
+		return entities.Journal{}, err
 	}
 
 	cursor.Next(ctx)
+	var journal entities.Journal
 	if err = cursor.Decode(&journal); err != nil {
-		return err
+		return entities.Journal{}, err
 	}
 
-	return nil
+	return journal, nil
 }
 
-func (j *JournalRepository) GetLessonById(ctx context.Context, userId primitive.ObjectID, id primitive.ObjectID) (entities.Lesson, error) {
+func (j *journalRepository) GetLessonByIDAndUserID(ctx context.Context, userId primitive.ObjectID, id primitive.ObjectID) (entities.Lesson, error) {
 	lessonsCursor, err := j.lessonsCollection.Aggregate(ctx, mongo.Pipeline{
 		bson.D{{"$match", bson.M{"_id": id}}},
 		bson.D{{"$lookup", bson.M{
@@ -221,7 +227,7 @@ func (j *JournalRepository) GetLessonById(ctx context.Context, userId primitive.
 	return lesson, nil
 }
 
-func (j *JournalRepository) GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId int) ([]entities.Lesson, error) {
+func (j *journalRepository) GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId int) ([]entities.Lesson, error) {
 	lessonsCursor, err := j.lessonsCollection.Aggregate(ctx, mongo.Pipeline{
 		bson.D{{"$lookup", bson.M{
 			"from":         "Marks",

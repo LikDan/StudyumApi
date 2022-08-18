@@ -17,7 +17,7 @@ func (u *UserController) GetOAuth2ConfigByName(name string) *oauth2.Config {
 
 func (u *UserController) GetUserViaToken(ctx context.Context, token string) (entities.User, error) {
 	var user entities.User
-	if err := u.repository.GetUserViaToken(ctx, token, &user); err != nil {
+	if _, err := u.repository.GetUserViaToken(ctx, token); err != nil {
 		return entities.User{}, err
 	}
 
@@ -52,7 +52,7 @@ func (u *UserController) CallbackOAuth2(ctx context.Context, code string) (entit
 
 	var user entities.User
 
-	if err = u.repository.GetUserByEmail(ctx, googleUser.Email, &user); err != nil {
+	if _, err = u.repository.GetUserByEmail(ctx, googleUser.Email); err != nil {
 		if err.Error() != "mongo: no documents in result" {
 			return entities.User{}, err
 		}
@@ -72,7 +72,7 @@ func (u *UserController) CallbackOAuth2(ctx context.Context, code string) (entit
 			Blocked:       false,
 		}
 
-		if err := u.repository.SignUp(ctx, &user); err != nil {
+		if _, err := u.repository.SignUp(ctx, user); err != nil {
 			return entities.User{}, err
 		}
 	}

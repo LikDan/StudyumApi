@@ -2,102 +2,85 @@ package repositories
 
 import (
 	"context"
-	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"studyum/internal/dto"
 	"studyum/internal/entities"
 )
 
-var NotAuthorizationError = errors.New("not authorized")
+type UserRepository interface {
+	GetUserViaToken(ctx context.Context, token string) (entities.User, error)
+	GetUserByEmail(ctx context.Context, email string) (entities.User, error)
 
-type UserRepository struct {
+	SignUp(ctx context.Context, user entities.User) (primitive.ObjectID, error)
+	SignUpStage1(ctx context.Context, user entities.User) error
+
+	Login(ctx context.Context, email string, password string) (entities.User, error)
+
+	UpdateUser(ctx context.Context, user entities.User) error
+
+	RevokeToken(ctx context.Context, token string) error
+	UpdateToken(ctx context.Context, id primitive.ObjectID, token string) error
+	UpdateUserTokenByEmail(ctx context.Context, email, token string) error
+}
+
+type userRepository struct {
 	*Repository
 }
 
-func NewUserRepository(repository *Repository) *UserRepository {
-	return &UserRepository{
-		Repository: repository,
-	}
+func NewUserRepository(repository *Repository) UserRepository {
+	return &userRepository{Repository: repository}
 }
 
-func (u *UserRepository) GetUserViaToken(ctx context.Context, token string, user *entities.User) error {
-	if err := u.usersCollection.FindOne(ctx, bson.M{"token": token}).Decode(user); err != nil {
-		if err.Error() == "mongo: no documents in result" {
-			return NotAuthorizationError
-		} else {
-			return err
-		}
-	}
-
-	return nil
+func (u *userRepository) GetUserViaToken(ctx context.Context, token string) (entities.User, error) {
+	var user entities.User
+	err := u.usersCollection.FindOne(ctx, bson.M{"token": token}).Decode(user)
+	return user, err
 }
 
-func (u *UserRepository) SignUp(ctx context.Context, user *entities.User) error {
+func (u *userRepository) SignUp(ctx context.Context, user entities.User) (primitive.ObjectID, error) {
 	user.Id = primitive.NewObjectID()
 	if _, err := u.usersCollection.InsertOne(ctx, user); err != nil {
-		return err
+		return primitive.NilObjectID, err
 	}
 
-	return nil
+	return user.Id, nil
 }
 
-func (u *UserRepository) SignUpStage1(ctx context.Context, user *entities.User) error {
-	if _, err := u.usersCollection.UpdateOne(ctx, bson.M{"token": user.Token}, bson.M{"$set": user}); err != nil {
-		return err
-	}
-
-	return nil
+func (u *userRepository) SignUpStage1(ctx context.Context, user entities.User) error {
+	_, err := u.usersCollection.UpdateOne(ctx, bson.M{"token": user.Token}, bson.M{"$set": user})
+	return err
 }
 
-func (u *UserRepository) Login(ctx context.Context, data *dto.UserLoginData, user *entities.User) error {
-	if err := u.usersCollection.FindOne(ctx, data).Decode(&user); err != nil {
-		if err.Error() == "mongo: no documents in result" {
-			return NotAuthorizationError
-		} else {
-			return err
-		}
-	}
+func (u *userRepository) Login(ctx context.Context, email string, password string) (entities.User, error) {
+	var user entities.User
+	err := u.usersCollection.FindOne(ctx, bson.M{"email": email, "password": password}).Decode(&user)
 
-	return nil
+	return user, err
 }
 
-func (u *UserRepository) UpdateUser(ctx context.Context, user *entities.User) error {
-	if _, err := u.usersCollection.UpdateOne(ctx, bson.M{"token": user.Token}, bson.M{"$set": user}); err != nil {
-		return err
-	}
-
-	return nil
+func (u *userRepository) UpdateUser(ctx context.Context, user entities.User) error {
+	_, err := u.usersCollection.UpdateOne(ctx, bson.M{"token": user.Token}, bson.M{"$set": user})
+	return err
 }
 
-func (u *UserRepository) RevokeToken(ctx context.Context, token string) error {
-	if _, err := u.usersCollection.UpdateOne(ctx, bson.M{"token": token}, bson.M{"$set": bson.M{"token": ""}}); err != nil {
-		return err
-	}
-
-	return nil
+func (u *userRepository) RevokeToken(ctx context.Context, token string) error {
+	_, err := u.usersCollection.UpdateOne(ctx, bson.M{"token": token}, bson.M{"$set": bson.M{"token": ""}})
+	return err
 }
 
-func (u *UserRepository) UpdateToken(ctx context.Context, data dto.UserLoginData, token string) error {
-	if _, err := u.usersCollection.UpdateOne(ctx, data, bson.M{"$set": bson.M{"token": token}}); err != nil {
-		return err
-	}
-
-	return nil
+func (u *userRepository) UpdateToken(ctx context.Context, id primitive.ObjectID, token string) error {
+	_, err := u.usersCollection.UpdateByID(ctx, id, bson.M{"$set": bson.M{"token": token}})
+	return err
 }
 
-func (u *UserRepository) UpdateUserTokenByEmail(ctx context.Context, email, token string) error {
-	if _, err := u.usersCollection.UpdateOne(ctx, bson.M{"email": email}, bson.M{"$set": bson.M{"token": token}}); err != nil {
-		return err
-	}
-
-	return nil
+func (u *userRepository) UpdateUserTokenByEmail(ctx context.Context, email, token string) error {
+	_, err := u.usersCollection.UpdateOne(ctx, bson.M{"email": email}, bson.M{"$set": bson.M{"token": token}})
+	return err
 }
 
-func (u *UserRepository) GetUserByEmail(ctx context.Context, email string, user *entities.User) error {
-	if err := u.usersCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user); err != nil {
-		return err
-	}
+func (u *userRepository) GetUserByEmail(ctx context.Context, email string) (entities.User, error) {
+	var user entities.User
+	err := u.usersCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
 
-	return nil
+	return user, err
 }

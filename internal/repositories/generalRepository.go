@@ -6,17 +6,19 @@ import (
 	"studyum/internal/entities"
 )
 
-type GeneralRepository struct {
+type GeneralRepository interface {
+	GetAllStudyPlaces(ctx context.Context) (error, []entities.StudyPlace)
+}
+
+type generalRepository struct {
 	*Repository
 }
 
-func NewGeneralRepository(repository *Repository) *GeneralRepository {
-	return &GeneralRepository{
-		Repository: repository,
-	}
+func NewGeneralRepository(repository *Repository) GeneralRepository {
+	return &generalRepository{Repository: repository}
 }
 
-func (g *GeneralRepository) GetAllStudyPlaces(ctx context.Context) (error, []entities.StudyPlace) {
+func (g *generalRepository) GetAllStudyPlaces(ctx context.Context) (error, []entities.StudyPlace) {
 	var studyPlaces []entities.StudyPlace
 	studyPlacesCursor, err := g.studyPlacesCollection.Find(ctx, bson.M{})
 	if err != nil {

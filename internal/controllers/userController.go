@@ -11,10 +11,10 @@ import (
 )
 
 type UserController struct {
-	repository repositories.IUserRepository
+	repository repositories.UserRepository
 }
 
-func NewUserController(repository repositories.IUserRepository) *UserController {
+func NewUserController(repository repositories.UserRepository) *UserController {
 	return &UserController{repository: repository}
 }
 
@@ -41,7 +41,7 @@ func (u *UserController) SignUpUser(ctx context.Context, data dto.UserSignUpData
 		Accepted:      false,
 		Blocked:       false,
 	}
-	if err := u.repository.SignUp(ctx, &user); err != nil {
+	if _, err := u.repository.SignUp(ctx, user); err != nil {
 		return entities.User{}, err
 	}
 
@@ -59,7 +59,7 @@ func (u *UserController) SignUpUserStage1(ctx context.Context, user entities.Use
 		return entities.User{}, NotValidParams
 	}
 
-	if err := u.repository.SignUpStage1(ctx, &user); err != nil {
+	if err := u.repository.SignUpStage1(ctx, user); err != nil {
 		return entities.User{}, err
 	}
 
@@ -78,7 +78,7 @@ func (u *UserController) UpdateUser(ctx context.Context, user entities.User, dat
 	user.Login = data.Login
 	user.Name = data.Name
 	user.Email = data.Email
-	if err := u.repository.UpdateUser(ctx, &user); err != nil {
+	if err := u.repository.UpdateUser(ctx, user); err != nil {
 		return entities.User{}, err
 	}
 
@@ -89,15 +89,15 @@ func (u *UserController) LoginUser(ctx context.Context, data dto.UserLoginData) 
 	data.Password = utils.Hash(data.Password)
 
 	var user entities.User
-	if err := u.repository.Login(ctx, &data, &user); err != nil {
+	if _, err := u.repository.Login(ctx, "", ""); err != nil {
 		return entities.User{}, err
 	}
 
 	return user, nil
 }
 
-func (u *UserController) UpdateToken(ctx context.Context, data dto.UserLoginData, token string) error {
-	return u.repository.UpdateToken(ctx, data, token)
+func (u *UserController) UpdateTokenByID(ctx context.Context, id primitive.ObjectID, token string) error {
+	return u.repository.UpdateToken(ctx, id, token)
 }
 
 func (u *UserController) RevokeToken(ctx context.Context, token string) error {
