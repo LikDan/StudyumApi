@@ -33,7 +33,14 @@ func NewUserRepository(repository *Repository) UserRepository {
 
 func (u *userRepository) GetUserViaToken(ctx context.Context, token string, permissions ...string) (entities.User, error) {
 	var user entities.User
-	err := u.usersCollection.FindOne(ctx, bson.M{"token": token, "permissions": bson.M{"$all": permissions}}).Decode(user)
+
+	var filter bson.M
+	if len(permissions) == 0 {
+		filter = bson.M{"token": token}
+	} else {
+		filter = bson.M{"token": token, "permissions": bson.M{"$all": permissions}}
+	}
+	err := u.usersCollection.FindOne(ctx, filter).Decode(user)
 	return user, err
 }
 
