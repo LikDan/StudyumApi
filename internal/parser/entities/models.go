@@ -58,6 +58,7 @@ func GetScheduleStateInfoByIndexes(weekIndex, dayIndex int, states []ScheduleSta
 type Shift struct {
 	Start time.Duration
 	End   time.Duration
+	Date  time.Time
 }
 
 func NewShift(sHour, sMinute, eHour, eMinute int) Shift {

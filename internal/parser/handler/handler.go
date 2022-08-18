@@ -4,13 +4,13 @@ import (
 	"context"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
+	"studyum/internal/parser/application"
 	"studyum/internal/parser/controller"
-	"studyum/internal/parser/entities"
 	"studyum/pkg/firebase"
 )
 
 type Handler interface {
-	Update(app entities.IApp)
+	Update(app application.App)
 }
 
 type handler struct {
@@ -24,17 +24,20 @@ func NewParserHandler(firebase firebase.Firebase, controller controller.Controll
 
 	for _, app := range controller.Apps() {
 		ctx := context.Background()
-		lastLesson, _ := h.controller.GetLastLesson(ctx, app.StudyPlaceId())
+		lastLesson, err := h.controller.GetLastLesson(ctx, app.StudyPlaceId())
+		if err != nil {
+			continue
+		}
 
 		app.Init(lastLesson)
 
 		types := app.ScheduleTypesUpdate()
-		if err := h.controller.InsertScheduleTypes(ctx, types); err != nil {
+		if err = h.controller.InsertScheduleTypes(ctx, types); err != nil {
 			continue
 		}
 
 		updateCron := cron.New()
-		if err := updateCron.AddFunc(app.GetUpdateCronPattern(), func() { h.Update(app) }); err != nil {
+		if err = updateCron.AddFunc(app.GetUpdateCronPattern(), func() { h.Update(app) }); err != nil {
 			logrus.Warningf("cannot launch cron for %s, err: %e", app.GetName(), err)
 			continue
 		}
@@ -45,7 +48,7 @@ func NewParserHandler(firebase firebase.Firebase, controller controller.Controll
 	return h
 }
 
-func (h *handler) Update(app entities.IApp) {
+func (h *handler) Update(app application.App) {
 	ctx := context.Background()
 	h.controller.Update(ctx, app)
 }
