@@ -1,25 +1,9 @@
 package utils
 
 import (
-	"crypto/md5"
-	"crypto/rand"
-	"encoding/hex"
 	"github.com/gin-gonic/gin"
 	"studyum/internal/entities"
 )
-
-func GenerateSecureToken() string {
-	b := make([]byte, 128)
-	if _, err := rand.Read(b); err != nil {
-		return ""
-	}
-	return hex.EncodeToString(b)
-}
-
-func Hash(s string) string {
-	hash := md5.Sum([]byte(s))
-	return hex.EncodeToString(hash[:])
-}
 
 func GetUserViaCtx(ctx *gin.Context) entities.User {
 	return GetViaCtx[entities.User](ctx, "user")
