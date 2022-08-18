@@ -66,7 +66,7 @@ func (u *userHandler) GetUser(ctx *gin.Context) {
 func (u *userHandler) UpdateUser(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
-	var data dto.UserSignUpData
+	var data dto.UserSignUpDTO
 	if err := ctx.BindJSON(&data); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
@@ -82,7 +82,7 @@ func (u *userHandler) UpdateUser(ctx *gin.Context) {
 }
 
 func (u *userHandler) LoginUser(ctx *gin.Context) {
-	var data dto.UserLoginData
+	var data dto.UserLoginDTO
 	if err := ctx.BindJSON(&data); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
@@ -100,7 +100,7 @@ func (u *userHandler) LoginUser(ctx *gin.Context) {
 }
 
 func (u *userHandler) SignUpUser(ctx *gin.Context) {
-	var data dto.UserSignUpData
+	var data dto.UserSignUpDTO
 	if err := ctx.BindJSON(&data); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
@@ -120,7 +120,7 @@ func (u *userHandler) SignUpUser(ctx *gin.Context) {
 func (u *userHandler) SignUpUserStage1(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
-	var data dto.UserSignUpStage1Data
+	var data dto.UserSignUpStage1DTO
 	if err := ctx.BindJSON(&data); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return

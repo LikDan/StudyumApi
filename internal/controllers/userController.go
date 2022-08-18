@@ -17,11 +17,11 @@ import (
 )
 
 type UserController interface {
-	UpdateUser(ctx context.Context, user entities.User, data dto.UserSignUpData) (entities.User, error)
+	UpdateUser(ctx context.Context, user entities.User, data dto.UserSignUpDTO) (entities.User, error)
 
-	LoginUser(ctx context.Context, data dto.UserLoginData) (entities.User, error)
-	SignUpUser(ctx context.Context, data dto.UserSignUpData) (entities.User, error)
-	SignUpUserStage1(ctx context.Context, user entities.User, data dto.UserSignUpStage1Data) (entities.User, error)
+	LoginUser(ctx context.Context, data dto.UserLoginDTO) (entities.User, error)
+	SignUpUser(ctx context.Context, data dto.UserSignUpDTO) (entities.User, error)
+	SignUpUserStage1(ctx context.Context, user entities.User, data dto.UserSignUpStage1DTO) (entities.User, error)
 
 	UpdateTokenByID(ctx context.Context, id primitive.ObjectID, token string) error
 	RevokeToken(ctx context.Context, token string) error
@@ -39,7 +39,7 @@ func NewUserController(repository repositories.UserRepository) UserController {
 	return &userController{repository: repository}
 }
 
-func (u *userController) SignUpUser(ctx context.Context, data dto.UserSignUpData) (entities.User, error) {
+func (u *userController) SignUpUser(ctx context.Context, data dto.UserSignUpDTO) (entities.User, error) {
 	if err := validator.New().Struct(&data); err != nil {
 		return entities.User{}, NotValidParams
 	}
@@ -69,7 +69,7 @@ func (u *userController) SignUpUser(ctx context.Context, data dto.UserSignUpData
 	return user, nil
 }
 
-func (u *userController) SignUpUserStage1(ctx context.Context, user entities.User, data dto.UserSignUpStage1Data) (entities.User, error) {
+func (u *userController) SignUpUserStage1(ctx context.Context, user entities.User, data dto.UserSignUpStage1DTO) (entities.User, error) {
 	switch data.Type {
 	case "group", "teacher":
 		user.Type = data.Type
@@ -87,7 +87,7 @@ func (u *userController) SignUpUserStage1(ctx context.Context, user entities.Use
 	return user, nil
 }
 
-func (u *userController) UpdateUser(ctx context.Context, user entities.User, data dto.UserSignUpData) (entities.User, error) {
+func (u *userController) UpdateUser(ctx context.Context, user entities.User, data dto.UserSignUpDTO) (entities.User, error) {
 	if err := validator.New().Struct(&data); err != nil {
 		return entities.User{}, NotValidParams
 	}
@@ -106,7 +106,7 @@ func (u *userController) UpdateUser(ctx context.Context, user entities.User, dat
 	return user, nil
 }
 
-func (u *userController) LoginUser(ctx context.Context, data dto.UserLoginData) (entities.User, error) {
+func (u *userController) LoginUser(ctx context.Context, data dto.UserLoginDTO) (entities.User, error) {
 	data.Password = utils.Hash(data.Password)
 
 	return u.repository.Login(ctx, data.Email, data.Password)

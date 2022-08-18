@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"studyum/internal/dto"
 	"studyum/internal/entities"
 	"studyum/internal/repositories"
 	"studyum/internal/utils"
@@ -20,9 +21,9 @@ type JournalController interface {
 	GetJournal(ctx context.Context, group string, subject string, teacher string, user entities.User) (entities.Journal, error)
 	GetUserJournal(ctx context.Context, user entities.User) (entities.Journal, error)
 
-	AddMark(ctx context.Context, mark entities.Mark) (entities.Lesson, error)
+	AddMark(ctx context.Context, dto dto.AddMarkDTO, user entities.User) (entities.Lesson, error)
 	GetMark(ctx context.Context, group string, subject string, userIdHex string, user entities.User) ([]entities.Lesson, error)
-	UpdateMark(ctx context.Context, mark entities.Mark) (entities.Lesson, error)
+	UpdateMark(ctx context.Context, dto dto.UpdateMarkDTO) (entities.Lesson, error)
 	DeleteMark(ctx context.Context, markIdHex string, userIdHex string, subjectIdHex string) (entities.Lesson, error)
 }
 
@@ -64,9 +65,16 @@ func (j *journalController) GetUserJournal(ctx context.Context, user entities.Us
 	return j.repository.GetStudentJournal(ctx, user.Id, user.TypeName, user.StudyPlaceId)
 }
 
-func (j *journalController) AddMark(ctx context.Context, mark entities.Mark) (entities.Lesson, error) {
-	if mark.Mark == "" || mark.UserId.IsZero() || mark.LessonId.IsZero() {
+func (j *journalController) AddMark(ctx context.Context, dto dto.AddMarkDTO, user entities.User) (entities.Lesson, error) {
+	if dto.Mark == "" || dto.UserId.IsZero() || dto.LessonId.IsZero() {
 		return entities.Lesson{}, NotValidParams
+	}
+
+	mark := entities.Mark{
+		Mark:         dto.Mark,
+		UserId:       dto.UserId,
+		LessonId:     dto.LessonId,
+		StudyPlaceId: user.StudyPlaceId,
 	}
 
 	if _, err := j.repository.AddMark(ctx, mark); err != nil {
@@ -89,9 +97,15 @@ func (j *journalController) GetMark(ctx context.Context, group string, subject s
 	return j.repository.GetLessons(ctx, userId, group, user.Name, subject, user.StudyPlaceId)
 }
 
-func (j *journalController) UpdateMark(ctx context.Context, mark entities.Mark) (entities.Lesson, error) {
-	if mark.Mark == "" || mark.Id.IsZero() || mark.UserId.IsZero() || mark.LessonId.IsZero() {
+func (j *journalController) UpdateMark(ctx context.Context, dto dto.UpdateMarkDTO) (entities.Lesson, error) {
+	if dto.Mark == "" || dto.Id.IsZero() || dto.LessonId.IsZero() {
 		return entities.Lesson{}, NotValidParams
+	}
+
+	mark := entities.Mark{
+		Id:       dto.Id,
+		Mark:     dto.Mark,
+		LessonId: dto.LessonId,
 	}
 
 	if err := j.repository.UpdateMark(ctx, mark); err != nil {
