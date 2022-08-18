@@ -175,7 +175,8 @@ func (u *userController) CallbackOAuth2(ctx context.Context, code string) (entit
 			Blocked:       false,
 		}
 
-		if _, err := u.repository.SignUp(ctx, user); err != nil {
+		user.Id, err = u.repository.SignUp(ctx, user)
+		if err != nil {
 			return entities.User{}, err
 		}
 	}
