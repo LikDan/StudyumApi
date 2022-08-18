@@ -2,29 +2,33 @@ package firebase
 
 import (
 	"context"
-	firebase "firebase.google.com/go/v4"
+	fb "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/option"
 )
 
-type Firebase struct {
-	app *firebase.App
+type Firebase interface {
+	SendNotification(topic string, title string, body string, url string) (string, error)
 }
 
-func NewFirebase(credentials []byte) *Firebase {
+type firebase struct {
+	app *fb.App
+}
+
+func NewFirebase(credentials []byte) Firebase {
 	opt := option.WithCredentialsJSON(credentials)
 
-	app, err := firebase.NewApp(context.Background(), nil, opt)
+	app, err := fb.NewApp(context.Background(), nil, opt)
 	if err != nil {
 		logrus.Errorf("error initializing firebaseApp: %v", err)
 		return nil
 	}
 
-	return &Firebase{app: app}
+	return &firebase{app: app}
 }
 
-func (f *Firebase) SendNotification(topic string, title string, body string, url string) (string, error) {
+func (f *firebase) SendNotification(topic string, title string, body string, url string) (string, error) {
 	ctx := context.Background()
 	client, err := f.app.Messaging(ctx)
 	if err != nil {
