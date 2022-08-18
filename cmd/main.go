@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -11,7 +12,7 @@ import (
 	"studyum/internal/handlers"
 	pController "studyum/internal/parser/controller"
 	pHandler "studyum/internal/parser/handler"
-	"studyum/internal/parser/repository"
+	pRepository "studyum/internal/parser/repository"
 	"studyum/internal/repositories"
 	"time"
 )
@@ -24,23 +25,25 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	if err = client.Connect(nil); err != nil {
+	ctx := context.Background()
+	if err = client.Connect(ctx); err != nil {
 		logrus.Fatalf("Can't connect to database, error: %s", err.Error())
-		return
 	}
 
-	repo := repositories.NewRepository(client)
-	userRepository := repositories.NewUserRepository(repo)
-	generalRepository := repositories.NewGeneralRepository(repo)
-	journalRepository := repositories.NewJournalRepository(repo)
-	scheduleRepository := repositories.NewScheduleRepository(repo)
-	parserRepository := repository.NewParserRepository(client)
+	repository := repositories.NewRepository(client)
+	userRepository := repositories.NewUserRepository(repository)
+	generalRepository := repositories.NewGeneralRepository(repository)
+	journalRepository := repositories.NewJournalRepository(repository)
+	scheduleRepository := repositories.NewScheduleRepository(repository)
+
+	parserRepository := pRepository.NewParserRepository(client)
 
 	controller := controllers.NewController(userRepository)
 	userController := controllers.NewUserController(userRepository)
 	generalController := controllers.NewGeneralController(generalRepository)
 	journalController := controllers.NewJournalController(journalRepository)
 	scheduleController := controllers.NewScheduleController(scheduleRepository)
+
 	parserController := pController.NewParserController(parserRepository)
 
 	firebaseCredentials := []byte(os.Getenv("FIREBASE_CREDENTIALS"))
@@ -57,7 +60,5 @@ func main() {
 
 	pHandler.NewParserHandler(firebase, parserController)
 
-	if err = engine.Run(); err != nil {
-		logrus.Fatalf("Error launching server %s", err.Error())
-	}
+	logrus.Fatalf("Error launching server %s", engine.Run().Error())
 }
