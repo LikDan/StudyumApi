@@ -34,11 +34,9 @@ func NewUserRepository(repository *Repository) UserRepository {
 func (u *userRepository) GetUserViaToken(ctx context.Context, token string, permissions ...string) (entities.User, error) {
 	var user entities.User
 
-	var filter bson.M
-	if len(permissions) == 0 {
-		filter = bson.M{"token": token}
-	} else {
-		filter = bson.M{"token": token, "permissions": bson.M{"$all": permissions}}
+	filter := bson.M{"token": token}
+	if len(permissions) != 0 {
+		filter["permissions"] = permissions
 	}
 	err := u.usersCollection.FindOne(ctx, filter).Decode(&user)
 	return user, err
