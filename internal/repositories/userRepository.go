@@ -40,7 +40,7 @@ func (u *userRepository) GetUserViaToken(ctx context.Context, token string, perm
 	} else {
 		filter = bson.M{"token": token, "permissions": bson.M{"$all": permissions}}
 	}
-	err := u.usersCollection.FindOne(ctx, filter).Decode(user)
+	err := u.usersCollection.FindOne(ctx, filter).Decode(&user)
 	return user, err
 }
 
