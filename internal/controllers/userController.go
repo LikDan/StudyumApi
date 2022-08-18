@@ -13,7 +13,7 @@ import (
 	"studyum/internal/dto"
 	"studyum/internal/entities"
 	"studyum/internal/repositories"
-	"studyum/internal/utils"
+	"studyum/pkg/hash"
 )
 
 type UserController interface {
@@ -44,7 +44,7 @@ func (u *userController) SignUpUser(ctx context.Context, data dto.UserSignUpDTO)
 		return entities.User{}, NotValidParams
 	}
 
-	data.Password = utils.Hash(data.Password)
+	data.Password = hash.Hash(data.Password)
 
 	user := entities.User{
 		Id:            primitive.NilObjectID,
@@ -93,7 +93,7 @@ func (u *userController) UpdateUser(ctx context.Context, user entities.User, dat
 	}
 
 	if data.Password != "" && len(data.Password) > 8 {
-		user.Password = utils.Hash(data.Password)
+		user.Password = hash.Hash(data.Password)
 	}
 
 	user.Login = data.Login
@@ -107,7 +107,7 @@ func (u *userController) UpdateUser(ctx context.Context, user entities.User, dat
 }
 
 func (u *userController) LoginUser(ctx context.Context, data dto.UserLoginDTO) (entities.User, error) {
-	data.Password = utils.Hash(data.Password)
+	data.Password = hash.Hash(data.Password)
 
 	return u.repository.Login(ctx, data.Email, data.Password)
 }
@@ -161,7 +161,7 @@ func (u *userController) CallbackOAuth2(ctx context.Context, code string) (entit
 		}
 		user = entities.User{
 			Id:            primitive.NewObjectID(),
-			Token:         utils.GenerateSecureToken(),
+			Token:         hash.GenerateSecureToken(),
 			Email:         googleUser.Email,
 			VerifiedEmail: googleUser.VerifiedEmail,
 			Login:         googleUser.Name,
@@ -181,7 +181,7 @@ func (u *userController) CallbackOAuth2(ctx context.Context, code string) (entit
 	}
 
 	if user.Token == "" {
-		user.Token = utils.GenerateSecureToken()
+		user.Token = hash.GenerateSecureToken()
 
 		if err = u.repository.UpdateUserTokenByEmail(ctx, user.Email, user.Token); err != nil {
 			return entities.User{}, err
