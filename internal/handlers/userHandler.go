@@ -6,19 +6,34 @@ import (
 	"studyum/internal/controllers"
 	"studyum/internal/dto"
 	"studyum/internal/utils"
-	"time"
 )
 
-type UserHandler struct {
-	IHandler
+type UserHandler interface {
+	GetUser(ctx *gin.Context)
+	UpdateUser(ctx *gin.Context)
+
+	LoginUser(ctx *gin.Context)
+	SignUpUser(ctx *gin.Context)
+	SignUpUserStage1(ctx *gin.Context)
+	SignOutUser(ctx *gin.Context)
+
+	OAuth2(ctx *gin.Context)
+	CallbackOAuth2(ctx *gin.Context)
+	PutAuthToken(ctx *gin.Context)
+
+	RevokeToken(ctx *gin.Context)
+}
+
+type userHandler struct {
+	Handler
 
 	controller controllers.UserController
 
 	Group *gin.RouterGroup
 }
 
-func NewUserHandler(authHandler IHandler, controller controllers.UserController, group *gin.RouterGroup) *UserHandler {
-	h := &UserHandler{IHandler: authHandler, controller: controller, Group: group}
+func NewUserHandler(authHandler Handler, controller controllers.UserController, group *gin.RouterGroup) UserHandler {
+	h := &userHandler{Handler: authHandler, controller: controller, Group: group}
 
 	group.GET("", h.Auth(), h.GetUser)
 	group.PUT("", h.Auth(), h.UpdateUser)
@@ -38,24 +53,17 @@ func NewUserHandler(authHandler IHandler, controller controllers.UserController,
 	return h
 }
 
-func (u *UserHandler) putToken(ctx *gin.Context, token string) error {
-	http.SetCookie(ctx.Writer, &http.Cookie{
-		Name:    "authToken",
-		Value:   token,
-		Path:    "/",
-		Expires: time.Now().AddDate(1, 0, 0),
-	})
-
-	return nil
+func (u *userHandler) putToken(ctx *gin.Context, token string) {
+	ctx.SetCookie("authToken", token, 60*60*24*30, "", "", false, false)
 }
 
-func (u *UserHandler) GetUser(ctx *gin.Context) {
+func (u *userHandler) GetUser(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	ctx.JSON(http.StatusOK, user)
 }
 
-func (u *UserHandler) UpdateUser(ctx *gin.Context) {
+func (u *userHandler) UpdateUser(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	var data dto.UserSignUpData
@@ -73,7 +81,7 @@ func (u *UserHandler) UpdateUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
-func (u *UserHandler) LoginUser(ctx *gin.Context) {
+func (u *userHandler) LoginUser(ctx *gin.Context) {
 	var data dto.UserLoginData
 	if err := ctx.BindJSON(&data); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
@@ -86,14 +94,12 @@ func (u *UserHandler) LoginUser(ctx *gin.Context) {
 		return
 	}
 
-	if err = u.putToken(ctx, user.Token); err != nil {
-		u.Error(ctx, err)
-	}
+	u.putToken(ctx, user.Token)
 
 	ctx.JSON(http.StatusOK, user)
 }
 
-func (u *UserHandler) SignUpUser(ctx *gin.Context) {
+func (u *userHandler) SignUpUser(ctx *gin.Context) {
 	var data dto.UserSignUpData
 	if err := ctx.BindJSON(&data); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
@@ -106,14 +112,12 @@ func (u *UserHandler) SignUpUser(ctx *gin.Context) {
 		return
 	}
 
-	if err = u.putToken(ctx, user.Token); err != nil {
-		u.Error(ctx, err)
-	}
+	u.putToken(ctx, user.Token)
 
 	ctx.JSON(http.StatusOK, user)
 }
 
-func (u *UserHandler) SignUpUserStage1(ctx *gin.Context) {
+func (u *userHandler) SignUpUserStage1(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	var data dto.UserSignUpStage1Data
@@ -131,7 +135,7 @@ func (u *UserHandler) SignUpUserStage1(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
-func (u *UserHandler) OAuth2(ctx *gin.Context) {
+func (u *userHandler) OAuth2(ctx *gin.Context) {
 	configName := ctx.Param("oauthConfigName")
 	config := u.controller.GetOAuth2ConfigByName(configName)
 
@@ -144,7 +148,7 @@ func (u *UserHandler) OAuth2(ctx *gin.Context) {
 	ctx.Redirect(307, url)
 }
 
-func (u *UserHandler) CallbackOAuth2(ctx *gin.Context) {
+func (u *userHandler) CallbackOAuth2(ctx *gin.Context) {
 	code := ctx.Query("code")
 
 	user, err := u.controller.CallbackOAuth2(ctx, code)
@@ -156,13 +160,11 @@ func (u *UserHandler) CallbackOAuth2(ctx *gin.Context) {
 	ctx.Redirect(307, "http://"+ctx.Query("state")+"/user/receiveToken?token="+user.Token)
 }
 
-func (u *UserHandler) PutAuthToken(ctx *gin.Context) {
+func (u *userHandler) PutAuthToken(ctx *gin.Context) {
 	bytes, _ := ctx.GetRawData()
 	token := string(bytes)
 
-	if err := u.putToken(ctx, token); err != nil {
-		u.Error(ctx, err)
-	}
+	u.putToken(ctx, token)
 
 	user, err := u.controller.GetUserViaToken(ctx, token)
 	if err != nil {
@@ -173,12 +175,12 @@ func (u *UserHandler) PutAuthToken(ctx *gin.Context) {
 	ctx.JSON(200, user)
 }
 
-func (u *UserHandler) SignOutUser(ctx *gin.Context) {
+func (u *userHandler) SignOutUser(ctx *gin.Context) {
 	ctx.SetCookie("authToken", "", -1, "", "", false, false)
 	ctx.JSON(200, "authToken")
 }
 
-func (u *UserHandler) RevokeToken(ctx *gin.Context) {
+func (u *userHandler) RevokeToken(ctx *gin.Context) {
 	token, err := ctx.Cookie("authToken")
 	if err != nil {
 		ctx.JSON(http.StatusForbidden, "token not present")
