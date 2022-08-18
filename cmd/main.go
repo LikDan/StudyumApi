@@ -8,12 +8,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
 	"studyum/internal/controllers"
-	fb "studyum/internal/firebase"
 	"studyum/internal/handlers"
 	pController "studyum/internal/parser/controller"
 	pHandler "studyum/internal/parser/handler"
 	pRepository "studyum/internal/parser/repository"
 	"studyum/internal/repositories"
+	fb "studyum/pkg/firebase"
 	"time"
 )
 
