@@ -11,21 +11,21 @@ import (
 type ScheduleHandler struct {
 	IHandler
 
-	controller controllers.IScheduleController
+	controller controllers.ScheduleController
 
 	Group *gin.RouterGroup
 }
 
-func NewScheduleHandler(authHandler IHandler, controller controllers.IScheduleController, group *gin.RouterGroup) *ScheduleHandler {
+func NewScheduleHandler(authHandler IHandler, controller controllers.ScheduleController, group *gin.RouterGroup) *ScheduleHandler {
 	h := &ScheduleHandler{IHandler: authHandler, controller: controller, Group: group}
 
 	group.GET(":type/:name", h.Auth(), h.GetSchedule)
 	group.GET("", h.Auth(), h.GetUserSchedule)
 	group.GET("getTypes", h.Auth(), h.GetScheduleTypes)
 
-	group.POST("", h.Auth(), h.AddLesson)
-	group.PUT("", h.Auth(), h.UpdateLesson)
-	group.DELETE(":id", h.Auth(), h.DeleteLesson)
+	group.POST("", h.Auth("editSchedule"), h.AddLesson)
+	group.PUT("", h.Auth("editSchedule"), h.UpdateLesson)
+	group.DELETE(":id", h.Auth("editSchedule"), h.DeleteLesson)
 
 	return h
 }

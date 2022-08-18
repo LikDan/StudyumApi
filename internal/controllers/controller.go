@@ -10,17 +10,21 @@ import (
 
 var NotAuthorizationError = errors.New("not authorized")
 
-type Controller struct {
+type Controller interface {
+	Auth(ctx context.Context, token string, permissions ...string) (entities.User, error)
+}
+
+type controller struct {
 	repository repositories.UserRepository
 }
 
-func NewController(repository repositories.UserRepository) *Controller {
-	return &Controller{repository: repository}
+func NewController(repository repositories.UserRepository) Controller {
+	return &controller{repository: repository}
 }
 
-func (a *Controller) Auth(ctx context.Context, token string) (entities.User, error) {
+func (a *controller) Auth(ctx context.Context, token string, permissions ...string) (entities.User, error) {
 	var user entities.User
-	_, err := a.repository.GetUserViaToken(ctx, token)
+	_, err := a.repository.GetUserViaToken(ctx, token, permissions...)
 	if err != nil {
 		if errors.Is(mongo.ErrNoDocuments, err) {
 			return entities.User{}, NotAuthorizationError

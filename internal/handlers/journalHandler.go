@@ -11,19 +11,19 @@ import (
 type JournalHandler struct {
 	IHandler
 
-	controller controllers.IJournalController
+	controller controllers.JournalController
 
 	Group *gin.RouterGroup
 }
 
-func NewJournalHandler(authHandler IHandler, controller controllers.IJournalController, group *gin.RouterGroup) *JournalHandler {
+func NewJournalHandler(authHandler IHandler, controller controllers.JournalController, group *gin.RouterGroup) *JournalHandler {
 	h := &JournalHandler{IHandler: authHandler, controller: controller, Group: group}
 
 	group.GET("/options", h.Auth(), h.GetJournalAvailableOptions)
 	group.GET("/:group/:subject/:teacher", h.Auth(), h.GetJournal)
 	group.GET("", h.Auth(), h.GetUserJournal)
 
-	mark := group.Group("/mark", h.Auth())
+	mark := group.Group("/mark", h.Auth("editJournal"))
 	{
 		mark.POST("", h.AddMark)
 		mark.GET("", h.GetMark)
@@ -74,15 +74,13 @@ func (j *JournalHandler) GetUserJournal(ctx *gin.Context) {
 }
 
 func (j *JournalHandler) AddMark(ctx *gin.Context) {
-	user := utils.GetUserViaCtx(ctx)
-
 	var mark entities.Mark
 	if err := ctx.BindJSON(&mark); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
 
-	lesson, err := j.controller.AddMark(ctx, mark, user)
+	lesson, err := j.controller.AddMark(ctx, mark)
 	if err != nil {
 		j.Error(ctx, err)
 		return
@@ -108,15 +106,13 @@ func (j *JournalHandler) GetMark(ctx *gin.Context) {
 }
 
 func (j *JournalHandler) UpdateMark(ctx *gin.Context) {
-	user := utils.GetUserViaCtx(ctx)
-
 	var mark entities.Mark
 	if err := ctx.BindJSON(&mark); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
 
-	lesson, err := j.controller.UpdateMark(ctx, mark, user)
+	lesson, err := j.controller.UpdateMark(ctx, mark)
 	if err != nil {
 		j.Error(ctx, err)
 		return
@@ -126,13 +122,11 @@ func (j *JournalHandler) UpdateMark(ctx *gin.Context) {
 }
 
 func (j *JournalHandler) DeleteMark(ctx *gin.Context) {
-	user := utils.GetUserViaCtx(ctx)
-
 	markId := ctx.Query("markId")
 	userId := ctx.Query("userId")
 	subjectId := ctx.Query("subjectId")
 
-	lesson, err := j.controller.DeleteMark(ctx, markId, userId, subjectId, user)
+	lesson, err := j.controller.DeleteMark(ctx, markId, userId, subjectId)
 	if err != nil {
 		j.Error(ctx, err)
 		return
