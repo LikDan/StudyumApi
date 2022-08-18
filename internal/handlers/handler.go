@@ -8,15 +8,20 @@ import (
 	"studyum/internal/controllers"
 )
 
-type Handler struct {
+type Handler interface {
+	Auth(permissions ...string) gin.HandlerFunc
+	Error(ctx *gin.Context, err error)
+}
+
+type handler struct {
 	controller controllers.Controller
 }
 
-func NewHandler(controller controllers.Controller) *Handler {
-	return &Handler{controller: controller}
+func NewHandler(controller controllers.Controller) Handler {
+	return &handler{controller: controller}
 }
 
-func (h *Handler) Auth(permissions ...string) gin.HandlerFunc {
+func (h *handler) Auth(permissions ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		token, err := ctx.Cookie("authToken")
 		if err != nil {
@@ -35,7 +40,7 @@ func (h *Handler) Auth(permissions ...string) gin.HandlerFunc {
 	}
 }
 
-func (h *Handler) Error(ctx *gin.Context, err error) {
+func (h *handler) Error(ctx *gin.Context, err error) {
 	var code int
 
 	switch {

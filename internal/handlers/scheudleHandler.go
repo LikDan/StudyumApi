@@ -8,16 +8,27 @@ import (
 	"studyum/internal/utils"
 )
 
-type ScheduleHandler struct {
-	IHandler
+type ScheduleHandler interface {
+	GetScheduleTypes(ctx *gin.Context)
+
+	GetSchedule(ctx *gin.Context)
+	GetUserSchedule(ctx *gin.Context)
+
+	AddLesson(ctx *gin.Context)
+	UpdateLesson(ctx *gin.Context)
+	DeleteLesson(ctx *gin.Context)
+}
+
+type scheduleHandler struct {
+	Handler
 
 	controller controllers.ScheduleController
 
 	Group *gin.RouterGroup
 }
 
-func NewScheduleHandler(authHandler IHandler, controller controllers.ScheduleController, group *gin.RouterGroup) *ScheduleHandler {
-	h := &ScheduleHandler{IHandler: authHandler, controller: controller, Group: group}
+func NewScheduleHandler(authHandler Handler, controller controllers.ScheduleController, group *gin.RouterGroup) ScheduleHandler {
+	h := &scheduleHandler{Handler: authHandler, controller: controller, Group: group}
 
 	group.GET(":type/:name", h.Auth(), h.GetSchedule)
 	group.GET("", h.Auth(), h.GetUserSchedule)
@@ -30,7 +41,7 @@ func NewScheduleHandler(authHandler IHandler, controller controllers.ScheduleCon
 	return h
 }
 
-func (s *ScheduleHandler) GetSchedule(ctx *gin.Context) {
+func (s *scheduleHandler) GetSchedule(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	type_ := ctx.Param("type")
@@ -45,7 +56,7 @@ func (s *ScheduleHandler) GetSchedule(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, schedule)
 }
 
-func (s *ScheduleHandler) GetUserSchedule(ctx *gin.Context) {
+func (s *scheduleHandler) GetUserSchedule(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	schedule, err := s.controller.GetUserSchedule(ctx, user)
@@ -57,7 +68,7 @@ func (s *ScheduleHandler) GetUserSchedule(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, schedule)
 }
 
-func (s *ScheduleHandler) GetScheduleTypes(ctx *gin.Context) {
+func (s *scheduleHandler) GetScheduleTypes(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	types := s.controller.GetScheduleTypes(ctx, user)
@@ -65,7 +76,7 @@ func (s *ScheduleHandler) GetScheduleTypes(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, types)
 }
 
-func (s *ScheduleHandler) AddLesson(ctx *gin.Context) {
+func (s *scheduleHandler) AddLesson(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	var lesson entities.Lesson
@@ -83,7 +94,7 @@ func (s *ScheduleHandler) AddLesson(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, lesson)
 }
 
-func (s *ScheduleHandler) UpdateLesson(ctx *gin.Context) {
+func (s *scheduleHandler) UpdateLesson(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	var lesson entities.Lesson
@@ -101,7 +112,7 @@ func (s *ScheduleHandler) UpdateLesson(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, lesson)
 }
 
-func (s *ScheduleHandler) DeleteLesson(ctx *gin.Context) {
+func (s *scheduleHandler) DeleteLesson(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 	id := ctx.Param("id")
 

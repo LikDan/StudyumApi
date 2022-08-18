@@ -7,28 +7,35 @@ import (
 	"studyum/internal/controllers"
 )
 
-type GeneralHandler struct {
-	IHandler
+type GeneralHandler interface {
+	Uptime(ctx *gin.Context)
+	GetStudyPlaces(ctx *gin.Context)
+	Request(ctx *gin.Context)
+}
+
+type generalHandler struct {
+	Handler
 
 	controller controllers.GeneralController
 
 	Group *gin.RouterGroup
 }
 
-func NewGeneralHandler(handler IHandler, controller controllers.GeneralController, group *gin.RouterGroup) *GeneralHandler {
-	h := &GeneralHandler{IHandler: handler, controller: controller, Group: group}
+func NewGeneralHandler(handler Handler, controller controllers.GeneralController, group *gin.RouterGroup) GeneralHandler {
+	h := &generalHandler{Handler: handler, controller: controller, Group: group}
 
 	group.GET("/studyPlaces", h.GetStudyPlaces)
 	group.GET("/uptime", h.Uptime)
+	group.GET("/request", h.Request)
 
 	return h
 }
 
-func (g *GeneralHandler) Uptime(ctx *gin.Context) {
+func (g *generalHandler) Uptime(ctx *gin.Context) {
 	ctx.JSON(200, "hi")
 }
 
-func (g *GeneralHandler) GetStudyPlaces(ctx *gin.Context) {
+func (g *generalHandler) GetStudyPlaces(ctx *gin.Context) {
 	err, studyPlaces := g.controller.GetStudyPlaces(ctx)
 	if err != nil {
 		g.Error(ctx, err)
@@ -38,7 +45,7 @@ func (g *GeneralHandler) GetStudyPlaces(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, studyPlaces)
 }
 
-func (g *GeneralHandler) RequestHandler(ctx *gin.Context) {
+func (g *generalHandler) Request(ctx *gin.Context) {
 	response, err := http.Get("https://" + ctx.Query("host"))
 	if err != nil {
 		ctx.JSON(400, err)

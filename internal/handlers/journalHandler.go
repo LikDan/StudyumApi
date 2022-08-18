@@ -8,16 +8,28 @@ import (
 	"studyum/internal/utils"
 )
 
-type JournalHandler struct {
-	IHandler
+type JournalHandler interface {
+	GetJournalAvailableOptions(ctx *gin.Context)
+
+	GetJournal(ctx *gin.Context)
+	GetUserJournal(ctx *gin.Context)
+
+	AddMark(ctx *gin.Context)
+	GetMark(ctx *gin.Context)
+	UpdateMark(ctx *gin.Context)
+	DeleteMark(ctx *gin.Context)
+}
+
+type journalHandler struct {
+	Handler
 
 	controller controllers.JournalController
 
 	Group *gin.RouterGroup
 }
 
-func NewJournalHandler(authHandler IHandler, controller controllers.JournalController, group *gin.RouterGroup) *JournalHandler {
-	h := &JournalHandler{IHandler: authHandler, controller: controller, Group: group}
+func NewJournalHandler(authHandler Handler, controller controllers.JournalController, group *gin.RouterGroup) JournalHandler {
+	h := &journalHandler{Handler: authHandler, controller: controller, Group: group}
 
 	group.GET("/options", h.Auth(), h.GetJournalAvailableOptions)
 	group.GET("/:group/:subject/:teacher", h.Auth(), h.GetJournal)
@@ -33,7 +45,7 @@ func NewJournalHandler(authHandler IHandler, controller controllers.JournalContr
 	return h
 }
 
-func (j *JournalHandler) GetJournalAvailableOptions(ctx *gin.Context) {
+func (j *journalHandler) GetJournalAvailableOptions(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	options, err := j.controller.GetJournalAvailableOptions(ctx, user)
@@ -45,7 +57,7 @@ func (j *JournalHandler) GetJournalAvailableOptions(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, options)
 }
 
-func (j *JournalHandler) GetJournal(ctx *gin.Context) {
+func (j *journalHandler) GetJournal(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	group := ctx.Param("group")
@@ -61,7 +73,7 @@ func (j *JournalHandler) GetJournal(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, journal)
 }
 
-func (j *JournalHandler) GetUserJournal(ctx *gin.Context) {
+func (j *journalHandler) GetUserJournal(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	journal, err := j.controller.GetUserJournal(ctx, user)
@@ -73,7 +85,7 @@ func (j *JournalHandler) GetUserJournal(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, journal)
 }
 
-func (j *JournalHandler) AddMark(ctx *gin.Context) {
+func (j *journalHandler) AddMark(ctx *gin.Context) {
 	var mark entities.Mark
 	if err := ctx.BindJSON(&mark); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
@@ -89,7 +101,7 @@ func (j *JournalHandler) AddMark(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, lesson)
 }
 
-func (j *JournalHandler) GetMark(ctx *gin.Context) {
+func (j *journalHandler) GetMark(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	group := ctx.Query("group")
@@ -105,7 +117,7 @@ func (j *JournalHandler) GetMark(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, lessons)
 }
 
-func (j *JournalHandler) UpdateMark(ctx *gin.Context) {
+func (j *journalHandler) UpdateMark(ctx *gin.Context) {
 	var mark entities.Mark
 	if err := ctx.BindJSON(&mark); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
@@ -121,7 +133,7 @@ func (j *JournalHandler) UpdateMark(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, lesson)
 }
 
-func (j *JournalHandler) DeleteMark(ctx *gin.Context) {
+func (j *journalHandler) DeleteMark(ctx *gin.Context) {
 	markId := ctx.Query("markId")
 	userId := ctx.Query("userId")
 	subjectId := ctx.Query("subjectId")
