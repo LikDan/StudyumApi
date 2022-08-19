@@ -79,13 +79,13 @@ func (s *scheduleHandler) GetScheduleTypes(ctx *gin.Context) {
 func (s *scheduleHandler) AddLesson(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
-	var lesson dto.AddLessonDTO
-	if err := ctx.BindJSON(&lesson); err != nil {
+	var lessonDTO dto.AddLessonDTO
+	if err := ctx.BindJSON(&lessonDTO); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
 
-	err := s.controller.AddLesson(ctx, lesson, user)
+	lesson, err := s.controller.AddLesson(ctx, lessonDTO, user)
 	if err != nil {
 		s.Error(ctx, err)
 		return

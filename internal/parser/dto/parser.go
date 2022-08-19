@@ -7,21 +7,23 @@ import (
 )
 
 type LessonDTO struct {
-	Shift   entities.Shift
-	Type    string
-	Subject string
-	Group   string
-	Teacher string
-	Room    string
+	Shift      entities.Shift
+	Type       string
+	Subject    string
+	Group      string
+	Teacher    string
+	Room       string
+	ParsedInfo map[string]any
 }
 
 type GeneralLessonDTO struct {
-	Shift     entities.Shift
-	Subject   string
-	Group     string
-	Teacher   string
-	Room      string
-	WeekIndex int
+	Shift      entities.Shift
+	Subject    string
+	Group      string
+	Teacher    string
+	Room       string
+	WeekIndex  int
+	ParsedInfo map[string]any
 }
 
 type MarkDTO struct {
@@ -30,4 +32,5 @@ type MarkDTO struct {
 	LessonDate time.Time
 	Subject    string
 	Group      string
+	ParsedInfo map[string]any
 }

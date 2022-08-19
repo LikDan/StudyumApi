@@ -30,24 +30,24 @@ func main() {
 		logrus.Fatalf("Can't connect to database, error: %s", err.Error())
 	}
 
+	firebaseCredentials := []byte(os.Getenv("FIREBASE_CREDENTIALS"))
+	firebase := fb.NewFirebase(firebaseCredentials)
+
+	parserRepository := pRepository.NewParserRepository(client)
+	parserController := pController.NewParserController(parserRepository)
+	parserHandler := pHandler.NewParserHandler(firebase, parserController)
+
 	repository := repositories.NewRepository(client)
 	userRepository := repositories.NewUserRepository(repository)
 	generalRepository := repositories.NewGeneralRepository(repository)
 	journalRepository := repositories.NewJournalRepository(repository)
 	scheduleRepository := repositories.NewScheduleRepository(repository)
 
-	parserRepository := pRepository.NewParserRepository(client)
-
 	controller := controllers.NewController(userRepository)
 	userController := controllers.NewUserController(userRepository)
 	generalController := controllers.NewGeneralController(generalRepository)
-	journalController := controllers.NewJournalController(journalRepository)
+	journalController := controllers.NewJournalController(parserHandler, journalRepository)
 	scheduleController := controllers.NewScheduleController(scheduleRepository)
-
-	parserController := pController.NewParserController(parserRepository)
-
-	firebaseCredentials := []byte(os.Getenv("FIREBASE_CREDENTIALS"))
-	firebase := fb.NewFirebase(firebaseCredentials)
 
 	engine := gin.Default()
 	api := engine.Group("/api")
@@ -57,8 +57,6 @@ func main() {
 	handlers.NewUserHandler(handler, userController, api.Group("/user"))
 	handlers.NewJournalHandler(handler, journalController, api.Group("/journal"))
 	handlers.NewScheduleHandler(handler, scheduleController, api.Group("/schedule"))
-
-	pHandler.NewParserHandler(firebase, parserController)
 
 	logrus.Fatalf("Error launching server %s", engine.Run().Error())
 }

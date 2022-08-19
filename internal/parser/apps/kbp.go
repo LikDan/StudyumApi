@@ -2,7 +2,9 @@ package apps
 
 import (
 	"bytes"
+	"context"
 	htmlParser "github.com/PuerkitoBio/goquery"
+	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"strconv"
@@ -376,4 +378,32 @@ func (p *KbpParser) Init(lesson entities.Lesson) {
 		entities.NewShift(17, 0, 18, 35),
 		entities.NewShift(18, 45, 20, 20),
 	}
+}
+
+func (p *KbpParser) OnMarkAdd(_ context.Context, mark entities.Mark, lesson entities.Lesson) map[string]any {
+	logrus.Infof("set mark %v, with lesson %v", mark, lesson)
+	return nil
+}
+
+func (p *KbpParser) OnMarkEdit(_ context.Context, mark entities.Mark, lesson entities.Lesson) map[string]any {
+	logrus.Infof("edit mark %v, with lesson %v", mark, lesson)
+	return nil
+}
+
+func (p *KbpParser) OnMarkDelete(_ context.Context, mark entities.Mark, lesson entities.Lesson) {
+	logrus.Infof("delete mark %v, with lesson %v", mark, lesson)
+}
+
+func (p *KbpParser) OnLessonAdd(_ context.Context, lesson entities.Lesson) map[string]any {
+	logrus.Infof("add lesson %v", lesson)
+	return nil
+}
+
+func (p *KbpParser) OnLessonEdit(_ context.Context, lesson entities.Lesson) map[string]any {
+	logrus.Infof("add edit %v", lesson)
+	return nil
+}
+
+func (p *KbpParser) OnLessonDelete(_ context.Context, lesson entities.Lesson) {
+	logrus.Infof("add delete %v", lesson)
 }

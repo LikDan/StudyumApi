@@ -13,5 +13,6 @@ type AddMarkDTO struct {
 type UpdateMarkDTO struct {
 	Id       primitive.ObjectID `json:"id"`
 	Mark     string             `json:"mark"`
+	UserId   primitive.ObjectID `json:"userId"`
 	LessonId primitive.ObjectID `json:"lessonId"`
 }
