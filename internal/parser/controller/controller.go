@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/internal/parser/application"
 	"studyum/internal/parser/apps"
+	"studyum/internal/parser/dto"
 	"studyum/internal/parser/entities"
 	"studyum/internal/parser/repository"
 	"studyum/internal/utils"
@@ -19,6 +20,14 @@ type Controller interface {
 	GetLastLesson(ctx context.Context, id int) (entities.Lesson, error)
 	InsertScheduleTypes(ctx context.Context, types []entities.ScheduleTypeInfo) error
 	GetAppByStudyPlaceId(id int) (application.App, error)
+
+	AddMark(ctx context.Context, markDTO dto.Mark) map[string]any
+	EditMark(ctx context.Context, markDTO dto.Mark) map[string]any
+	DeleteMark(ctx context.Context, markDTO dto.Mark)
+
+	AddLesson(ctx context.Context, lessonDTO dto.Lesson) map[string]any
+	EditLesson(ctx context.Context, lessonDTO dto.Lesson) map[string]any
+	DeleteLesson(ctx context.Context, lessonDTO dto.Lesson)
 }
 
 type controller struct {
@@ -61,6 +70,7 @@ func (c *controller) UpdateGeneralSchedule(app application.App) {
 				Room:         lessonDTO.Room,
 				DayIndex:     lessonDTO.Shift.Date.Day(),
 				WeekIndex:    lessonDTO.WeekIndex,
+				ParsedInfo:   lessonDTO.ParsedInfo,
 			}
 
 			lessons[i] = lesson
@@ -92,6 +102,7 @@ func (c *controller) Update(ctx context.Context, app application.App) {
 				UserId:       markDTO.UserId,
 				LessonId:     lessonID,
 				StudyPlaceId: app.StudyPlaceId(),
+				ParsedInfo:   markDTO.ParsedInfo,
 			}
 
 			marks = append(marks, mark)
@@ -124,6 +135,7 @@ func (c *controller) Update(ctx context.Context, app application.App) {
 				Group:        lessonDTO.Group,
 				Teacher:      lessonDTO.Teacher,
 				Room:         lessonDTO.Room,
+				ParsedInfo:   lessonDTO.ParsedInfo,
 			}
 
 			lessons[i] = lesson
@@ -154,4 +166,133 @@ func (c *controller) GetAppByStudyPlaceId(id int) (application.App, error) {
 	}
 
 	return nil, errors.New("no application with this id")
+}
+
+func (c *controller) AddMark(ctx context.Context, markDTO dto.Mark) map[string]any {
+	app, err := c.GetAppByStudyPlaceId(markDTO.StudyPlaceId)
+	if err != nil {
+		return nil
+	}
+
+	mark := entities.Mark{
+		Id:           markDTO.Id,
+		Mark:         markDTO.Mark,
+		UserId:       markDTO.UserId,
+		LessonId:     markDTO.LessonId,
+		StudyPlaceId: markDTO.StudyPlaceId,
+	}
+
+	lesson, err := c.repository.GetLessonByID(ctx, markDTO.LessonId)
+	if err != nil {
+		return nil
+	}
+
+	return app.OnMarkAdd(ctx, mark, lesson)
+}
+
+func (c *controller) EditMark(ctx context.Context, markDTO dto.Mark) map[string]any {
+	app, err := c.GetAppByStudyPlaceId(markDTO.StudyPlaceId)
+	if err != nil {
+		return nil
+	}
+
+	mark := entities.Mark{
+		Id:           markDTO.Id,
+		Mark:         markDTO.Mark,
+		UserId:       markDTO.UserId,
+		LessonId:     markDTO.LessonId,
+		StudyPlaceId: markDTO.StudyPlaceId,
+	}
+
+	lesson, err := c.repository.GetLessonByID(ctx, markDTO.LessonId)
+	if err != nil {
+		return nil
+	}
+
+	return app.OnMarkEdit(ctx, mark, lesson)
+}
+
+func (c *controller) DeleteMark(ctx context.Context, markDTO dto.Mark) {
+	app, err := c.GetAppByStudyPlaceId(markDTO.StudyPlaceId)
+	if err != nil {
+		return
+	}
+
+	mark := entities.Mark{
+		Id:           markDTO.Id,
+		Mark:         markDTO.Mark,
+		UserId:       markDTO.UserId,
+		LessonId:     markDTO.LessonId,
+		StudyPlaceId: markDTO.StudyPlaceId,
+	}
+
+	lesson, err := c.repository.GetLessonByID(ctx, markDTO.LessonId)
+	if err != nil {
+		return
+	}
+
+	app.OnMarkDelete(ctx, mark, lesson)
+}
+
+func (c *controller) AddLesson(ctx context.Context, lessonDTO dto.Lesson) map[string]any {
+	app, err := c.GetAppByStudyPlaceId(lessonDTO.StudyPlaceId)
+	if err != nil {
+		return nil
+	}
+
+	lesson := entities.Lesson{
+		Id:           lessonDTO.Id,
+		StudyPlaceId: lessonDTO.StudyPlaceId,
+		Type:         lessonDTO.Type,
+		EndDate:      lessonDTO.EndDate,
+		StartDate:    lessonDTO.StartDate,
+		Subject:      lessonDTO.Subject,
+		Group:        lessonDTO.Group,
+		Teacher:      lessonDTO.Teacher,
+		Room:         lessonDTO.Room,
+	}
+
+	return app.OnLessonAdd(ctx, lesson)
+}
+
+func (c *controller) EditLesson(ctx context.Context, lessonDTO dto.Lesson) map[string]any {
+	app, err := c.GetAppByStudyPlaceId(lessonDTO.StudyPlaceId)
+	if err != nil {
+		return nil
+	}
+
+	lesson := entities.Lesson{
+		Id:           lessonDTO.Id,
+		StudyPlaceId: lessonDTO.StudyPlaceId,
+		Type:         lessonDTO.Type,
+		EndDate:      lessonDTO.EndDate,
+		StartDate:    lessonDTO.StartDate,
+		Subject:      lessonDTO.Subject,
+		Group:        lessonDTO.Group,
+		Teacher:      lessonDTO.Teacher,
+		Room:         lessonDTO.Room,
+	}
+
+	return app.OnLessonEdit(ctx, lesson)
+}
+
+func (c *controller) DeleteLesson(ctx context.Context, lessonDTO dto.Lesson) {
+	app, err := c.GetAppByStudyPlaceId(lessonDTO.StudyPlaceId)
+	if err != nil {
+		return
+	}
+
+	lesson := entities.Lesson{
+		Id:           lessonDTO.Id,
+		StudyPlaceId: lessonDTO.StudyPlaceId,
+		Type:         lessonDTO.Type,
+		EndDate:      lessonDTO.EndDate,
+		StartDate:    lessonDTO.StartDate,
+		Subject:      lessonDTO.Subject,
+		Group:        lessonDTO.Group,
+		Teacher:      lessonDTO.Teacher,
+		Room:         lessonDTO.Room,
+	}
+
+	app.OnLessonDelete(ctx, lesson)
 }

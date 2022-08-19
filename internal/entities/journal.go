@@ -36,4 +36,5 @@ type Mark struct {
 	UserId       primitive.ObjectID `json:"userId" bson:"userId"`
 	LessonId     primitive.ObjectID `json:"lessonId" bson:"lessonId"`
 	StudyPlaceId int                `json:"studyPlaceId" bson:"studyPlaceId"`
+	ParsedInfo   map[string]any     `json:"-" bson:"parsedInfo"`
 }

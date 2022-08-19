@@ -25,6 +25,7 @@ type Repository interface {
 	AddLessons(ctx context.Context, lessons []entities.Lesson) error
 
 	AddMarks(ctx context.Context, marks []entities.Mark) error
+	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
 }
 
 type repository struct {
@@ -144,4 +145,10 @@ func (p *repository) AddLessons(ctx context.Context, lessons []entities.Lesson) 
 func (p *repository) AddMarks(ctx context.Context, marks []entities.Mark) error {
 	_, err := p.marksCollection.InsertMany(ctx, utils.ToInterfaceSlice(marks))
 	return err
+}
+
+func (p *repository) GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error) {
+	var lesson entities.Lesson
+	err := p.lessonsCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&lesson)
+	return lesson, err
 }

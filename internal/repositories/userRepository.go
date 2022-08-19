@@ -36,7 +36,7 @@ func (u *userRepository) GetUserViaToken(ctx context.Context, token string, perm
 
 	filter := bson.M{"token": token}
 	if len(permissions) != 0 {
-		filter["permissions"] = permissions
+		filter["permissions"] = bson.M{"$all": permissions}
 	}
 	err := u.usersCollection.FindOne(ctx, filter).Decode(&user)
 	return user, err

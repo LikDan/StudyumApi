@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/internal/dto"
 	"studyum/internal/entities"
+	parser "studyum/internal/parser/handler"
 	"studyum/internal/repositories"
 )
 
@@ -15,12 +16,14 @@ type ScheduleController interface {
 
 	GetScheduleTypes(ctx context.Context, user entities.User) entities.Types
 
-	AddLesson(ctx context.Context, lesson dto.AddLessonDTO, user entities.User) error
+	AddLesson(ctx context.Context, lesson dto.AddLessonDTO, user entities.User) (entities.Lesson, error)
 	UpdateLesson(ctx context.Context, lesson dto.UpdateLessonDTO, user entities.User) error
 	DeleteLesson(ctx context.Context, idHex string, user entities.User) error
 }
 
 type scheduleController struct {
+	parser parser.Handler
+
 	repository repositories.ScheduleRepository
 }
 
@@ -49,7 +52,7 @@ func (s *scheduleController) GetScheduleTypes(ctx context.Context, user entities
 	}
 }
 
-func (s *scheduleController) AddLesson(ctx context.Context, dto dto.AddLessonDTO, user entities.User) error {
+func (s *scheduleController) AddLesson(ctx context.Context, dto dto.AddLessonDTO, user entities.User) (entities.Lesson, error) {
 	lesson := entities.Lesson{
 		StudyPlaceId: user.StudyPlaceId,
 		Type:         dto.Type,
@@ -60,7 +63,16 @@ func (s *scheduleController) AddLesson(ctx context.Context, dto dto.AddLessonDTO
 		Teacher:      dto.Teacher,
 		Room:         dto.Room,
 	}
-	return s.repository.AddLesson(ctx, lesson)
+
+	id, err := s.repository.AddLesson(ctx, lesson)
+	if err != nil {
+		return entities.Lesson{}, err
+	}
+
+	lesson.Id = id
+	lesson.ParsedInfo = s.parser.AddLesson(lesson)
+
+	return lesson, err
 }
 
 func (s *scheduleController) UpdateLesson(ctx context.Context, dto dto.UpdateLessonDTO, user entities.User) error {
@@ -75,6 +87,9 @@ func (s *scheduleController) UpdateLesson(ctx context.Context, dto dto.UpdateLes
 		Homework:     dto.Homework,
 		Description:  dto.Description,
 	}
+
+	lesson.ParsedInfo = s.parser.EditLesson(lesson)
+
 	return s.repository.UpdateLesson(ctx, lesson, user.StudyPlaceId)
 }
 

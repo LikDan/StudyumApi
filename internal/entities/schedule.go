@@ -24,6 +24,7 @@ type Lesson struct {
 	Title        string             `json:"title" bson:"title"`
 	Homework     string             `json:"homework" bson:"homework"`
 	Description  string             `json:"description" bson:"description"`
+	ParsedInfo   map[string]any     `json:"-" bson:"parsedInfo"`
 }
 
 type GeneralLesson struct {
@@ -37,6 +38,7 @@ type GeneralLesson struct {
 	Room         string             `json:"room" bson:"room"`
 	DayIndex     int                `json:"dayIndex" bson:"dayIndex"`
 	WeekIndex    int                `json:"weekIndex" bson:"weekIndex"`
+	ParsedInfo   map[string]any     `json:"-" bson:"parsedInfo"`
 }
 
 type ScheduleInfo struct {

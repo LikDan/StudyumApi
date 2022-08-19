@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/internal/dto"
 	"studyum/internal/entities"
+	parser "studyum/internal/parser/handler"
 	"studyum/internal/repositories"
 	"studyum/internal/utils"
 )
@@ -28,11 +29,13 @@ type JournalController interface {
 }
 
 type journalController struct {
+	parser parser.Handler
+
 	repository repositories.JournalRepository
 }
 
-func NewJournalController(repository repositories.JournalRepository) JournalController {
-	return &journalController{repository: repository}
+func NewJournalController(parser parser.Handler, repository repositories.JournalRepository) JournalController {
+	return &journalController{parser: parser, repository: repository}
 }
 
 func (j *journalController) GetJournalAvailableOptions(ctx context.Context, user entities.User) ([]entities.JournalAvailableOption, error) {
@@ -77,9 +80,13 @@ func (j *journalController) AddMark(ctx context.Context, dto dto.AddMarkDTO, use
 		StudyPlaceId: user.StudyPlaceId,
 	}
 
-	if _, err := j.repository.AddMark(ctx, mark); err != nil {
+	id, err := j.repository.AddMark(ctx, mark)
+	if err != nil {
 		return entities.Lesson{}, err
 	}
+
+	mark.Id = id
+	mark.ParsedInfo = j.parser.AddMark(mark)
 
 	return j.repository.GetLessonByIDAndUserID(ctx, mark.UserId, mark.LessonId)
 }
@@ -105,12 +112,15 @@ func (j *journalController) UpdateMark(ctx context.Context, dto dto.UpdateMarkDT
 	mark := entities.Mark{
 		Id:       dto.Id,
 		Mark:     dto.Mark,
+		UserId:   dto.UserId,
 		LessonId: dto.LessonId,
 	}
 
 	if err := j.repository.UpdateMark(ctx, mark); err != nil {
 		return entities.Lesson{}, err
 	}
+
+	mark.ParsedInfo = j.parser.EditMark(mark)
 
 	return j.repository.GetLessonByIDAndUserID(ctx, mark.UserId, mark.LessonId)
 }
@@ -135,9 +145,16 @@ func (j *journalController) DeleteMark(ctx context.Context, markIdHex string, us
 		return entities.Lesson{}, errors.Wrap(NotValidParams, "subjectId")
 	}
 
+	mark, err := j.repository.GetMarkById(ctx, markId)
+	if err != nil {
+		return entities.Lesson{}, err
+	}
+
 	if err = j.repository.DeleteMarkByIDAndLessonID(ctx, markId, subjectId); err != nil {
 		return entities.Lesson{}, err
 	}
+
+	j.parser.DeleteMark(mark)
 
 	return j.repository.GetLessonByIDAndUserID(ctx, userId, subjectId)
 }

@@ -13,7 +13,7 @@ type ScheduleRepository interface {
 	GetSchedule(ctx context.Context, studyPlaceId int, type_ string, typeName string) (entities.Schedule, error)
 	GetScheduleType(ctx context.Context, studyPlaceId int, type_ string) []string
 
-	AddLesson(ctx context.Context, lesson entities.Lesson) error
+	AddLesson(ctx context.Context, lesson entities.Lesson) (primitive.ObjectID, error)
 	UpdateLesson(ctx context.Context, lesson entities.Lesson, studyPlaceId int) error
 	DeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId int) error
 }
@@ -149,14 +149,14 @@ func (s *scheduleRepository) GetScheduleType(ctx context.Context, studyPlaceId i
 	return names
 }
 
-func (s *scheduleRepository) AddLesson(ctx context.Context, lesson entities.Lesson) error {
+func (s *scheduleRepository) AddLesson(ctx context.Context, lesson entities.Lesson) (primitive.ObjectID, error) {
 	if lesson.Type == "GENERAL" {
 		lesson.Type = "STAY"
 	}
 
 	lesson.Id = primitive.NewObjectID()
 	_, err := s.lessonsCollection.InsertOne(ctx, lesson)
-	return err
+	return lesson.Id, err
 }
 
 func (s *scheduleRepository) UpdateLesson(ctx context.Context, lesson entities.Lesson, studyPlaceId int) error {

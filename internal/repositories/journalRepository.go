@@ -11,6 +11,7 @@ import (
 type JournalRepository interface {
 	AddMark(ctx context.Context, mark entities.Mark) (primitive.ObjectID, error)
 	UpdateMark(ctx context.Context, mark entities.Mark) error
+	GetMarkById(ctx context.Context, id primitive.ObjectID) (entities.Mark, error)
 	DeleteMarkByIDAndLessonID(ctx context.Context, id primitive.ObjectID, lessonId primitive.ObjectID) error
 
 	GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]entities.JournalAvailableOption, error)
@@ -42,6 +43,12 @@ func (j *journalRepository) AddMark(ctx context.Context, mark entities.Mark) (pr
 func (j *journalRepository) UpdateMark(ctx context.Context, mark entities.Mark) error {
 	_, err := j.marksCollection.UpdateOne(ctx, bson.M{"_id": mark.Id, "lessonId": mark.LessonId}, bson.M{"$set": bson.M{"mark": mark.Mark}})
 	return err
+}
+
+func (j *journalRepository) GetMarkById(ctx context.Context, id primitive.ObjectID) (entities.Mark, error) {
+	var mark entities.Mark
+	err := j.marksCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&mark)
+	return mark, err
 }
 
 func (j *journalRepository) DeleteMarkByIDAndLessonID(ctx context.Context, id primitive.ObjectID, lessonId primitive.ObjectID) error {
