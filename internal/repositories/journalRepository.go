@@ -41,7 +41,7 @@ func (j *journalRepository) AddMark(ctx context.Context, mark entities.Mark) (pr
 }
 
 func (j *journalRepository) UpdateMark(ctx context.Context, mark entities.Mark) error {
-	_, err := j.marksCollection.UpdateOne(ctx, bson.M{"_id": mark.Id, "lessonId": mark.LessonId}, bson.M{"$set": bson.M{"mark": mark.Mark}})
+	_, err := j.marksCollection.UpdateOne(ctx, bson.M{"_id": mark.Id, "lessonId": mark.LessonId}, bson.M{"$set": bson.M{"mark": mark.Mark, "parsedInfo": mark.ParsedInfo}})
 	return err
 }
 

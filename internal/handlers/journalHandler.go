@@ -126,25 +126,24 @@ func (j *journalHandler) UpdateMark(ctx *gin.Context) {
 		return
 	}
 
-	lesson, err := j.controller.UpdateMark(ctx, mark)
+	err := j.controller.UpdateMark(ctx, mark)
 	if err != nil {
 		j.Error(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, lesson)
+	ctx.JSON(http.StatusOK, mark)
 }
 
 func (j *journalHandler) DeleteMark(ctx *gin.Context) {
 	markId := ctx.Query("markId")
-	userId := ctx.Query("userId")
 	subjectId := ctx.Query("subjectId")
 
-	lesson, err := j.controller.DeleteMark(ctx, markId, userId, subjectId)
+	err := j.controller.DeleteMark(ctx, markId, subjectId)
 	if err != nil {
 		j.Error(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, lesson)
+	ctx.JSON(http.StatusOK, markId)
 }

@@ -22,10 +22,10 @@ type JournalController interface {
 	GetJournal(ctx context.Context, group string, subject string, teacher string, user entities.User) (entities.Journal, error)
 	GetUserJournal(ctx context.Context, user entities.User) (entities.Journal, error)
 
-	AddMark(ctx context.Context, dto dto.AddMarkDTO, user entities.User) (entities.Lesson, error)
+	AddMark(ctx context.Context, dto dto.AddMarkDTO, user entities.User) (entities.Mark, error)
 	GetMark(ctx context.Context, group string, subject string, userIdHex string, user entities.User) ([]entities.Lesson, error)
-	UpdateMark(ctx context.Context, dto dto.UpdateMarkDTO) (entities.Lesson, error)
-	DeleteMark(ctx context.Context, markIdHex string, userIdHex string, subjectIdHex string) (entities.Lesson, error)
+	UpdateMark(ctx context.Context, dto dto.UpdateMarkDTO) error
+	DeleteMark(ctx context.Context, markIdHex string, subjectIdHex string) error
 }
 
 type journalController struct {
@@ -68,29 +68,6 @@ func (j *journalController) GetUserJournal(ctx context.Context, user entities.Us
 	return j.repository.GetStudentJournal(ctx, user.Id, user.TypeName, user.StudyPlaceId)
 }
 
-func (j *journalController) AddMark(ctx context.Context, dto dto.AddMarkDTO, user entities.User) (entities.Lesson, error) {
-	if dto.Mark == "" || dto.UserId.IsZero() || dto.LessonId.IsZero() {
-		return entities.Lesson{}, NotValidParams
-	}
-
-	mark := entities.Mark{
-		Mark:         dto.Mark,
-		UserId:       dto.UserId,
-		LessonId:     dto.LessonId,
-		StudyPlaceId: user.StudyPlaceId,
-	}
-
-	id, err := j.repository.AddMark(ctx, mark)
-	if err != nil {
-		return entities.Lesson{}, err
-	}
-
-	mark.Id = id
-	mark.ParsedInfo = j.parser.AddMark(mark)
-
-	return j.repository.GetLessonByIDAndUserID(ctx, mark.UserId, mark.LessonId)
-}
-
 func (j *journalController) GetMark(ctx context.Context, group string, subject string, userIdHex string, user entities.User) ([]entities.Lesson, error) {
 	if group == "" || subject == "" || userIdHex == "" {
 		return nil, NotValidParams
@@ -104,9 +81,35 @@ func (j *journalController) GetMark(ctx context.Context, group string, subject s
 	return j.repository.GetLessons(ctx, userId, group, user.Name, subject, user.StudyPlaceId)
 }
 
-func (j *journalController) UpdateMark(ctx context.Context, dto dto.UpdateMarkDTO) (entities.Lesson, error) {
+func (j *journalController) AddMark(ctx context.Context, dto dto.AddMarkDTO, user entities.User) (entities.Mark, error) {
+	if dto.Mark == "" || dto.UserId.IsZero() || dto.LessonId.IsZero() {
+		return entities.Mark{}, NotValidParams
+	}
+
+	mark := entities.Mark{
+		Mark:         dto.Mark,
+		UserId:       dto.UserId,
+		LessonId:     dto.LessonId,
+		StudyPlaceId: user.StudyPlaceId,
+	}
+
+	id, err := j.repository.AddMark(ctx, mark)
+	if err != nil {
+		return entities.Mark{}, err
+	}
+
+	mark.Id = id
+	mark.ParsedInfo = j.parser.AddMark(mark)
+	if mark.ParsedInfo != nil {
+		_ = j.repository.UpdateMark(ctx, mark)
+	}
+
+	return mark, nil
+}
+
+func (j *journalController) UpdateMark(ctx context.Context, dto dto.UpdateMarkDTO) error {
 	if dto.Mark == "" || dto.Id.IsZero() || dto.LessonId.IsZero() {
-		return entities.Lesson{}, NotValidParams
+		return NotValidParams
 	}
 
 	mark := entities.Mark{
@@ -116,45 +119,38 @@ func (j *journalController) UpdateMark(ctx context.Context, dto dto.UpdateMarkDT
 		LessonId: dto.LessonId,
 	}
 
+	mark.ParsedInfo = j.parser.EditMark(mark)
 	if err := j.repository.UpdateMark(ctx, mark); err != nil {
-		return entities.Lesson{}, err
+		return err
 	}
 
-	mark.ParsedInfo = j.parser.EditMark(mark)
-
-	return j.repository.GetLessonByIDAndUserID(ctx, mark.UserId, mark.LessonId)
+	return nil
 }
 
-func (j *journalController) DeleteMark(ctx context.Context, markIdHex string, userIdHex string, subjectIdHex string) (entities.Lesson, error) {
-	if markIdHex == "" || userIdHex == "" || subjectIdHex == "" {
-		return entities.Lesson{}, NotValidParams
-	}
-
-	userId, err := primitive.ObjectIDFromHex(userIdHex)
-	if err != nil {
-		return entities.Lesson{}, errors.Wrap(NotValidParams, "userId")
+func (j *journalController) DeleteMark(ctx context.Context, markIdHex string, subjectIdHex string) error {
+	if markIdHex == "" || subjectIdHex == "" {
+		return NotValidParams
 	}
 
 	markId, err := primitive.ObjectIDFromHex(markIdHex)
 	if err != nil {
-		return entities.Lesson{}, errors.Wrap(NotValidParams, "markId")
+		return errors.Wrap(NotValidParams, "markId")
 	}
 
 	subjectId, err := primitive.ObjectIDFromHex(subjectIdHex)
 	if err != nil {
-		return entities.Lesson{}, errors.Wrap(NotValidParams, "subjectId")
+		return errors.Wrap(NotValidParams, "subjectId")
 	}
 
 	mark, err := j.repository.GetMarkById(ctx, markId)
 	if err != nil {
-		return entities.Lesson{}, err
+		return err
 	}
 
 	if err = j.repository.DeleteMarkByIDAndLessonID(ctx, markId, subjectId); err != nil {
-		return entities.Lesson{}, err
+		return err
 	}
 
 	j.parser.DeleteMark(mark)
-
-	return j.repository.GetLessonByIDAndUserID(ctx, userId, subjectId)
+	return nil
 }
