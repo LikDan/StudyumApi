@@ -82,13 +82,13 @@ func (j *journalController) GetMark(ctx context.Context, group string, subject s
 }
 
 func (j *journalController) AddMark(ctx context.Context, dto dto.AddMarkDTO, user entities.User) (entities.Mark, error) {
-	if dto.Mark == "" || dto.UserId.IsZero() || dto.LessonId.IsZero() {
+	if dto.Mark == "" || dto.StudentID.IsZero() || dto.LessonId.IsZero() {
 		return entities.Mark{}, NotValidParams
 	}
 
 	mark := entities.Mark{
 		Mark:         dto.Mark,
-		UserId:       dto.UserId,
+		StudentID:    dto.StudentID,
 		LessonId:     dto.LessonId,
 		StudyPlaceId: user.StudyPlaceId,
 	}
@@ -99,10 +99,8 @@ func (j *journalController) AddMark(ctx context.Context, dto dto.AddMarkDTO, use
 	}
 
 	mark.Id = id
-	mark.ParsedInfo = j.parser.AddMark(mark)
-	if mark.ParsedInfo != nil {
-		_ = j.repository.UpdateMark(ctx, mark)
-	}
+
+	go j.parser.AddMark(mark)
 
 	return mark, nil
 }
@@ -113,16 +111,17 @@ func (j *journalController) UpdateMark(ctx context.Context, dto dto.UpdateMarkDT
 	}
 
 	mark := entities.Mark{
-		Id:       dto.Id,
-		Mark:     dto.Mark,
-		UserId:   dto.UserId,
-		LessonId: dto.LessonId,
+		Id:        dto.Id,
+		Mark:      dto.Mark,
+		StudentID: dto.StudentID,
+		LessonId:  dto.LessonId,
 	}
 
-	mark.ParsedInfo = j.parser.EditMark(mark)
 	if err := j.repository.UpdateMark(ctx, mark); err != nil {
 		return err
 	}
+
+	go j.parser.EditMark(mark)
 
 	return nil
 }
@@ -151,6 +150,6 @@ func (j *journalController) DeleteMark(ctx context.Context, markIdHex string, su
 		return err
 	}
 
-	j.parser.DeleteMark(mark)
+	go j.parser.DeleteMark(mark)
 	return nil
 }

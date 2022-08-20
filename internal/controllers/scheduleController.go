@@ -70,7 +70,7 @@ func (s *scheduleController) AddLesson(ctx context.Context, dto dto.AddLessonDTO
 	}
 
 	lesson.Id = id
-	lesson.ParsedInfo = s.parser.AddLesson(lesson)
+	go s.parser.AddLesson(lesson)
 
 	return lesson, err
 }
@@ -88,7 +88,7 @@ func (s *scheduleController) UpdateLesson(ctx context.Context, dto dto.UpdateLes
 		Description:  dto.Description,
 	}
 
-	lesson.ParsedInfo = s.parser.EditLesson(lesson)
+	go s.parser.EditLesson(lesson)
 
 	return s.repository.UpdateLesson(ctx, lesson, user.StudyPlaceId)
 }
@@ -99,5 +99,12 @@ func (s *scheduleController) DeleteLesson(ctx context.Context, idHex string, use
 		return errors.Wrap(NotValidParams, "id")
 	}
 
-	return s.repository.DeleteLesson(ctx, id, user.StudyPlaceId)
+	lesson, err := s.repository.FindAndDeleteLesson(ctx, id, user.StudyPlaceId)
+	if err != nil {
+		return err
+	}
+
+	go s.parser.DeleteLesson(lesson)
+
+	return nil
 }

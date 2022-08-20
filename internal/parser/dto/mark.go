@@ -1,12 +1,16 @@
 package dto
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"studyum/internal/parser/entities"
+)
 
 type Mark struct {
 	Id           primitive.ObjectID
 	Mark         string
-	UserId       primitive.ObjectID
+	StudentID    primitive.ObjectID
+	TeacherID    primitive.ObjectID
 	LessonId     primitive.ObjectID
 	StudyPlaceId int
-	ParsedInfo   map[string]any
+	ParsedInfo   entities.ParsedInfoType
 }

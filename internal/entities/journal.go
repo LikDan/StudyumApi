@@ -1,6 +1,9 @@
 package entities
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"studyum/internal/parser/entities"
+)
 
 type Journal struct {
 	Info  JournalInfo  `json:"info" bson:"info"`
@@ -31,10 +34,11 @@ type JournalAvailableOption struct {
 }
 
 type Mark struct {
-	Id           primitive.ObjectID `json:"id" bson:"_id"`
-	Mark         string             `json:"mark" bson:"mark"`
-	UserId       primitive.ObjectID `json:"userId" bson:"userId"`
-	LessonId     primitive.ObjectID `json:"lessonId" bson:"lessonId"`
-	StudyPlaceId int                `json:"studyPlaceId" bson:"studyPlaceId"`
-	ParsedInfo   map[string]any     `json:"-" bson:"parsedInfo"`
+	Id           primitive.ObjectID      `json:"id" bson:"_id"`
+	Mark         string                  `json:"mark" bson:"mark"`
+	StudentID    primitive.ObjectID      `json:"studentID" bson:"studentID"`
+	TeacherID    primitive.ObjectID      `json:"teacherID" bson:"teacherID"`
+	LessonId     primitive.ObjectID      `json:"lessonId" bson:"lessonId"`
+	StudyPlaceId int                     `json:"studyPlaceId" bson:"studyPlaceId"`
+	ParsedInfo   entities.ParsedInfoType `json:"-" bson:"parsedInfo"`
 }
