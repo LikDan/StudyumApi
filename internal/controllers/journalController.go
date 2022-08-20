@@ -24,8 +24,8 @@ type JournalController interface {
 
 	AddMark(ctx context.Context, dto dto.AddMarkDTO, user entities.User) (entities.Mark, error)
 	GetMark(ctx context.Context, group string, subject string, userIdHex string, user entities.User) ([]entities.Lesson, error)
-	UpdateMark(ctx context.Context, dto dto.UpdateMarkDTO) error
-	DeleteMark(ctx context.Context, markIdHex string, subjectIdHex string) error
+	UpdateMark(ctx context.Context, user entities.User, dto dto.UpdateMarkDTO) error
+	DeleteMark(ctx context.Context, user entities.User, markIdHex string) error
 }
 
 type journalController struct {
@@ -93,6 +93,15 @@ func (j *journalController) AddMark(ctx context.Context, dto dto.AddMarkDTO, use
 		StudyPlaceId: user.StudyPlaceId,
 	}
 
+	lesson, err := j.repository.GetLessonByID(ctx, mark.LessonId)
+	if err != nil {
+		return entities.Mark{}, err
+	}
+
+	if lesson.Teacher != user.TypeName {
+		return entities.Mark{}, NoPermission
+	}
+
 	id, err := j.repository.AddMark(ctx, mark)
 	if err != nil {
 		return entities.Mark{}, err
@@ -105,7 +114,7 @@ func (j *journalController) AddMark(ctx context.Context, dto dto.AddMarkDTO, use
 	return mark, nil
 }
 
-func (j *journalController) UpdateMark(ctx context.Context, dto dto.UpdateMarkDTO) error {
+func (j *journalController) UpdateMark(ctx context.Context, user entities.User, dto dto.UpdateMarkDTO) error {
 	if dto.Mark == "" || dto.Id.IsZero() || dto.LessonId.IsZero() {
 		return NotValidParams
 	}
@@ -117,7 +126,16 @@ func (j *journalController) UpdateMark(ctx context.Context, dto dto.UpdateMarkDT
 		LessonId:  dto.LessonId,
 	}
 
-	if err := j.repository.UpdateMark(ctx, mark); err != nil {
+	lesson, err := j.repository.GetLessonByID(ctx, mark.LessonId)
+	if err != nil {
+		return err
+	}
+
+	if lesson.Teacher != user.TypeName {
+		return NoPermission
+	}
+
+	if err = j.repository.UpdateMark(ctx, mark); err != nil {
 		return err
 	}
 
@@ -126,8 +144,8 @@ func (j *journalController) UpdateMark(ctx context.Context, dto dto.UpdateMarkDT
 	return nil
 }
 
-func (j *journalController) DeleteMark(ctx context.Context, markIdHex string, subjectIdHex string) error {
-	if markIdHex == "" || subjectIdHex == "" {
+func (j *journalController) DeleteMark(ctx context.Context, user entities.User, markIdHex string) error {
+	if markIdHex == "" {
 		return NotValidParams
 	}
 
@@ -136,17 +154,21 @@ func (j *journalController) DeleteMark(ctx context.Context, markIdHex string, su
 		return errors.Wrap(NotValidParams, "markId")
 	}
 
-	subjectId, err := primitive.ObjectIDFromHex(subjectIdHex)
-	if err != nil {
-		return errors.Wrap(NotValidParams, "subjectId")
-	}
-
 	mark, err := j.repository.GetMarkById(ctx, markId)
 	if err != nil {
 		return err
 	}
 
-	if err = j.repository.DeleteMarkByIDAndLessonID(ctx, markId, subjectId); err != nil {
+	lesson, err := j.repository.GetLessonByID(ctx, mark.LessonId)
+	if err != nil {
+		return err
+	}
+
+	if lesson.Teacher != user.TypeName {
+		return NoPermission
+	}
+
+	if err = j.repository.DeleteMarkByID(ctx, markId); err != nil {
 		return err
 	}
 

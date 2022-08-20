@@ -120,13 +120,15 @@ func (j *journalHandler) GetMark(ctx *gin.Context) {
 }
 
 func (j *journalHandler) UpdateMark(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
 	var mark dto.UpdateMarkDTO
 	if err := ctx.BindJSON(&mark); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
 
-	err := j.controller.UpdateMark(ctx, mark)
+	err := j.controller.UpdateMark(ctx, user, mark)
 	if err != nil {
 		j.Error(ctx, err)
 		return
@@ -136,10 +138,11 @@ func (j *journalHandler) UpdateMark(ctx *gin.Context) {
 }
 
 func (j *journalHandler) DeleteMark(ctx *gin.Context) {
-	markId := ctx.Query("markId")
-	subjectId := ctx.Query("subjectId")
+	user := utils.GetUserViaCtx(ctx)
 
-	err := j.controller.DeleteMark(ctx, markId, subjectId)
+	markId := ctx.Query("id")
+
+	err := j.controller.DeleteMark(ctx, user, markId)
 	if err != nil {
 		j.Error(ctx, err)
 		return

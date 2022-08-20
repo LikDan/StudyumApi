@@ -360,7 +360,6 @@ func (a *app) JournalUpdate(user entities.JournalUser) []dto.MarkDTO {
 				mark := dto.MarkDTO{
 					Mark:       strings.TrimSpace(selection.Text()),
 					StudentID:  user.ID,
-					TeacherID:  user.ID,
 					LessonDate: dates[dayIndex],
 					Subject:    lessonNames[rowIndex],
 					Group:      user.AdditionInfo["group"],

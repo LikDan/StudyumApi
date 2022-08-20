@@ -9,7 +9,6 @@ type Mark struct {
 	Id           primitive.ObjectID
 	Mark         string
 	StudentID    primitive.ObjectID
-	TeacherID    primitive.ObjectID
 	LessonId     primitive.ObjectID
 	StudyPlaceId int
 	ParsedInfo   entities.ParsedInfoType

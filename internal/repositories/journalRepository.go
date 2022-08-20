@@ -12,14 +12,14 @@ type JournalRepository interface {
 	AddMark(ctx context.Context, mark entities.Mark) (primitive.ObjectID, error)
 	UpdateMark(ctx context.Context, mark entities.Mark) error
 	GetMarkById(ctx context.Context, id primitive.ObjectID) (entities.Mark, error)
-	DeleteMarkByIDAndLessonID(ctx context.Context, id primitive.ObjectID, lessonId primitive.ObjectID) error
+	DeleteMarkByID(ctx context.Context, id primitive.ObjectID) error
 
 	GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]entities.JournalAvailableOption, error)
 
 	GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId int) (entities.Journal, error)
 	GetJournal(ctx context.Context, group string, subject string, typeName string, studyPlaceId int) (entities.Journal, error)
 
-	GetLessonByIDAndUserID(ctx context.Context, userId primitive.ObjectID, id primitive.ObjectID) (entities.Lesson, error)
+	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
 	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId int) ([]entities.Lesson, error)
 }
 
@@ -51,8 +51,8 @@ func (j *journalRepository) GetMarkById(ctx context.Context, id primitive.Object
 	return mark, err
 }
 
-func (j *journalRepository) DeleteMarkByIDAndLessonID(ctx context.Context, id primitive.ObjectID, lessonId primitive.ObjectID) error {
-	_, err := j.marksCollection.DeleteOne(ctx, bson.M{"_id": id, "lessonId": lessonId})
+func (j *journalRepository) DeleteMarkByID(ctx context.Context, id primitive.ObjectID) error {
+	_, err := j.marksCollection.DeleteOne(ctx, bson.M{"_id": id})
 	return err
 }
 
@@ -210,28 +210,9 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 	return journal, nil
 }
 
-func (j *journalRepository) GetLessonByIDAndUserID(ctx context.Context, userId primitive.ObjectID, id primitive.ObjectID) (entities.Lesson, error) {
-	lessonsCursor, err := j.lessonsCollection.Aggregate(ctx, mongo.Pipeline{
-		bson.D{{"$match", bson.M{"_id": id}}},
-		bson.D{{"$lookup", bson.M{
-			"from":         "Marks",
-			"localField":   "_id",
-			"foreignField": "lessonId",
-			"pipeline": mongo.Pipeline{
-				bson.D{{"$match", bson.M{"userId": userId}}},
-			},
-			"as": "marks",
-		}}},
-		bson.D{{"$sort", bson.M{"date": 1}}},
-	})
-
-	var lesson entities.Lesson
-	lessonsCursor.Next(ctx)
-	if err = lessonsCursor.Decode(&lesson); err != nil {
-		return entities.Lesson{}, err
-	}
-
-	return lesson, nil
+func (j *journalRepository) GetLessonByID(ctx context.Context, id primitive.ObjectID) (lesson entities.Lesson, err error) {
+	err = j.lessonsCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&lesson)
+	return
 }
 
 func (j *journalRepository) GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId int) ([]entities.Lesson, error) {
