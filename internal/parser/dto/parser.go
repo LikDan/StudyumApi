@@ -29,7 +29,6 @@ type GeneralLessonDTO struct {
 type MarkDTO struct {
 	Mark       string
 	StudentID  primitive.ObjectID
-	TeacherID  primitive.ObjectID
 	LessonDate time.Time
 	Subject    string
 	Group      string

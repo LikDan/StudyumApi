@@ -40,7 +40,6 @@ type Mark struct {
 	Id           primitive.ObjectID `bson:"_id"`
 	Mark         string             `bson:"mark"`
 	StudentID    primitive.ObjectID `bson:"studentID"`
-	TeacherID    primitive.ObjectID `bson:"teacherID"`
 	LessonId     primitive.ObjectID `bson:"lessonId"`
 	StudyPlaceId int                `bson:"studyPlaceId"`
 	ParsedInfo   ParsedInfoType     `bson:"parsedInfo"`
