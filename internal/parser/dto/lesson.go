@@ -2,6 +2,7 @@ package dto
 
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"studyum/internal/parser/entities"
 	"time"
 )
 
@@ -15,5 +16,5 @@ type Lesson struct {
 	Group        string
 	Teacher      string
 	Room         string
-	ParsedInfo   map[string]any
+	ParsedInfo   entities.ParsedInfoType
 }

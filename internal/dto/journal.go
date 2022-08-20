@@ -5,14 +5,14 @@ import (
 )
 
 type AddMarkDTO struct {
-	Mark     string             `json:"mark"`
-	UserId   primitive.ObjectID `json:"userId"`
-	LessonId primitive.ObjectID `json:"lessonId"`
+	Mark      string             `json:"mark"`
+	StudentID primitive.ObjectID `json:"studentID"`
+	LessonId  primitive.ObjectID `json:"lessonId"`
 }
 
 type UpdateMarkDTO struct {
-	Id       primitive.ObjectID `json:"id"`
-	Mark     string             `json:"mark"`
-	UserId   primitive.ObjectID `json:"userId"`
-	LessonId primitive.ObjectID `json:"lessonId"`
+	Id        primitive.ObjectID `json:"id"`
+	Mark      string             `json:"mark"`
+	StudentID primitive.ObjectID `json:"studentID"`
+	LessonId  primitive.ObjectID `json:"lessonId"`
 }

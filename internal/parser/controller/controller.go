@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"studyum/internal/parser/application"
 	"studyum/internal/parser/apps"
+	"studyum/internal/parser/apps/kbp"
 	"studyum/internal/parser/dto"
 	"studyum/internal/parser/entities"
 	"studyum/internal/parser/repository"
@@ -13,41 +13,41 @@ import (
 )
 
 type Controller interface {
-	Apps() []application.App
+	Apps() []apps.App
 
-	UpdateGeneralSchedule(app application.App)
-	Update(ctx context.Context, app application.App)
+	UpdateGeneralSchedule(app apps.App)
+	Update(ctx context.Context, app apps.App)
 	GetLastLesson(ctx context.Context, id int) (entities.Lesson, error)
 	InsertScheduleTypes(ctx context.Context, types []entities.ScheduleTypeInfo) error
-	GetAppByStudyPlaceId(id int) (application.App, error)
+	GetAppByStudyPlaceId(id int) (apps.App, error)
 
-	AddMark(ctx context.Context, markDTO dto.Mark) map[string]any
-	EditMark(ctx context.Context, markDTO dto.Mark) map[string]any
+	AddMark(ctx context.Context, markDTO dto.Mark)
+	EditMark(ctx context.Context, markDTO dto.Mark)
 	DeleteMark(ctx context.Context, markDTO dto.Mark)
 
-	AddLesson(ctx context.Context, lessonDTO dto.Lesson) map[string]any
-	EditLesson(ctx context.Context, lessonDTO dto.Lesson) map[string]any
+	AddLesson(ctx context.Context, lessonDTO dto.Lesson)
+	EditLesson(ctx context.Context, lessonDTO dto.Lesson)
 	DeleteLesson(ctx context.Context, lessonDTO dto.Lesson)
 }
 
 type controller struct {
 	repository repository.Repository
 
-	apps []application.App
+	apps []apps.App
 }
 
 func NewParserController(repository repository.Repository) Controller {
 	return &controller{
 		repository: repository,
-		apps:       []application.App{&apps.KbpApp},
+		apps:       []apps.App{kbp.NewApp()},
 	}
 }
 
-func (c *controller) Apps() []application.App {
+func (c *controller) Apps() []apps.App {
 	return c.apps
 }
 
-func (c *controller) UpdateGeneralSchedule(app application.App) {
+func (c *controller) UpdateGeneralSchedule(app apps.App) {
 	ctx := context.Background()
 
 	types, err := c.repository.GetScheduleTypesToParse(ctx, app.GetName())
@@ -80,7 +80,7 @@ func (c *controller) UpdateGeneralSchedule(app application.App) {
 	}
 }
 
-func (c *controller) Update(ctx context.Context, app application.App) {
+func (c *controller) Update(ctx context.Context, app apps.App) {
 	var users []entities.JournalUser
 	if _, err := c.repository.GetUsersToParse(ctx, app.GetName()); err != nil {
 		return
@@ -99,7 +99,7 @@ func (c *controller) Update(ctx context.Context, app application.App) {
 			mark := entities.Mark{
 				Id:           primitive.NewObjectID(),
 				Mark:         markDTO.Mark,
-				UserId:       markDTO.UserId,
+				StudentID:    markDTO.StudentID,
 				LessonId:     lessonID,
 				StudyPlaceId: app.StudyPlaceId(),
 				ParsedInfo:   markDTO.ParsedInfo,
@@ -158,7 +158,7 @@ func (c *controller) InsertScheduleTypes(ctx context.Context, types []entities.S
 	return c.repository.InsertScheduleTypes(ctx, types)
 }
 
-func (c *controller) GetAppByStudyPlaceId(id int) (application.App, error) {
+func (c *controller) GetAppByStudyPlaceId(id int) (apps.App, error) {
 	for _, app := range c.apps {
 		if app.StudyPlaceId() == id {
 			return app, nil
@@ -168,48 +168,50 @@ func (c *controller) GetAppByStudyPlaceId(id int) (application.App, error) {
 	return nil, errors.New("no application with this id")
 }
 
-func (c *controller) AddMark(ctx context.Context, markDTO dto.Mark) map[string]any {
+func (c *controller) AddMark(ctx context.Context, markDTO dto.Mark) {
 	app, err := c.GetAppByStudyPlaceId(markDTO.StudyPlaceId)
 	if err != nil {
-		return nil
+		return
 	}
 
 	mark := entities.Mark{
 		Id:           markDTO.Id,
 		Mark:         markDTO.Mark,
-		UserId:       markDTO.UserId,
+		StudentID:    markDTO.StudentID,
 		LessonId:     markDTO.LessonId,
 		StudyPlaceId: markDTO.StudyPlaceId,
 	}
 
 	lesson, err := c.repository.GetLessonByID(ctx, markDTO.LessonId)
 	if err != nil {
-		return nil
+		return
 	}
 
-	return app.OnMarkAdd(ctx, mark, lesson)
+	info := app.OnMarkAdd(ctx, mark, lesson)
+	_ = c.repository.UpdateMarkParsedInfoByID(ctx, mark.Id, info)
 }
 
-func (c *controller) EditMark(ctx context.Context, markDTO dto.Mark) map[string]any {
+func (c *controller) EditMark(ctx context.Context, markDTO dto.Mark) {
 	app, err := c.GetAppByStudyPlaceId(markDTO.StudyPlaceId)
 	if err != nil {
-		return nil
+		return
 	}
 
 	mark := entities.Mark{
 		Id:           markDTO.Id,
 		Mark:         markDTO.Mark,
-		UserId:       markDTO.UserId,
+		StudentID:    markDTO.StudentID,
 		LessonId:     markDTO.LessonId,
 		StudyPlaceId: markDTO.StudyPlaceId,
 	}
 
 	lesson, err := c.repository.GetLessonByID(ctx, markDTO.LessonId)
 	if err != nil {
-		return nil
+		return
 	}
 
-	return app.OnMarkEdit(ctx, mark, lesson)
+	info := app.OnMarkEdit(ctx, mark, lesson)
+	_ = c.repository.UpdateMarkParsedInfoByID(ctx, mark.Id, info)
 }
 
 func (c *controller) DeleteMark(ctx context.Context, markDTO dto.Mark) {
@@ -221,7 +223,7 @@ func (c *controller) DeleteMark(ctx context.Context, markDTO dto.Mark) {
 	mark := entities.Mark{
 		Id:           markDTO.Id,
 		Mark:         markDTO.Mark,
-		UserId:       markDTO.UserId,
+		StudentID:    markDTO.StudentID,
 		LessonId:     markDTO.LessonId,
 		StudyPlaceId: markDTO.StudyPlaceId,
 	}
@@ -234,10 +236,10 @@ func (c *controller) DeleteMark(ctx context.Context, markDTO dto.Mark) {
 	app.OnMarkDelete(ctx, mark, lesson)
 }
 
-func (c *controller) AddLesson(ctx context.Context, lessonDTO dto.Lesson) map[string]any {
+func (c *controller) AddLesson(ctx context.Context, lessonDTO dto.Lesson) {
 	app, err := c.GetAppByStudyPlaceId(lessonDTO.StudyPlaceId)
 	if err != nil {
-		return nil
+		return
 	}
 
 	lesson := entities.Lesson{
@@ -252,13 +254,14 @@ func (c *controller) AddLesson(ctx context.Context, lessonDTO dto.Lesson) map[st
 		Room:         lessonDTO.Room,
 	}
 
-	return app.OnLessonAdd(ctx, lesson)
+	info := app.OnLessonAdd(ctx, lesson)
+	_ = c.repository.UpdateLessonParsedInfoByID(ctx, lesson.Id, info)
 }
 
-func (c *controller) EditLesson(ctx context.Context, lessonDTO dto.Lesson) map[string]any {
+func (c *controller) EditLesson(ctx context.Context, lessonDTO dto.Lesson) {
 	app, err := c.GetAppByStudyPlaceId(lessonDTO.StudyPlaceId)
 	if err != nil {
-		return nil
+		return
 	}
 
 	lesson := entities.Lesson{
@@ -273,7 +276,8 @@ func (c *controller) EditLesson(ctx context.Context, lessonDTO dto.Lesson) map[s
 		Room:         lessonDTO.Room,
 	}
 
-	return app.OnLessonEdit(ctx, lesson)
+	info := app.OnLessonEdit(ctx, lesson)
+	_ = c.repository.UpdateLessonParsedInfoByID(ctx, lesson.Id, info)
 }
 
 func (c *controller) DeleteLesson(ctx context.Context, lessonDTO dto.Lesson) {

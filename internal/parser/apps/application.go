@@ -1,4 +1,4 @@
-package application
+package apps
 
 import (
 	"context"
@@ -17,14 +17,13 @@ type App interface {
 
 	JournalUpdate(user entities.JournalUser) []dto.MarkDTO
 
-	OnMarkAdd(ctx context.Context, mark entities.Mark, lesson entities.Lesson) map[string]any
-	OnMarkEdit(ctx context.Context, mark entities.Mark, lesson entities.Lesson) map[string]any
+	OnMarkAdd(ctx context.Context, mark entities.Mark, lesson entities.Lesson) entities.ParsedInfoType
+	OnMarkEdit(ctx context.Context, mark entities.Mark, lesson entities.Lesson) entities.ParsedInfoType
 	OnMarkDelete(ctx context.Context, mark entities.Mark, lesson entities.Lesson)
 
-	OnLessonAdd(ctx context.Context, lesson entities.Lesson) map[string]any
-	OnLessonEdit(ctx context.Context, lesson entities.Lesson) map[string]any
+	OnLessonAdd(ctx context.Context, lesson entities.Lesson) entities.ParsedInfoType
+	OnLessonEdit(ctx context.Context, lesson entities.Lesson) entities.ParsedInfoType
 	OnLessonDelete(ctx context.Context, lesson entities.Lesson)
 
 	CommitUpdate()
-	Init(lesson entities.Lesson)
 }

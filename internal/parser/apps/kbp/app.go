@@ -1,21 +1,20 @@
-package apps
+package kbp
 
 import (
 	"bytes"
-	"context"
 	htmlParser "github.com/PuerkitoBio/goquery"
-	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
+	"studyum/internal/parser/apps"
 	"studyum/internal/parser/dto"
 	"studyum/internal/parser/entities"
 	"studyum/internal/utils"
 	"time"
 )
 
-type KbpParser struct {
+type app struct {
 	States     []entities.ScheduleStateInfo
 	TempStates []entities.ScheduleStateInfo
 
@@ -23,13 +22,56 @@ type KbpParser struct {
 	WeekendsShift []entities.Shift
 }
 
-var KbpApp = KbpParser{}
+func NewApp() apps.App {
+	states := make([]entities.ScheduleStateInfo, 14)
 
-func (p *KbpParser) GetName() string              { return "kbp" }
-func (p *KbpParser) StudyPlaceId() int            { return 0 }
-func (p *KbpParser) GetUpdateCronPattern() string { return "@every 30m" }
+	for i := 0; i < 7; i++ {
+		states[i] = entities.ScheduleStateInfo{
+			State:     entities.Updated,
+			WeekIndex: 0,
+			DayIndex:  i,
+		}
+	}
+	for i := 0; i < 7; i++ {
+		states[i] = entities.ScheduleStateInfo{
+			State:     entities.NotUpdated,
+			WeekIndex: 1,
+			DayIndex:  i,
+		}
+	}
 
-func (p *KbpParser) ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.LessonDTO {
+	weekdaysShift := []entities.Shift{
+		entities.NewShift(8, 00, 9, 35),
+		entities.NewShift(9, 45, 11, 20),
+		entities.NewShift(11, 50, 13, 25),
+		entities.NewShift(13, 45, 15, 20),
+		entities.NewShift(15, 40, 17, 15),
+		entities.NewShift(17, 25, 19, 0),
+		entities.NewShift(19, 10, 20, 45),
+	}
+
+	weekendsShift := []entities.Shift{
+		entities.NewShift(8, 00, 9, 35),
+		entities.NewShift(9, 45, 11, 20),
+		entities.NewShift(11, 30, 13, 5),
+		entities.NewShift(13, 30, 15, 5),
+		entities.NewShift(15, 15, 16, 50),
+		entities.NewShift(17, 0, 18, 35),
+		entities.NewShift(18, 45, 20, 20),
+	}
+
+	return &app{
+		States:        states,
+		WeekdaysShift: weekdaysShift,
+		WeekendsShift: weekendsShift,
+	}
+}
+
+func (a *app) GetName() string              { return "kbp" }
+func (a *app) StudyPlaceId() int            { return 0 }
+func (a *app) GetUpdateCronPattern() string { return "@every 30m" }
+
+func (a *app) ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.LessonDTO {
 	response, err := http.Get("https://kbp.by/rasp/timetable/view_beta_kbp/" + typeInfo.Url)
 	if err != nil {
 		return nil
@@ -118,9 +160,9 @@ func (p *KbpParser) ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.Les
 						var shift entities.Shift
 
 						if columnIndex < 5 {
-							shift = p.WeekdaysShift[rowIndex]
+							shift = a.WeekdaysShift[rowIndex]
 						} else {
-							shift = p.WeekendsShift[rowIndex]
+							shift = a.WeekendsShift[rowIndex]
 						}
 
 						shift.Date = utils.ToDateWithoutTime(time_)
@@ -134,7 +176,7 @@ func (p *KbpParser) ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.Les
 							Room:    div.Find(".place").Text(),
 						}
 
-						if entities.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, states).State == entities.Updated && entities.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, p.States).State == entities.NotUpdated {
+						if entities.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, states).State == entities.Updated && entities.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, a.States).State == entities.NotUpdated {
 							lessons = append(lessons, lesson)
 						}
 					})
@@ -145,14 +187,14 @@ func (p *KbpParser) ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.Les
 		time_ = time_.AddDate(0, 0, 7)
 	})
 
-	p.TempStates = states
+	a.TempStates = states
 	return lessons
 }
 
-func (p *KbpParser) GeneralScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.GeneralLessonDTO {
+func (a *app) GeneralScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.GeneralLessonDTO {
 	var generalLessons []dto.GeneralLessonDTO
 
-	lessons := p.ScheduleUpdate(typeInfo)
+	lessons := a.ScheduleUpdate(typeInfo)
 	for _, lesson := range lessons {
 		if lesson.Type == "ADDED" {
 			continue
@@ -175,7 +217,7 @@ func (p *KbpParser) GeneralScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []
 	return generalLessons
 }
 
-func (p *KbpParser) ScheduleTypesUpdate() []entities.ScheduleTypeInfo {
+func (a *app) ScheduleTypesUpdate() []entities.ScheduleTypeInfo {
 	var types []entities.ScheduleTypeInfo
 
 	response, err := http.Get("https://kbp.by/rasp/timetable/view_beta_kbp/?q=")
@@ -202,7 +244,7 @@ func (p *KbpParser) ScheduleTypesUpdate() []entities.ScheduleTypeInfo {
 			}
 
 			type_ := entities.ScheduleTypeInfo{
-				ParserAppName: p.GetName(),
+				ParserAppName: a.GetName(),
 				Group:         name,
 				Url:           url,
 			}
@@ -213,7 +255,7 @@ func (p *KbpParser) ScheduleTypesUpdate() []entities.ScheduleTypeInfo {
 	return types
 }
 
-func (p *KbpParser) loginJournal(user entities.JournalUser) *htmlParser.Document {
+func (a *app) loginJournal(user entities.JournalUser) *htmlParser.Document {
 	request, _ := http.NewRequest("GET", "https://kbp.by/ej/templates/login_parent.php", nil)
 	response, _ := http.DefaultClient.Do(request)
 	document, _ := htmlParser.NewDocumentFromReader(response.Body)
@@ -245,8 +287,8 @@ func (p *KbpParser) loginJournal(user entities.JournalUser) *htmlParser.Document
 	return document
 }
 
-func (p *KbpParser) JournalUpdate(user entities.JournalUser) []dto.MarkDTO {
-	document := p.loginJournal(user)
+func (a *app) JournalUpdate(user entities.JournalUser) []dto.MarkDTO {
+	document := a.loginJournal(user)
 	lessonNames := document.Find("tbody").First().Find(".pupilName").Map(func(i int, selection *htmlParser.Selection) string {
 		return strings.TrimSpace(selection.Text())
 	})
@@ -310,14 +352,15 @@ func (p *KbpParser) JournalUpdate(user entities.JournalUser) []dto.MarkDTO {
 		rowIndex -= 2
 
 		rowSelection.Children().Each(func(dayIndex int, cellSelection *htmlParser.Selection) {
-			if dayIndex >= len(dates) || dates[dayIndex].Before(user.LastParsedDate) {
+			if dayIndex >= len(dates) {
 				return
 			}
 
 			cellSelection.Find("span").Each(func(_ int, selection *htmlParser.Selection) {
 				mark := dto.MarkDTO{
 					Mark:       strings.TrimSpace(selection.Text()),
-					UserId:     user.ID,
+					StudentID:  user.ID,
+					TeacherID:  user.ID,
 					LessonDate: dates[dayIndex],
 					Subject:    lessonNames[rowIndex],
 					Group:      user.AdditionInfo["group"],
@@ -327,83 +370,10 @@ func (p *KbpParser) JournalUpdate(user entities.JournalUser) []dto.MarkDTO {
 		})
 	})
 
-	user.LastParsedDate = dates[len(dates)-1]
 	return marks
 }
 
-func (p *KbpParser) CommitUpdate() {
-	p.States = p.TempStates
-	p.TempStates = nil
-}
-
-func (p *KbpParser) Init(lesson entities.Lesson) {
-	var states []entities.ScheduleStateInfo
-
-	date := lesson.StartDate.AddDate(0, 0, -int(lesson.StartDate.Weekday()))
-	for len(states) != 14 {
-		_, weekIndex := date.ISOWeek()
-
-		state := entities.NotUpdated
-		if date.Before(lesson.StartDate) {
-			state = entities.Updated
-		}
-
-		states = append(states, entities.ScheduleStateInfo{
-			State:     state,
-			WeekIndex: weekIndex % 2,
-			DayIndex:  int(date.Weekday()),
-		})
-
-		date = date.AddDate(0, 0, 1)
-	}
-
-	p.States = states
-
-	p.WeekdaysShift = []entities.Shift{
-		entities.NewShift(8, 00, 9, 35),
-		entities.NewShift(9, 45, 11, 20),
-		entities.NewShift(11, 50, 13, 25),
-		entities.NewShift(13, 45, 15, 20),
-		entities.NewShift(15, 40, 17, 15),
-		entities.NewShift(17, 25, 19, 0),
-		entities.NewShift(19, 10, 20, 45),
-	}
-
-	p.WeekendsShift = []entities.Shift{
-		entities.NewShift(8, 00, 9, 35),
-		entities.NewShift(9, 45, 11, 20),
-		entities.NewShift(11, 30, 13, 5),
-		entities.NewShift(13, 30, 15, 5),
-		entities.NewShift(15, 15, 16, 50),
-		entities.NewShift(17, 0, 18, 35),
-		entities.NewShift(18, 45, 20, 20),
-	}
-}
-
-func (p *KbpParser) OnMarkAdd(_ context.Context, mark entities.Mark, lesson entities.Lesson) map[string]any {
-	logrus.Infof("set mark %v, with lesson %v", mark, lesson)
-	return nil
-}
-
-func (p *KbpParser) OnMarkEdit(_ context.Context, mark entities.Mark, lesson entities.Lesson) map[string]any {
-	logrus.Infof("edit mark %v, with lesson %v", mark, lesson)
-	return nil
-}
-
-func (p *KbpParser) OnMarkDelete(_ context.Context, mark entities.Mark, lesson entities.Lesson) {
-	logrus.Infof("delete mark %v, with lesson %v", mark, lesson)
-}
-
-func (p *KbpParser) OnLessonAdd(_ context.Context, lesson entities.Lesson) map[string]any {
-	logrus.Infof("add lesson %v", lesson)
-	return nil
-}
-
-func (p *KbpParser) OnLessonEdit(_ context.Context, lesson entities.Lesson) map[string]any {
-	logrus.Infof("add edit %v", lesson)
-	return nil
-}
-
-func (p *KbpParser) OnLessonDelete(_ context.Context, lesson entities.Lesson) {
-	logrus.Infof("add delete %v", lesson)
+func (a *app) CommitUpdate() {
+	a.States = a.TempStates
+	a.TempStates = nil
 }

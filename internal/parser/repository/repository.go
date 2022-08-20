@@ -26,6 +26,9 @@ type Repository interface {
 
 	AddMarks(ctx context.Context, marks []entities.Mark) error
 	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
+
+	UpdateMarkParsedInfoByID(ctx context.Context, id primitive.ObjectID, info entities.ParsedInfoType) error
+	UpdateLessonParsedInfoByID(ctx context.Context, id primitive.ObjectID, info entities.ParsedInfoType) error
 }
 
 type repository struct {
@@ -151,4 +154,14 @@ func (p *repository) GetLessonByID(ctx context.Context, id primitive.ObjectID) (
 	var lesson entities.Lesson
 	err := p.lessonsCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&lesson)
 	return lesson, err
+}
+
+func (p *repository) UpdateMarkParsedInfoByID(ctx context.Context, id primitive.ObjectID, info entities.ParsedInfoType) error {
+	_, err := p.marksCollection.UpdateByID(ctx, id, bson.M{"parsedInfo": info})
+	return err
+}
+
+func (p *repository) UpdateLessonParsedInfoByID(ctx context.Context, id primitive.ObjectID, info entities.ParsedInfoType) error {
+	_, err := p.lessonsCollection.UpdateByID(ctx, id, bson.M{"parsedInfo": info})
+	return err
 }

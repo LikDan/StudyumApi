@@ -13,7 +13,7 @@ type LessonDTO struct {
 	Group      string
 	Teacher    string
 	Room       string
-	ParsedInfo map[string]any
+	ParsedInfo entities.ParsedInfoType
 }
 
 type GeneralLessonDTO struct {
@@ -23,14 +23,15 @@ type GeneralLessonDTO struct {
 	Teacher    string
 	Room       string
 	WeekIndex  int
-	ParsedInfo map[string]any
+	ParsedInfo entities.ParsedInfoType
 }
 
 type MarkDTO struct {
 	Mark       string
-	UserId     primitive.ObjectID
+	StudentID  primitive.ObjectID
+	TeacherID  primitive.ObjectID
 	LessonDate time.Time
 	Subject    string
 	Group      string
-	ParsedInfo map[string]any
+	ParsedInfo entities.ParsedInfoType
 }

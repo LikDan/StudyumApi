@@ -15,7 +15,7 @@ type ScheduleRepository interface {
 
 	AddLesson(ctx context.Context, lesson entities.Lesson) (primitive.ObjectID, error)
 	UpdateLesson(ctx context.Context, lesson entities.Lesson, studyPlaceId int) error
-	DeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId int) error
+	FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId int) (entities.Lesson, error)
 }
 
 type scheduleRepository struct {
@@ -166,7 +166,8 @@ func (s *scheduleRepository) UpdateLesson(ctx context.Context, lesson entities.L
 	return err
 }
 
-func (s *scheduleRepository) DeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId int) error {
-	_, err := s.lessonsCollection.DeleteOne(ctx, bson.M{"_id": id, "studyPlaceId": studyPlaceId})
-	return err
+func (s *scheduleRepository) FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId int) (entities.Lesson, error) {
+	var lesson entities.Lesson
+	err := s.lessonsCollection.FindOneAndDelete(ctx, bson.M{"_id": id, "studyPlaceId": studyPlaceId}).Decode(&lesson)
+	return lesson, err
 }

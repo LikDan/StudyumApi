@@ -16,7 +16,7 @@ type GeneralLesson struct {
 	Room         string             `bson:"room"`
 	DayIndex     int                `bson:"dayIndex"`
 	WeekIndex    int                `bson:"weekIndex"`
-	ParsedInfo   map[string]any     `bson:"parsedInfo"`
+	ParsedInfo   ParsedInfoType     `bson:"parsedInfo"`
 }
 
 type Lesson struct {
@@ -33,14 +33,15 @@ type Lesson struct {
 	Title        string             `bson:"title"`
 	Homework     string             `bson:"homework"`
 	Description  string             `bson:"description"`
-	ParsedInfo   map[string]any     `bson:"parsedInfo"`
+	ParsedInfo   ParsedInfoType     `bson:"parsedInfo"`
 }
 
 type Mark struct {
 	Id           primitive.ObjectID `bson:"_id"`
 	Mark         string             `bson:"mark"`
-	UserId       primitive.ObjectID `bson:"userId"`
+	StudentID    primitive.ObjectID `bson:"studentID"`
+	TeacherID    primitive.ObjectID `bson:"teacherID"`
 	LessonId     primitive.ObjectID `bson:"lessonId"`
 	StudyPlaceId int                `bson:"studyPlaceId"`
-	ParsedInfo   map[string]any     `bson:"parsedInfo"`
+	ParsedInfo   ParsedInfoType     `bson:"parsedInfo"`
 }
