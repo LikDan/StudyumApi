@@ -17,6 +17,8 @@ type ScheduleHandler interface {
 	AddLesson(ctx *gin.Context)
 	UpdateLesson(ctx *gin.Context)
 	DeleteLesson(ctx *gin.Context)
+
+	SaveCurrentScheduleAsGeneral(ctx *gin.Context)
 }
 
 type scheduleHandler struct {
@@ -37,6 +39,8 @@ func NewScheduleHandler(authHandler Handler, controller controllers.ScheduleCont
 	group.POST("", h.Auth("editSchedule"), h.AddLesson)
 	group.PUT("", h.Auth("editSchedule"), h.UpdateLesson)
 	group.DELETE(":id", h.Auth("editSchedule"), h.DeleteLesson)
+
+	group.POST("/makeGeneral", h.Auth("editSchedule"), h.SaveCurrentScheduleAsGeneral)
 
 	return h
 }
@@ -123,4 +127,19 @@ func (s *scheduleHandler) DeleteLesson(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, id)
+}
+
+func (s *scheduleHandler) SaveCurrentScheduleAsGeneral(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	type_ := ctx.Query("type")
+	typeName := ctx.Query("typeName")
+
+	err := s.controller.SaveCurrentScheduleAsGeneral(ctx, user, type_, typeName)
+	if err != nil {
+		s.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, "successful")
 }

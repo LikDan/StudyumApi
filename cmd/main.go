@@ -47,7 +47,7 @@ func main() {
 	userController := controllers.NewUserController(userRepository)
 	generalController := controllers.NewGeneralController(generalRepository)
 	journalController := controllers.NewJournalController(parserHandler, journalRepository)
-	scheduleController := controllers.NewScheduleController(scheduleRepository)
+	scheduleController := controllers.NewScheduleController(parserHandler, scheduleRepository)
 
 	engine := gin.Default()
 	api := engine.Group("/api")

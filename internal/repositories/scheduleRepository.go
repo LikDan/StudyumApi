@@ -16,6 +16,7 @@ type ScheduleRepository interface {
 	AddLesson(ctx context.Context, lesson entities.Lesson) (primitive.ObjectID, error)
 	UpdateLesson(ctx context.Context, lesson entities.Lesson, studyPlaceId int) error
 	FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId int) (entities.Lesson, error)
+	UpdateGeneralSchedule(ctx context.Context, lessons []entities.GeneralLesson, type_ string, typeName string) error
 }
 
 type scheduleRepository struct {
@@ -61,6 +62,7 @@ func (s *scheduleRepository) GetSchedule(ctx context.Context, studyPlaceId int, 
 									bson.M{"$eq": bson.A{"$" + type_, typeName}},
 									bson.M{"$eq": bson.A{"$weekIndex", "$$weekIndex"}},
 									bson.M{"$eq": bson.A{"$dayIndex", "$$dayIndex"}},
+									bson.M{"$eq": bson.A{"$studyPlaceId", studyPlaceId}},
 								},
 							},
 						},
@@ -86,6 +88,7 @@ func (s *scheduleRepository) GetSchedule(ctx context.Context, studyPlaceId int, 
 								"$and": bson.A{
 									bson.M{"$eq": bson.A{bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$startDate"}}, bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$$date"}}}},
 									bson.M{"$eq": bson.A{"$" + type_, typeName}},
+									bson.M{"$eq": bson.A{"$studyPlaceId", studyPlaceId}},
 								},
 							},
 						},
@@ -129,7 +132,23 @@ func (s *scheduleRepository) GetSchedule(ctx context.Context, studyPlaceId int, 
 		return entities.Schedule{}, err
 	}
 
-	cursor.Next(ctx)
+	if !cursor.Next(ctx) {
+		var studyPlace entities.StudyPlace
+		if err = s.studyPlacesCollection.FindOne(ctx, bson.M{"_id": studyPlaceId}).Decode(&studyPlace); err != nil {
+			return entities.Schedule{}, err
+		}
+
+		return entities.Schedule{
+			Info: entities.ScheduleInfo{
+				Type:          type_,
+				TypeName:      typeName,
+				StudyPlace:    studyPlace,
+				StartWeekDate: startWeekDate,
+				Date:          time.Now(),
+			},
+		}, nil
+	}
+
 	var schedule entities.Schedule
 	if err = cursor.Decode(&schedule); err != nil {
 		return entities.Schedule{}, err
@@ -170,4 +189,16 @@ func (s *scheduleRepository) FindAndDeleteLesson(ctx context.Context, id primiti
 	var lesson entities.Lesson
 	err := s.lessonsCollection.FindOneAndDelete(ctx, bson.M{"_id": id, "studyPlaceId": studyPlaceId}).Decode(&lesson)
 	return lesson, err
+}
+
+func (s *scheduleRepository) UpdateGeneralSchedule(ctx context.Context, lessons []entities.GeneralLesson, type_ string, typeName string) error {
+	if _, err := s.generalLessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": lessons[0].StudyPlaceId, "type": type_, "typeName": typeName}); err != nil {
+		return err
+	}
+
+	if _, err := s.generalLessonsCollection.InsertMany(ctx, utils.ToInterfaceSlice(lessons)); err != nil {
+		return err
+	}
+
+	return nil
 }

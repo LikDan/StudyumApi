@@ -19,6 +19,7 @@ type ScheduleController interface {
 	AddLesson(ctx context.Context, lesson dto.AddLessonDTO, user entities.User) (entities.Lesson, error)
 	UpdateLesson(ctx context.Context, lesson dto.UpdateLessonDTO, user entities.User) error
 	DeleteLesson(ctx context.Context, idHex string, user entities.User) error
+	SaveCurrentScheduleAsGeneral(ctx context.Context, user entities.User, type_ string, typeName string) error
 }
 
 type scheduleController struct {
@@ -27,8 +28,8 @@ type scheduleController struct {
 	repository repositories.ScheduleRepository
 }
 
-func NewScheduleController(repository repositories.ScheduleRepository) ScheduleController {
-	return &scheduleController{repository: repository}
+func NewScheduleController(parser parser.Handler, repository repositories.ScheduleRepository) ScheduleController {
+	return &scheduleController{parser: parser, repository: repository}
 }
 
 func (s *scheduleController) GetSchedule(ctx context.Context, type_ string, typeName string, user entities.User) (entities.Schedule, error) {
@@ -105,6 +106,39 @@ func (s *scheduleController) DeleteLesson(ctx context.Context, idHex string, use
 	}
 
 	go s.parser.DeleteLesson(lesson)
+
+	return nil
+}
+
+func (s *scheduleController) SaveCurrentScheduleAsGeneral(ctx context.Context, user entities.User, type_ string, typeName string) error {
+	schedule, err := s.repository.GetSchedule(ctx, user.StudyPlaceId, type_, typeName)
+	if err != nil {
+		return err
+	}
+
+	lessons := make([]entities.GeneralLesson, len(schedule.Lessons))
+	for i, lesson := range schedule.Lessons {
+		_, weekIndex := lesson.StartDate.ISOWeek()
+
+		gLesson := entities.GeneralLesson{
+			Id:           primitive.NewObjectID(),
+			StudyPlaceId: user.StudyPlaceId,
+			EndTime:      lesson.EndDate.Format("15:04"),
+			StartTime:    lesson.StartDate.Format("15:04"),
+			Subject:      lesson.Subject,
+			Group:        lesson.Group,
+			Teacher:      lesson.Teacher,
+			Room:         lesson.Room,
+			DayIndex:     lesson.StartDate.Day(),
+			WeekIndex:    weekIndex,
+		}
+
+		lessons[i] = gLesson
+	}
+
+	if err = s.repository.UpdateGeneralSchedule(ctx, lessons, type_, typeName); err != nil {
+		return err
+	}
 
 	return nil
 }
