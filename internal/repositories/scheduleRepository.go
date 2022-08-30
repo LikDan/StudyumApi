@@ -169,10 +169,6 @@ func (s *scheduleRepository) GetScheduleType(ctx context.Context, studyPlaceId i
 }
 
 func (s *scheduleRepository) AddLesson(ctx context.Context, lesson entities.Lesson) (primitive.ObjectID, error) {
-	if lesson.Type == "GENERAL" {
-		lesson.Type = "STAY"
-	}
-
 	lesson.Id = primitive.NewObjectID()
 	_, err := s.lessonsCollection.InsertOne(ctx, lesson)
 	return lesson.Id, err

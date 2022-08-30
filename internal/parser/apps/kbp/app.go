@@ -20,6 +20,10 @@ type app struct {
 
 	WeekdaysShift []entities.Shift
 	WeekendsShift []entities.Shift
+
+	DefaultColor string
+	AddedColor   string
+	RemovedColor string
 }
 
 func NewApp() apps.App {
@@ -64,6 +68,10 @@ func NewApp() apps.App {
 		States:        states,
 		WeekdaysShift: weekdaysShift,
 		WeekendsShift: weekendsShift,
+
+		DefaultColor: "#F1F1F1",
+		AddedColor:   "#71AB7F",
+		RemovedColor: "#FA6F46",
 	}
 }
 
@@ -142,14 +150,14 @@ func (a *app) ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.LessonDTO
 
 				time_ = time_.AddDate(0, 0, 1)
 				column.Find(".pair").Each(func(_ int, div *htmlParser.Selection) {
-					var type_ string
+					var color string
 
 					if div.HasClass("added") {
-						type_ = "ADDED"
+						color = a.AddedColor
 					} else if div.HasClass("removed") && entities.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, states).State == entities.Updated {
-						type_ = "REMOVED"
+						color = a.RemovedColor
 					} else {
-						type_ = "STAY"
+						color = a.DefaultColor
 					}
 
 					div.Find(".teacher").Each(func(_ int, teacherDiv *htmlParser.Selection) {
@@ -168,12 +176,12 @@ func (a *app) ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.LessonDTO
 						shift.Date = utils.ToDateWithoutTime(time_)
 
 						lesson := dto.LessonDTO{
-							Shift:   shift,
-							Type:    type_,
-							Subject: div.Find(".subject").Text(),
-							Group:   div.Find(".group").Text(),
-							Teacher: teacherDiv.Text(),
-							Room:    div.Find(".place").Text(),
+							Shift:        shift,
+							PrimaryColor: color,
+							Subject:      div.Find(".subject").Text(),
+							Group:        div.Find(".group").Text(),
+							Teacher:      teacherDiv.Text(),
+							Room:         div.Find(".place").Text(),
 						}
 
 						if entities.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, states).State == entities.Updated && entities.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, a.States).State == entities.NotUpdated {
@@ -196,7 +204,7 @@ func (a *app) GeneralScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.Ge
 
 	lessons := a.ScheduleUpdate(typeInfo)
 	for _, lesson := range lessons {
-		if lesson.Type == "ADDED" {
+		if lesson.PrimaryColor == a.AddedColor {
 			continue
 		}
 

@@ -100,15 +100,16 @@ func (h *handler) AddLesson(lesson entities.Lesson) {
 	ctx := context.Background()
 
 	lessonDTO := dto.Lesson{
-		Id:           lesson.Id,
-		StudyPlaceId: lesson.StudyPlaceId,
-		Type:         lesson.Type,
-		EndDate:      lesson.EndDate,
-		StartDate:    lesson.StartDate,
-		Subject:      lesson.Subject,
-		Group:        lesson.Group,
-		Teacher:      lesson.Type,
-		Room:         lesson.Room,
+		Id:             lesson.Id,
+		StudyPlaceId:   lesson.StudyPlaceId,
+		PrimaryColor:   lesson.PrimaryColor,
+		SecondaryColor: lesson.SecondaryColor,
+		EndDate:        lesson.EndDate,
+		StartDate:      lesson.StartDate,
+		Subject:        lesson.Subject,
+		Group:          lesson.Group,
+		Teacher:        lesson.Teacher,
+		Room:           lesson.Room,
 	}
 	h.controller.AddLesson(ctx, lessonDTO)
 }
@@ -117,15 +118,16 @@ func (h *handler) EditLesson(lesson entities.Lesson) {
 	ctx := context.Background()
 
 	lessonDTO := dto.Lesson{
-		Id:           lesson.Id,
-		StudyPlaceId: lesson.StudyPlaceId,
-		Type:         lesson.Type,
-		EndDate:      lesson.EndDate,
-		StartDate:    lesson.StartDate,
-		Subject:      lesson.Subject,
-		Group:        lesson.Group,
-		Teacher:      lesson.Type,
-		Room:         lesson.Room,
+		Id:             lesson.Id,
+		StudyPlaceId:   lesson.StudyPlaceId,
+		PrimaryColor:   lesson.PrimaryColor,
+		SecondaryColor: lesson.SecondaryColor,
+		EndDate:        lesson.EndDate,
+		StartDate:      lesson.StartDate,
+		Subject:        lesson.Subject,
+		Group:          lesson.Group,
+		Teacher:        lesson.Teacher,
+		Room:           lesson.Room,
 	}
 	h.controller.EditLesson(ctx, lessonDTO)
 }
@@ -134,15 +136,16 @@ func (h *handler) DeleteLesson(lesson entities.Lesson) {
 	ctx := context.Background()
 
 	lessonDTO := dto.Lesson{
-		Id:           lesson.Id,
-		StudyPlaceId: lesson.StudyPlaceId,
-		Type:         lesson.Type,
-		EndDate:      lesson.EndDate,
-		StartDate:    lesson.StartDate,
-		Subject:      lesson.Subject,
-		Group:        lesson.Group,
-		Teacher:      lesson.Type,
-		Room:         lesson.Room,
+		Id:             lesson.Id,
+		StudyPlaceId:   lesson.StudyPlaceId,
+		PrimaryColor:   lesson.PrimaryColor,
+		SecondaryColor: lesson.SecondaryColor,
+		EndDate:        lesson.EndDate,
+		StartDate:      lesson.StartDate,
+		Subject:        lesson.Subject,
+		Group:          lesson.Group,
+		Teacher:        lesson.Teacher,
+		Room:           lesson.Room,
 	}
 	h.controller.DeleteLesson(ctx, lessonDTO)
 }

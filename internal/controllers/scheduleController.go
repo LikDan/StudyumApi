@@ -55,14 +55,15 @@ func (s *scheduleController) GetScheduleTypes(ctx context.Context, user entities
 
 func (s *scheduleController) AddLesson(ctx context.Context, dto dto.AddLessonDTO, user entities.User) (entities.Lesson, error) {
 	lesson := entities.Lesson{
-		StudyPlaceId: user.StudyPlaceId,
-		Type:         dto.Type,
-		EndDate:      dto.EndDate,
-		StartDate:    dto.StartDate,
-		Subject:      dto.Subject,
-		Group:        dto.Group,
-		Teacher:      dto.Teacher,
-		Room:         dto.Room,
+		StudyPlaceId:   user.StudyPlaceId,
+		PrimaryColor:   dto.PrimaryColor,
+		SecondaryColor: dto.SecondaryColor,
+		EndDate:        dto.EndDate,
+		StartDate:      dto.StartDate,
+		Subject:        dto.Subject,
+		Group:          dto.Group,
+		Teacher:        dto.Teacher,
+		Room:           dto.Room,
 	}
 
 	id, err := s.repository.AddLesson(ctx, lesson)

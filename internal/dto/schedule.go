@@ -6,13 +6,14 @@ import (
 )
 
 type AddLessonDTO struct {
-	Type      string    `json:"type"`
-	EndDate   time.Time `json:"endDate"`
-	StartDate time.Time `json:"startDate"`
-	Subject   string    `json:"subject"`
-	Group     string    `json:"group"`
-	Teacher   string    `json:"teacher"`
-	Room      string    `json:"room"`
+	PrimaryColor   string    `json:"primaryColor"`
+	SecondaryColor string    `json:"secondaryColor"`
+	EndDate        time.Time `json:"endDate"`
+	StartDate      time.Time `json:"startDate"`
+	Subject        string    `json:"subject"`
+	Group          string    `json:"group"`
+	Teacher        string    `json:"teacher"`
+	Room           string    `json:"room"`
 }
 
 type UpdateLessonDTO struct {
