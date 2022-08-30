@@ -126,16 +126,17 @@ func (c *controller) Update(ctx context.Context, app apps.App) {
 		lessons := make([]entities.Lesson, len(lessonsDTO))
 		for i, lessonDTO := range lessonsDTO {
 			lesson := entities.Lesson{
-				Id:           primitive.NewObjectID(),
-				StudyPlaceId: app.StudyPlaceId(),
-				Type:         lessonDTO.Type,
-				EndDate:      lessonDTO.Shift.Date.Add(lessonDTO.Shift.End),
-				StartDate:    lessonDTO.Shift.Date.Add(lessonDTO.Shift.Start),
-				Subject:      lessonDTO.Subject,
-				Group:        lessonDTO.Group,
-				Teacher:      lessonDTO.Teacher,
-				Room:         lessonDTO.Room,
-				ParsedInfo:   lessonDTO.ParsedInfo,
+				Id:             primitive.NewObjectID(),
+				StudyPlaceId:   app.StudyPlaceId(),
+				PrimaryColor:   lessonDTO.PrimaryColor,
+				SecondaryColor: lessonDTO.SecondaryColor,
+				EndDate:        lessonDTO.Shift.Date.Add(lessonDTO.Shift.End),
+				StartDate:      lessonDTO.Shift.Date.Add(lessonDTO.Shift.Start),
+				Subject:        lessonDTO.Subject,
+				Group:          lessonDTO.Group,
+				Teacher:        lessonDTO.Teacher,
+				Room:           lessonDTO.Room,
+				ParsedInfo:     lessonDTO.ParsedInfo,
 			}
 
 			lessons[i] = lesson
@@ -243,15 +244,16 @@ func (c *controller) AddLesson(ctx context.Context, lessonDTO dto.Lesson) {
 	}
 
 	lesson := entities.Lesson{
-		Id:           lessonDTO.Id,
-		StudyPlaceId: lessonDTO.StudyPlaceId,
-		Type:         lessonDTO.Type,
-		EndDate:      lessonDTO.EndDate,
-		StartDate:    lessonDTO.StartDate,
-		Subject:      lessonDTO.Subject,
-		Group:        lessonDTO.Group,
-		Teacher:      lessonDTO.Teacher,
-		Room:         lessonDTO.Room,
+		Id:             lessonDTO.Id,
+		StudyPlaceId:   lessonDTO.StudyPlaceId,
+		PrimaryColor:   lessonDTO.PrimaryColor,
+		SecondaryColor: lessonDTO.SecondaryColor,
+		EndDate:        lessonDTO.EndDate,
+		StartDate:      lessonDTO.StartDate,
+		Subject:        lessonDTO.Subject,
+		Group:          lessonDTO.Group,
+		Teacher:        lessonDTO.Teacher,
+		Room:           lessonDTO.Room,
 	}
 
 	info := app.OnLessonAdd(ctx, lesson)
@@ -265,15 +267,16 @@ func (c *controller) EditLesson(ctx context.Context, lessonDTO dto.Lesson) {
 	}
 
 	lesson := entities.Lesson{
-		Id:           lessonDTO.Id,
-		StudyPlaceId: lessonDTO.StudyPlaceId,
-		Type:         lessonDTO.Type,
-		EndDate:      lessonDTO.EndDate,
-		StartDate:    lessonDTO.StartDate,
-		Subject:      lessonDTO.Subject,
-		Group:        lessonDTO.Group,
-		Teacher:      lessonDTO.Teacher,
-		Room:         lessonDTO.Room,
+		Id:             lessonDTO.Id,
+		StudyPlaceId:   lessonDTO.StudyPlaceId,
+		PrimaryColor:   lessonDTO.PrimaryColor,
+		SecondaryColor: lessonDTO.SecondaryColor,
+		EndDate:        lessonDTO.EndDate,
+		StartDate:      lessonDTO.StartDate,
+		Subject:        lessonDTO.Subject,
+		Group:          lessonDTO.Group,
+		Teacher:        lessonDTO.Teacher,
+		Room:           lessonDTO.Room,
 	}
 
 	info := app.OnLessonEdit(ctx, lesson)
@@ -287,15 +290,16 @@ func (c *controller) DeleteLesson(ctx context.Context, lessonDTO dto.Lesson) {
 	}
 
 	lesson := entities.Lesson{
-		Id:           lessonDTO.Id,
-		StudyPlaceId: lessonDTO.StudyPlaceId,
-		Type:         lessonDTO.Type,
-		EndDate:      lessonDTO.EndDate,
-		StartDate:    lessonDTO.StartDate,
-		Subject:      lessonDTO.Subject,
-		Group:        lessonDTO.Group,
-		Teacher:      lessonDTO.Teacher,
-		Room:         lessonDTO.Room,
+		Id:             lessonDTO.Id,
+		StudyPlaceId:   lessonDTO.StudyPlaceId,
+		PrimaryColor:   lessonDTO.PrimaryColor,
+		SecondaryColor: lessonDTO.SecondaryColor,
+		EndDate:        lessonDTO.EndDate,
+		StartDate:      lessonDTO.StartDate,
+		Subject:        lessonDTO.Subject,
+		Group:          lessonDTO.Group,
+		Teacher:        lessonDTO.Teacher,
+		Room:           lessonDTO.Room,
 	}
 
 	app.OnLessonDelete(ctx, lesson)

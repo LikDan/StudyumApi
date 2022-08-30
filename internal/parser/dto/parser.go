@@ -7,13 +7,14 @@ import (
 )
 
 type LessonDTO struct {
-	Shift      entities.Shift
-	Type       string
-	Subject    string
-	Group      string
-	Teacher    string
-	Room       string
-	ParsedInfo entities.ParsedInfoType
+	Shift          entities.Shift
+	PrimaryColor   string
+	SecondaryColor string
+	Subject        string
+	Group          string
+	Teacher        string
+	Room           string
+	ParsedInfo     entities.ParsedInfoType
 }
 
 type GeneralLessonDTO struct {

@@ -20,20 +20,21 @@ type GeneralLesson struct {
 }
 
 type Lesson struct {
-	Id           primitive.ObjectID `bson:"_id"`
-	StudyPlaceId int                `bson:"studyPlaceId"`
-	Type         string             `bson:"type"`
-	EndDate      time.Time          `bson:"endDate"`
-	StartDate    time.Time          `bson:"startDate"`
-	Subject      string             `bson:"subject"`
-	Group        string             `bson:"group"`
-	Teacher      string             `bson:"teacher"`
-	Room         string             `bson:"room"`
-	Marks        []Mark             `bson:"marks"`
-	Title        string             `bson:"title"`
-	Homework     string             `bson:"homework"`
-	Description  string             `bson:"description"`
-	ParsedInfo   ParsedInfoType     `bson:"parsedInfo"`
+	Id             primitive.ObjectID `bson:"_id"`
+	StudyPlaceId   int                `bson:"studyPlaceId"`
+	PrimaryColor   string             `bson:"primaryColor"`
+	SecondaryColor string             `bson:"secondaryColor"`
+	EndDate        time.Time          `bson:"endDate"`
+	StartDate      time.Time          `bson:"startDate"`
+	Subject        string             `bson:"subject"`
+	Group          string             `bson:"group"`
+	Teacher        string             `bson:"teacher"`
+	Room           string             `bson:"room"`
+	Marks          []Mark             `bson:"marks"`
+	Title          string             `bson:"title"`
+	Homework       string             `bson:"homework"`
+	Description    string             `bson:"description"`
+	ParsedInfo     ParsedInfoType     `bson:"parsedInfo"`
 }
 
 type Mark struct {
