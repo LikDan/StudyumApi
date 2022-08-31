@@ -10,7 +10,7 @@ import (
 	"studyum/internal/parser/apps"
 	"studyum/internal/parser/dto"
 	"studyum/internal/parser/entities"
-	"studyum/internal/utils"
+	"studyum/pkg/datetime"
 	"time"
 )
 
@@ -60,7 +60,7 @@ func NewApp() apps.App {
 func (a *app) Init(date time.Time) {
 	states := make([]entities.ScheduleStateInfo, 14)
 
-	dateCursor := utils.Date().AddDate(0, 0, int(utils.Date().Weekday()))
+	dateCursor := datetime.Date().AddDate(0, 0, int(datetime.Date().Weekday()))
 	for i := 0; i < 14; i++ {
 		state := entities.ScheduleStateInfo{
 			WeekIndex: i / 7,
@@ -181,7 +181,7 @@ func (a *app) ParseLessons(typeInfo entities.ScheduleTypeInfo, isGeneral bool) [
 							shift = a.WeekendsShift[rowIndex]
 						}
 
-						shift.Date = utils.ToDateWithoutTime(time_)
+						shift.Date = datetime.ToDateWithoutTime(time_)
 
 						lesson := dto.LessonDTO{
 							Shift:        shift,
