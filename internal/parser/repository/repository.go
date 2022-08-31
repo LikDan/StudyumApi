@@ -31,12 +31,14 @@ type Repository interface {
 
 	UpdateMarkParsedInfoByID(ctx context.Context, id primitive.ObjectID, info entities.ParsedInfoType) error
 	UpdateLessonParsedInfoByID(ctx context.Context, id primitive.ObjectID, info entities.ParsedInfoType) error
+	GetUserById(ctx context.Context, id primitive.ObjectID) (error, entities.User)
 }
 
 type repository struct {
 	generalLessonsCollection *mongo.Collection
 	lessonsCollection        *mongo.Collection
 	marksCollection          *mongo.Collection
+	usersCollection          *mongo.Collection
 
 	parseJournalUserCollection   *mongo.Collection
 	parseScheduleTypesCollection *mongo.Collection
@@ -49,6 +51,7 @@ func NewParserRepository(client *mongo.Client) Repository {
 		generalLessonsCollection: database.Collection("GeneralLessons"),
 		lessonsCollection:        database.Collection("Lessons"),
 		marksCollection:          database.Collection("Marks"),
+		usersCollection:          database.Collection("Users"),
 
 		parseJournalUserCollection:   database.Collection("ParseJournalUsers"),
 		parseScheduleTypesCollection: database.Collection("ParseScheduleTypes"),
@@ -122,7 +125,7 @@ func (p *repository) GetLessonIDByDateNameAndGroup(ctx context.Context, date tim
 	var lesson entities.Lesson
 
 	result := p.lessonsCollection.FindOne(ctx, bson.M{"subject": name, "group": group, "startDate": bson.M{"$gte": date, "$lt": date.AddDate(0, 0, 1)}})
-	if err := result.Decode(lesson); err != nil {
+	if err := result.Decode(&lesson); err != nil {
 		return primitive.NilObjectID, err
 	}
 
@@ -134,7 +137,7 @@ func (p *repository) GetLastUpdatedDate(ctx context.Context, id int) (error, tim
 	opt.Sort = bson.M{"startDate": -1}
 
 	var lesson entities.Lesson
-	err := p.lessonsCollection.FindOne(ctx, bson.M{"studyPlaceId": id}, opt).Decode(lesson)
+	err := p.lessonsCollection.FindOne(ctx, bson.M{"studyPlaceId": id}, opt).Decode(&lesson)
 	if err != nil {
 		return err, time.Time{}
 	}
@@ -186,4 +189,9 @@ func (p *repository) UpdateMarkParsedInfoByID(ctx context.Context, id primitive.
 func (p *repository) UpdateLessonParsedInfoByID(ctx context.Context, id primitive.ObjectID, info entities.ParsedInfoType) error {
 	_, err := p.lessonsCollection.UpdateByID(ctx, id, bson.M{"parsedInfo": info})
 	return err
+}
+
+func (p *repository) GetUserById(ctx context.Context, id primitive.ObjectID) (err error, user entities.User) {
+	err = p.usersCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
+	return
 }
