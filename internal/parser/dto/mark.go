@@ -5,7 +5,7 @@ import (
 	"studyum/internal/parser/entities"
 )
 
-type Mark struct {
+type MarkDTO struct {
 	Id           primitive.ObjectID
 	Mark         string
 	StudentID    primitive.ObjectID

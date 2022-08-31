@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"studyum/internal/parser/appDTO"
 	"studyum/internal/parser/apps"
-	"studyum/internal/parser/dto"
 	"studyum/internal/parser/entities"
 	"studyum/pkg/datetime"
 	"time"
@@ -84,11 +84,11 @@ func (a *app) GetName() string              { return "kbp" }
 func (a *app) StudyPlaceId() int            { return 0 }
 func (a *app) GetUpdateCronPattern() string { return "@every 30m" }
 
-func (a *app) ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.LessonDTO {
+func (a *app) ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []appDTO.LessonDTO {
 	return a.ParseLessons(typeInfo, false)
 }
 
-func (a *app) ParseLessons(typeInfo entities.ScheduleTypeInfo, isGeneral bool) []dto.LessonDTO {
+func (a *app) ParseLessons(typeInfo entities.ScheduleTypeInfo, isGeneral bool) []appDTO.LessonDTO {
 	response, err := http.Get("https://kbp.by/rasp/timetable/view_beta_kbp/" + typeInfo.Url)
 	if err != nil {
 		return nil
@@ -110,7 +110,7 @@ func (a *app) ParseLessons(typeInfo entities.ScheduleTypeInfo, isGeneral bool) [
 		return nil
 	}
 
-	var lessons []dto.LessonDTO
+	var lessons []appDTO.LessonDTO
 	var newStates []entities.ScheduleStateInfo
 
 	weeks.Each(func(tableIndex int, table *htmlParser.Selection) {
@@ -183,7 +183,7 @@ func (a *app) ParseLessons(typeInfo entities.ScheduleTypeInfo, isGeneral bool) [
 
 						shift.Date = datetime.ToDateWithoutTime(time_)
 
-						lesson := dto.LessonDTO{
+						lesson := appDTO.LessonDTO{
 							Shift:        shift,
 							PrimaryColor: color,
 							Subject:      div.Find(".subject").Text(),
@@ -212,14 +212,14 @@ func (a *app) ParseLessons(typeInfo entities.ScheduleTypeInfo, isGeneral bool) [
 	return lessons
 }
 
-func (a *app) GeneralScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.GeneralLessonDTO {
-	var generalLessons []dto.GeneralLessonDTO
+func (a *app) GeneralScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []appDTO.GeneralLessonDTO {
+	var generalLessons []appDTO.GeneralLessonDTO
 
 	lessons := a.ParseLessons(typeInfo, true)
 	for _, lesson := range lessons {
 		weekIndex, _ := lesson.Shift.Date.ISOWeek()
 
-		generalLesson := dto.GeneralLessonDTO{
+		generalLesson := appDTO.GeneralLessonDTO{
 			Shift:     lesson.Shift,
 			Subject:   lesson.Subject,
 			Group:     lesson.Group,
@@ -234,8 +234,8 @@ func (a *app) GeneralScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.Ge
 	return generalLessons
 }
 
-func (a *app) ScheduleTypesUpdate() []dto.ScheduleTypeInfoDTO {
-	var types []dto.ScheduleTypeInfoDTO
+func (a *app) ScheduleTypesUpdate() []appDTO.ScheduleTypeInfoDTO {
+	var types []appDTO.ScheduleTypeInfoDTO
 
 	response, err := http.Get("https://kbp.by/rasp/timetable/view_beta_kbp/?q=")
 	if err != nil {
@@ -260,7 +260,7 @@ func (a *app) ScheduleTypesUpdate() []dto.ScheduleTypeInfoDTO {
 				return
 			}
 
-			type_ := dto.ScheduleTypeInfoDTO{
+			type_ := appDTO.ScheduleTypeInfoDTO{
 				ParserAppName: a.GetName(),
 				Group:         name,
 				Url:           url,
@@ -304,7 +304,7 @@ func (a *app) loginJournal(user entities.JournalUser) *htmlParser.Document {
 	return document
 }
 
-func (a *app) JournalUpdate(user entities.JournalUser) []dto.MarkDTO {
+func (a *app) JournalUpdate(user entities.JournalUser) []appDTO.MarkDTO {
 	document := a.loginJournal(user)
 	lessonNames := document.Find("tbody").First().Find(".pupilName").Map(func(i int, selection *htmlParser.Selection) string {
 		return strings.TrimSpace(selection.Text())
@@ -360,7 +360,7 @@ func (a *app) JournalUpdate(user entities.JournalUser) []dto.MarkDTO {
 		currentDay++
 	})
 
-	var marks []dto.MarkDTO
+	var marks []appDTO.MarkDTO
 
 	marksTable.Each(func(rowIndex int, rowSelection *htmlParser.Selection) {
 		if rowIndex < 2 {
@@ -374,7 +374,7 @@ func (a *app) JournalUpdate(user entities.JournalUser) []dto.MarkDTO {
 			}
 
 			cellSelection.Find("span").Each(func(_ int, selection *htmlParser.Selection) {
-				mark := dto.MarkDTO{
+				mark := appDTO.MarkDTO{
 					Mark:       strings.TrimSpace(selection.Text()),
 					StudentID:  user.ID,
 					LessonDate: dates[dayIndex],

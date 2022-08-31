@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type Lesson struct {
+type LessonDTO struct {
 	Id             primitive.ObjectID
 	StudyPlaceId   int
 	PrimaryColor   string
