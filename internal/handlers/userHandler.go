@@ -21,6 +21,8 @@ type UserHandler interface {
 	CallbackOAuth2(ctx *gin.Context)
 	PutAuthToken(ctx *gin.Context)
 
+	PutFirebaseToken(ctx *gin.Context)
+
 	RevokeToken(ctx *gin.Context)
 }
 
@@ -49,6 +51,8 @@ func NewUserHandler(authHandler Handler, controller controllers.UserController, 
 
 	group.DELETE("signout", h.SignOutUser)
 	group.DELETE("revoke", h.RevokeToken)
+
+	group.PUT("firebase/token", h.Auth(), h.PutFirebaseToken)
 
 	return h
 }
@@ -172,12 +176,29 @@ func (u *userHandler) PutAuthToken(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(200, user)
+	ctx.JSON(http.StatusOK, user)
+}
+
+func (u *userHandler) PutFirebaseToken(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	var token string
+	if err := ctx.BindJSON(&token); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := u.controller.PutFirebaseToken(ctx, user.Token, token); err != nil {
+		u.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, user)
 }
 
 func (u *userHandler) SignOutUser(ctx *gin.Context) {
 	ctx.SetCookie("authToken", "", -1, "", "", false, false)
-	ctx.JSON(200, "authToken")
+	ctx.JSON(http.StatusOK, "authToken")
 }
 
 func (u *userHandler) RevokeToken(ctx *gin.Context) {
