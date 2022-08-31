@@ -1,10 +1,12 @@
-package dto
+package appDTO
 
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/internal/parser/entities"
 	"time"
 )
+
+type ParsedInfoTypeDTO map[string]any
 
 type LessonDTO struct {
 	Shift          entities.Shift

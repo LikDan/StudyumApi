@@ -68,7 +68,7 @@ func (h *handler) Update(app apps.App) {
 func (h *handler) AddMark(mark entities.Mark) {
 	ctx := context.Background()
 
-	markDTO := dto.Mark{
+	markDTO := dto.MarkDTO{
 		Id:           mark.Id,
 		Mark:         mark.Mark,
 		StudentID:    mark.StudentID,
@@ -81,7 +81,7 @@ func (h *handler) AddMark(mark entities.Mark) {
 func (h *handler) EditMark(mark entities.Mark) {
 	ctx := context.Background()
 
-	markDTO := dto.Mark{
+	markDTO := dto.MarkDTO{
 		Id:           mark.Id,
 		Mark:         mark.Mark,
 		StudentID:    mark.StudentID,
@@ -94,7 +94,7 @@ func (h *handler) EditMark(mark entities.Mark) {
 func (h *handler) DeleteMark(mark entities.Mark) {
 	ctx := context.Background()
 
-	markDTO := dto.Mark{
+	markDTO := dto.MarkDTO{
 		Id:           mark.Id,
 		Mark:         mark.Mark,
 		StudentID:    mark.StudentID,
@@ -107,7 +107,7 @@ func (h *handler) DeleteMark(mark entities.Mark) {
 func (h *handler) AddLesson(lesson entities.Lesson) {
 	ctx := context.Background()
 
-	lessonDTO := dto.Lesson{
+	lessonDTO := dto.LessonDTO{
 		Id:             lesson.Id,
 		StudyPlaceId:   lesson.StudyPlaceId,
 		PrimaryColor:   lesson.PrimaryColor,
@@ -125,7 +125,7 @@ func (h *handler) AddLesson(lesson entities.Lesson) {
 func (h *handler) EditLesson(lesson entities.Lesson) {
 	ctx := context.Background()
 
-	lessonDTO := dto.Lesson{
+	lessonDTO := dto.LessonDTO{
 		Id:             lesson.Id,
 		StudyPlaceId:   lesson.StudyPlaceId,
 		PrimaryColor:   lesson.PrimaryColor,
@@ -143,7 +143,7 @@ func (h *handler) EditLesson(lesson entities.Lesson) {
 func (h *handler) DeleteLesson(lesson entities.Lesson) {
 	ctx := context.Background()
 
-	lessonDTO := dto.Lesson{
+	lessonDTO := dto.LessonDTO{
 		Id:             lesson.Id,
 		StudyPlaceId:   lesson.StudyPlaceId,
 		PrimaryColor:   lesson.PrimaryColor,
