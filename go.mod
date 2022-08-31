@@ -9,6 +9,7 @@ require (
 	github.com/robfig/cron v1.2.0
 	github.com/sirupsen/logrus v1.8.1
 	go.mongodb.org/mongo-driver v1.8.1
+	golang.org/x/exp v0.0.0-20220827204233-334a2380cb91
 	google.golang.org/api v0.40.0
 )
 
