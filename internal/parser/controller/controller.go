@@ -9,7 +9,7 @@ import (
 	"studyum/internal/parser/dto"
 	"studyum/internal/parser/entities"
 	"studyum/internal/parser/repository"
-	"studyum/internal/utils"
+	"studyum/pkg/datetime"
 	"time"
 )
 
@@ -63,8 +63,8 @@ func (c *controller) UpdateGeneralSchedule(app apps.App) {
 			lesson := entities.GeneralLesson{
 				Id:           primitive.NewObjectID(),
 				StudyPlaceId: app.StudyPlaceId(),
-				EndTime:      utils.FormatDuration(lessonDTO.Shift.End),
-				StartTime:    utils.FormatDuration(lessonDTO.Shift.Start),
+				EndTime:      datetime.FormatDuration(lessonDTO.Shift.End),
+				StartTime:    datetime.FormatDuration(lessonDTO.Shift.Start),
 				Subject:      lessonDTO.Subject,
 				Group:        lessonDTO.Group,
 				Teacher:      lessonDTO.Teacher,
