@@ -5,8 +5,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/internal/entities"
-	"studyum/internal/utils"
 	"studyum/pkg/datetime"
+	"studyum/pkg/slicetools"
 	"time"
 )
 
@@ -193,7 +193,7 @@ func (s *scheduleRepository) UpdateGeneralSchedule(ctx context.Context, lessons 
 		return err
 	}
 
-	if _, err := s.generalLessonsCollection.InsertMany(ctx, utils.ToInterfaceSlice(lessons)); err != nil {
+	if _, err := s.generalLessonsCollection.InsertMany(ctx, slicetools.ToInterface(lessons)); err != nil {
 		return err
 	}
 

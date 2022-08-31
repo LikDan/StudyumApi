@@ -8,7 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"studyum/internal/parser/entities"
-	"studyum/internal/utils"
+	"studyum/pkg/slicetools"
 	"time"
 )
 
@@ -72,19 +72,11 @@ func (p *repository) InsertScheduleTypes(ctx context.Context, types []entities.S
 		return errors.New("empty types array")
 	}
 
-	for _, info := range types {
-		info.Id = primitive.NewObjectID()
-	}
-
 	if _, err := p.parseScheduleTypesCollection.DeleteMany(ctx, bson.M{"parserAppName": types[0].ParserAppName}); err != nil {
 		return err
 	}
 
-	for _, type_ := range types {
-		type_.Id = primitive.NewObjectID()
-	}
-
-	if _, err := p.parseScheduleTypesCollection.InsertMany(ctx, utils.ToInterfaceSlice(types)); err != nil {
+	if _, err := p.parseScheduleTypesCollection.InsertMany(ctx, slicetools.ToInterface(types)); err != nil {
 		return err
 	}
 
@@ -120,7 +112,7 @@ func (p *repository) UpdateGeneralSchedule(ctx context.Context, lessons []entiti
 		return err
 	}
 
-	_, err = p.generalLessonsCollection.InsertMany(ctx, utils.ToInterfaceSlice(lessons))
+	_, err = p.generalLessonsCollection.InsertMany(ctx, slicetools.ToInterface(lessons))
 	return err
 }
 
@@ -149,12 +141,12 @@ func (p *repository) GetLastUpdatedDate(ctx context.Context, id int) (error, tim
 }
 
 func (p *repository) AddLessons(ctx context.Context, lessons []entities.Lesson) error {
-	_, err := p.lessonsCollection.InsertMany(ctx, utils.ToInterfaceSlice(lessons))
+	_, err := p.lessonsCollection.InsertMany(ctx, slicetools.ToInterface(lessons))
 	return err
 }
 
 func (p *repository) AddMarks(ctx context.Context, marks []entities.Mark) error {
-	_, err := p.marksCollection.InsertMany(ctx, utils.ToInterfaceSlice(marks))
+	_, err := p.marksCollection.InsertMany(ctx, slicetools.ToInterface(marks))
 	return err
 }
 

@@ -4,11 +4,11 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"golang.org/x/exp/slices"
 	"studyum/internal/dto"
 	"studyum/internal/entities"
 	parser "studyum/internal/parser/handler"
 	"studyum/internal/repositories"
-	"studyum/internal/utils"
 )
 
 var (
@@ -48,7 +48,7 @@ func (j *journalController) GetJournalAvailableOptions(ctx context.Context, user
 		}}, nil
 	}
 
-	options, err := j.repository.GetAvailableOptions(ctx, user.Name, utils.SliceContains(user.Permissions, "editJournal"))
+	options, err := j.repository.GetAvailableOptions(ctx, user.Name, slices.Contains(user.Permissions, "editJournal"))
 	if err != nil {
 		return nil, err
 	}
