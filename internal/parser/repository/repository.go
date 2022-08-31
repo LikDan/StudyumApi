@@ -21,7 +21,7 @@ type Repository interface {
 
 	UpdateGeneralSchedule(ctx context.Context, lessons []entities.GeneralLesson) error
 	GetLessonIDByDateNameAndGroup(ctx context.Context, date time.Time, name string, group string) (primitive.ObjectID, error)
-	GetLastLesson(ctx context.Context, studyPlaceId int) (entities.Lesson, error)
+	GetLastUpdatedDate(ctx context.Context, id int) (error, time.Time)
 	AddLessons(ctx context.Context, lessons []entities.Lesson) error
 
 	AddMarks(ctx context.Context, marks []entities.Mark) error
@@ -70,6 +70,10 @@ func (p *repository) GetUsersToParse(ctx context.Context, parserAppName string) 
 func (p *repository) InsertScheduleTypes(ctx context.Context, types []entities.ScheduleTypeInfo) error {
 	if len(types) == 0 {
 		return errors.New("empty types array")
+	}
+
+	for _, info := range types {
+		info.Id = primitive.NewObjectID()
 	}
 
 	if _, err := p.parseScheduleTypesCollection.DeleteMany(ctx, bson.M{"parserAppName": types[0].ParserAppName}); err != nil {
@@ -131,13 +135,17 @@ func (p *repository) GetLessonIDByDateNameAndGroup(ctx context.Context, date tim
 	return lesson.Id, nil
 }
 
-func (p *repository) GetLastLesson(ctx context.Context, studyPlaceId int) (entities.Lesson, error) {
+func (p *repository) GetLastUpdatedDate(ctx context.Context, id int) (error, time.Time) {
 	opt := options.FindOne()
 	opt.Sort = bson.M{"startDate": -1}
 
 	var lesson entities.Lesson
-	err := p.lessonsCollection.FindOne(ctx, bson.M{"studyPlaceId": studyPlaceId}, opt).Decode(lesson)
-	return lesson, err
+	err := p.lessonsCollection.FindOne(ctx, bson.M{"studyPlaceId": id}, opt).Decode(lesson)
+	if err != nil {
+		return err, time.Time{}
+	}
+
+	return nil, lesson.EndDate
 }
 
 func (p *repository) AddLessons(ctx context.Context, lessons []entities.Lesson) error {

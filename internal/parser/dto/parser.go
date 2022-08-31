@@ -35,3 +35,9 @@ type MarkDTO struct {
 	Group      string
 	ParsedInfo entities.ParsedInfoType
 }
+
+type ScheduleTypeInfoDTO struct {
+	ParserAppName string
+	Group         string
+	Url           string
+}

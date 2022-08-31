@@ -42,7 +42,7 @@ type ScheduleStateInfo struct {
 	DayIndex  int   `bson:"dayIndex" json:"dayIndex"`
 }
 
-func GetScheduleStateInfoByIndexes(weekIndex, dayIndex int, states []ScheduleStateInfo) ScheduleStateInfo {
+func GetScheduleStateInfoByIndexes(states []ScheduleStateInfo, weekIndex, dayIndex int) ScheduleStateInfo {
 	for _, state := range states {
 		if state.WeekIndex == weekIndex && state.DayIndex == dayIndex {
 			return state

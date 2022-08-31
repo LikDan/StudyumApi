@@ -27,23 +27,6 @@ type app struct {
 }
 
 func NewApp() apps.App {
-	states := make([]entities.ScheduleStateInfo, 14)
-
-	for i := 0; i < 7; i++ {
-		states[i] = entities.ScheduleStateInfo{
-			State:     entities.Updated,
-			WeekIndex: 0,
-			DayIndex:  i,
-		}
-	}
-	for i := 0; i < 7; i++ {
-		states[i] = entities.ScheduleStateInfo{
-			State:     entities.NotUpdated,
-			WeekIndex: 1,
-			DayIndex:  i,
-		}
-	}
-
 	weekdaysShift := []entities.Shift{
 		entities.NewShift(8, 00, 9, 35),
 		entities.NewShift(9, 45, 11, 20),
@@ -65,7 +48,6 @@ func NewApp() apps.App {
 	}
 
 	return &app{
-		States:        states,
 		WeekdaysShift: weekdaysShift,
 		WeekendsShift: weekendsShift,
 
@@ -75,11 +57,38 @@ func NewApp() apps.App {
 	}
 }
 
+func (a *app) Init(date time.Time) {
+	states := make([]entities.ScheduleStateInfo, 14)
+
+	dateCursor := utils.Date().AddDate(0, 0, int(utils.Date().Weekday()))
+	for i := 0; i < 14; i++ {
+		state := entities.ScheduleStateInfo{
+			WeekIndex: i / 7,
+			DayIndex:  i % 7,
+		}
+		if date.Before(dateCursor) {
+			state.State = entities.NotUpdated
+		} else {
+			state.State = entities.Updated
+		}
+
+		states[i] = state
+
+		dateCursor.AddDate(0, 0, 1)
+	}
+
+	a.States = states
+}
+
 func (a *app) GetName() string              { return "kbp" }
 func (a *app) StudyPlaceId() int            { return 0 }
 func (a *app) GetUpdateCronPattern() string { return "@every 30m" }
 
 func (a *app) ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.LessonDTO {
+	return a.ParseLessons(typeInfo, false)
+}
+
+func (a *app) ParseLessons(typeInfo entities.ScheduleTypeInfo, isGeneral bool) []dto.LessonDTO {
 	response, err := http.Get("https://kbp.by/rasp/timetable/view_beta_kbp/" + typeInfo.Url)
 	if err != nil {
 		return nil
@@ -102,8 +111,7 @@ func (a *app) ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.LessonDTO
 	}
 
 	var lessons []dto.LessonDTO
-
-	var states []entities.ScheduleStateInfo
+	var newStates []entities.ScheduleStateInfo
 
 	weeks.Each(func(tableIndex int, table *htmlParser.Selection) {
 		weekDate := time.Now().AddDate(0, 0, tableIndex*7)
@@ -132,7 +140,7 @@ func (a *app) ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.LessonDTO
 						stateInfo.State = entities.Updated
 					}
 
-					states = append(states, stateInfo)
+					newStates = append(newStates, stateInfo)
 				})
 				return
 			}
@@ -154,7 +162,7 @@ func (a *app) ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.LessonDTO
 
 					if div.HasClass("added") {
 						color = a.AddedColor
-					} else if div.HasClass("removed") && entities.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, states).State == entities.Updated {
+					} else if div.HasClass("removed") && entities.GetScheduleStateInfoByIndexes(newStates, weekIndex, columnIndex).State == entities.Updated {
 						color = a.RemovedColor
 					} else {
 						color = a.DefaultColor
@@ -184,7 +192,12 @@ func (a *app) ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.LessonDTO
 							Room:         div.Find(".place").Text(),
 						}
 
-						if entities.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, states).State == entities.Updated && entities.GetScheduleStateInfoByIndexes(weekIndex, columnIndex, a.States).State == entities.NotUpdated {
+						if isGeneral && lesson.PrimaryColor != a.AddedColor {
+							lessons = append(lessons, lesson)
+							return
+						}
+
+						if entities.GetScheduleStateInfoByIndexes(newStates, weekIndex, columnIndex).State == entities.Updated && entities.GetScheduleStateInfoByIndexes(a.States, weekIndex, columnIndex).State == entities.NotUpdated {
 							lessons = append(lessons, lesson)
 						}
 					})
@@ -195,19 +208,15 @@ func (a *app) ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.LessonDTO
 		time_ = time_.AddDate(0, 0, 7)
 	})
 
-	a.TempStates = states
+	a.TempStates = newStates
 	return lessons
 }
 
 func (a *app) GeneralScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.GeneralLessonDTO {
 	var generalLessons []dto.GeneralLessonDTO
 
-	lessons := a.ScheduleUpdate(typeInfo)
+	lessons := a.ParseLessons(typeInfo, true)
 	for _, lesson := range lessons {
-		if lesson.PrimaryColor == a.AddedColor {
-			continue
-		}
-
 		weekIndex, _ := lesson.Shift.Date.ISOWeek()
 
 		generalLesson := dto.GeneralLessonDTO{
@@ -225,8 +234,8 @@ func (a *app) GeneralScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []dto.Ge
 	return generalLessons
 }
 
-func (a *app) ScheduleTypesUpdate() []entities.ScheduleTypeInfo {
-	var types []entities.ScheduleTypeInfo
+func (a *app) ScheduleTypesUpdate() []dto.ScheduleTypeInfoDTO {
+	var types []dto.ScheduleTypeInfoDTO
 
 	response, err := http.Get("https://kbp.by/rasp/timetable/view_beta_kbp/?q=")
 	if err != nil {
@@ -251,7 +260,7 @@ func (a *app) ScheduleTypesUpdate() []entities.ScheduleTypeInfo {
 				return
 			}
 
-			type_ := entities.ScheduleTypeInfo{
+			type_ := dto.ScheduleTypeInfoDTO{
 				ParserAppName: a.GetName(),
 				Group:         name,
 				Url:           url,

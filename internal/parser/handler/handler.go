@@ -9,6 +9,7 @@ import (
 	"studyum/internal/parser/controller"
 	"studyum/internal/parser/dto"
 	"studyum/pkg/firebase"
+	"time"
 )
 
 type Handler interface {
@@ -35,13 +36,20 @@ func NewParserHandler(firebase firebase.Firebase, controller controller.Controll
 	for _, app := range controller.Apps() {
 		ctx := context.Background()
 
+		err, date := h.controller.GetLastUpdatedDate(ctx, app.StudyPlaceId())
+		if err != nil {
+			date = time.Now()
+		}
+
+		app.Init(date)
+
 		types := app.ScheduleTypesUpdate()
-		if err := h.controller.InsertScheduleTypes(ctx, types); err != nil {
+		if err = h.controller.InsertScheduleTypes(ctx, types); err != nil {
 			continue
 		}
 
 		updateCron := cron.New()
-		if err := updateCron.AddFunc(app.GetUpdateCronPattern(), func() { h.Update(app) }); err != nil {
+		if err = updateCron.AddFunc(app.GetUpdateCronPattern(), func() { h.Update(app) }); err != nil {
 			logrus.Warningf("cannot launch cron for %s, err: %e", app.GetName(), err)
 			continue
 		}

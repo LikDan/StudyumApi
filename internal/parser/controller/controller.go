@@ -10,6 +10,7 @@ import (
 	"studyum/internal/parser/entities"
 	"studyum/internal/parser/repository"
 	"studyum/internal/utils"
+	"time"
 )
 
 type Controller interface {
@@ -17,8 +18,8 @@ type Controller interface {
 
 	UpdateGeneralSchedule(app apps.App)
 	Update(ctx context.Context, app apps.App)
-	GetLastLesson(ctx context.Context, id int) (entities.Lesson, error)
-	InsertScheduleTypes(ctx context.Context, types []entities.ScheduleTypeInfo) error
+	GetLastUpdatedDate(ctx context.Context, id int) (error, time.Time)
+	InsertScheduleTypes(ctx context.Context, types []dto.ScheduleTypeInfoDTO) error
 	GetAppByStudyPlaceId(id int) (apps.App, error)
 
 	AddMark(ctx context.Context, markDTO dto.Mark)
@@ -146,16 +147,17 @@ func (c *controller) Update(ctx context.Context, app apps.App) {
 	}
 }
 
-func (c *controller) GetLastLesson(ctx context.Context, id int) (entities.Lesson, error) {
-	lesson, err := c.repository.GetLastLesson(ctx, id)
-	if err != nil {
-		return entities.Lesson{}, err
+func (c *controller) InsertScheduleTypes(ctx context.Context, dto []dto.ScheduleTypeInfoDTO) error {
+	types := make([]entities.ScheduleTypeInfo, len(dto))
+	for i, infoDTO := range dto {
+		types[i] = entities.ScheduleTypeInfo{
+			Id:            primitive.NewObjectID(),
+			ParserAppName: infoDTO.ParserAppName,
+			Group:         infoDTO.Group,
+			Url:           infoDTO.Url,
+		}
 	}
 
-	return lesson, nil
-}
-
-func (c *controller) InsertScheduleTypes(ctx context.Context, types []entities.ScheduleTypeInfo) error {
 	return c.repository.InsertScheduleTypes(ctx, types)
 }
 
@@ -303,4 +305,8 @@ func (c *controller) DeleteLesson(ctx context.Context, lessonDTO dto.Lesson) {
 	}
 
 	app.OnLessonDelete(ctx, lesson)
+}
+
+func (c *controller) GetLastUpdatedDate(ctx context.Context, id int) (error, time.Time) {
+	return c.repository.GetLastUpdatedDate(ctx, id)
 }
