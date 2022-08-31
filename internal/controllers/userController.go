@@ -29,6 +29,8 @@ type UserController interface {
 	GetUserViaToken(ctx context.Context, token string) (entities.User, error)
 	CallbackOAuth2(ctx context.Context, code string) (entities.User, error)
 	GetOAuth2ConfigByName(name string) *oauth2.Config
+
+	PutFirebaseToken(ctx context.Context, token string, firebaseToken string) error
 }
 
 type userController struct {
@@ -190,4 +192,8 @@ func (u *userController) CallbackOAuth2(ctx context.Context, code string) (entit
 	}
 
 	return user, nil
+}
+
+func (u *userController) PutFirebaseToken(ctx context.Context, token string, firebaseToken string) error {
+	return u.repository.PutFirebaseToken(ctx, token, firebaseToken)
 }

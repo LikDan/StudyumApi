@@ -21,6 +21,8 @@ type UserRepository interface {
 	RevokeToken(ctx context.Context, token string) error
 	UpdateToken(ctx context.Context, id primitive.ObjectID, token string) error
 	UpdateUserTokenByEmail(ctx context.Context, email, token string) error
+
+	PutFirebaseToken(ctx context.Context, token string, firebaseToken string) error
 }
 
 type userRepository struct {
@@ -88,4 +90,9 @@ func (u *userRepository) GetUserByEmail(ctx context.Context, email string) (enti
 	err := u.usersCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
 
 	return user, err
+}
+
+func (u *userRepository) PutFirebaseToken(ctx context.Context, token string, firebaseToken string) error {
+	_, err := u.usersCollection.UpdateOne(ctx, bson.M{"token": token}, bson.M{"$set": bson.M{"firebaseToken": firebaseToken}})
+	return err
 }
