@@ -25,6 +25,8 @@ type Repository interface {
 	AddLessons(ctx context.Context, lessons []entities.Lesson) error
 
 	AddMarks(ctx context.Context, marks []entities.Mark) error
+	DeleteMarks(ctx context.Context, marks []entities.Mark) error
+	GetMarks(ctx context.Context, id primitive.ObjectID) (error, []entities.Mark)
 	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
 
 	UpdateMarkParsedInfoByID(ctx context.Context, id primitive.ObjectID, info entities.ParsedInfoType) error
@@ -148,6 +150,26 @@ func (p *repository) AddLessons(ctx context.Context, lessons []entities.Lesson) 
 func (p *repository) AddMarks(ctx context.Context, marks []entities.Mark) error {
 	_, err := p.marksCollection.InsertMany(ctx, slicetools.ToInterface(marks))
 	return err
+}
+
+func (p *repository) DeleteMarks(ctx context.Context, marks []entities.Mark) error {
+	for _, mark := range marks {
+		if _, err := p.marksCollection.DeleteOne(ctx, mark.Id); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *repository) GetMarks(ctx context.Context, id primitive.ObjectID) (err error, marks []entities.Mark) {
+	cursor, err := p.marksCollection.Find(ctx, bson.M{"studentID": id})
+	if err != nil {
+		return
+	}
+
+	err = cursor.All(ctx, marks)
+	return
 }
 
 func (p *repository) GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error) {

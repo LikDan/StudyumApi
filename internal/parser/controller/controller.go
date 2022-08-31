@@ -11,6 +11,7 @@ import (
 	"studyum/internal/parser/entities"
 	"studyum/internal/parser/repository"
 	"studyum/pkg/datetime"
+	"studyum/pkg/slicetools"
 	"time"
 )
 
@@ -116,8 +117,8 @@ func (c *controller) UpdateSchedule(ctx context.Context, app apps.App) {
 }
 
 func (c *controller) UpdateJournal(ctx context.Context, app apps.App) {
-	var users []entities.JournalUser
-	if _, err := c.repository.GetUsersToParse(ctx, app.GetName()); err != nil {
+	users, err := c.repository.GetUsersToParse(ctx, app.GetName())
+	if err != nil {
 		return
 	}
 
@@ -143,7 +144,20 @@ func (c *controller) UpdateJournal(ctx context.Context, app apps.App) {
 			marks = append(marks, mark)
 		}
 
-		if err := c.repository.AddMarks(ctx, marks); err != nil {
+		err, existedMarks := c.repository.GetMarks(ctx, user.ID)
+		if err != nil {
+			continue
+		}
+
+		existedMarks, marks = slicetools.RemoveSameFunc(existedMarks, marks, func(m1, m2 entities.Mark) bool {
+			return m1.Mark == m2.Mark && m1.LessonId == m2.LessonId && m2.StudentID == m2.StudentID
+		})
+
+		if err = c.repository.DeleteMarks(ctx, existedMarks); err != nil {
+			continue
+		}
+
+		if err = c.repository.AddMarks(ctx, marks); err != nil {
 			continue
 		}
 
