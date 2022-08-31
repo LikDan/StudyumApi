@@ -8,7 +8,6 @@ import (
 	"studyum/internal/parser/apps"
 	"studyum/internal/parser/controller"
 	"studyum/internal/parser/dto"
-	"studyum/pkg/firebase"
 	"time"
 )
 
@@ -25,13 +24,11 @@ type Handler interface {
 }
 
 type handler struct {
-	firebase firebase.Firebase
-
 	controller controller.Controller
 }
 
-func NewParserHandler(firebase firebase.Firebase, controller controller.Controller) Handler {
-	h := &handler{firebase: firebase, controller: controller}
+func NewParserHandler(controller controller.Controller) Handler {
+	h := &handler{controller: controller}
 
 	for _, app := range controller.Apps() {
 		ctx := context.Background()

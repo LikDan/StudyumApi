@@ -34,8 +34,8 @@ func main() {
 	firebase := fb.NewFirebase(firebaseCredentials)
 
 	parserRepository := pRepository.NewParserRepository(client)
-	parserController := pController.NewParserController(parserRepository)
-	parserHandler := pHandler.NewParserHandler(firebase, parserController)
+	parserController := pController.NewParserController(parserRepository, firebase)
+	parserHandler := pHandler.NewParserHandler(parserController)
 
 	repository := repositories.NewRepository(client)
 	userRepository := repositories.NewUserRepository(repository)

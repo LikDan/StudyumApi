@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"errors"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/internal/parser/appDTO"
 	"studyum/internal/parser/apps"
@@ -11,6 +12,7 @@ import (
 	"studyum/internal/parser/entities"
 	"studyum/internal/parser/repository"
 	"studyum/pkg/datetime"
+	"studyum/pkg/firebase"
 	"studyum/pkg/slicetools"
 	"time"
 )
@@ -37,18 +39,31 @@ type Controller interface {
 type controller struct {
 	repository repository.Repository
 
+	firebase firebase.Firebase
+
 	apps []apps.App
 }
 
-func NewParserController(repository repository.Repository) Controller {
+func NewParserController(repository repository.Repository, firebase firebase.Firebase) Controller {
 	return &controller{
 		repository: repository,
+		firebase:   firebase,
 		apps:       []apps.App{kbp.NewApp()},
 	}
 }
 
 func (c *controller) Apps() []apps.App {
 	return c.apps
+}
+
+func (c *controller) SendMarkNotification(ctx context.Context, token string, title string, mark entities.Mark) (string, error) {
+	lesson, err := c.repository.GetLessonByID(ctx, mark.LessonId)
+	if err != nil {
+		return "", err
+	}
+
+	date := lesson.StartDate.Format("January 2 (Monday) 3:4 PM - ") + lesson.EndDate.Format("3:4 PM")
+	return c.firebase.SendNotification(ctx, token, "journal", title, mark.Mark+" - "+lesson.Subject+" for "+date, "")
 }
 
 func (c *controller) UpdateGeneralSchedule(app apps.App) {
@@ -90,8 +105,19 @@ func (c *controller) UpdateSchedule(ctx context.Context, app apps.App) {
 		return
 	}
 
+	send := true
 	for _, typeInfo := range types {
 		lessonsDTO := app.ScheduleUpdate(typeInfo)
+		if len(lessonsDTO) != 0 && send {
+			send = false
+
+			notification, err := c.firebase.SendNotification(ctx, "", "schedule", "Schedule was updated", "Schedule was updated", "")
+			if err != nil {
+				logrus.Error("error sending notification: " + err.Error())
+			} else {
+				logrus.Info("sending notification -> " + notification)
+			}
+		}
 
 		lessons := make([]entities.Lesson, len(lessonsDTO))
 		for i, lessonDTO := range lessonsDTO {
@@ -152,6 +178,31 @@ func (c *controller) UpdateJournal(ctx context.Context, app apps.App) {
 		existedMarks, marks = slicetools.RemoveSameFunc(existedMarks, marks, func(m1, m2 entities.Mark) bool {
 			return m1.Mark == m2.Mark && m1.LessonId == m2.LessonId && m2.StudentID == m2.StudentID
 		})
+
+		if len(existedMarks) == 0 && len(marks) == 0 {
+			continue
+		}
+
+		err, mainUser := c.repository.GetUserById(ctx, user.ID)
+		if err != nil {
+			continue
+		}
+
+		for _, mark := range existedMarks {
+			notification, err := c.SendMarkNotification(ctx, "Mark removed", mainUser.FirebaseToken, mark)
+			if err != nil {
+				logrus.Error("error sending notification: " + err.Error())
+			}
+			logrus.Info("sending notification -> " + notification)
+		}
+
+		for _, mark := range marks {
+			notification, err := c.SendMarkNotification(ctx, "Mark added", mainUser.FirebaseToken, mark)
+			if err != nil {
+				logrus.Error("error sending notification: " + err.Error())
+			}
+			logrus.Info("sending notification -> " + notification)
+		}
 
 		if err = c.repository.DeleteMarks(ctx, existedMarks); err != nil {
 			continue
