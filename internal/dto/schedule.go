@@ -6,22 +6,22 @@ import (
 )
 
 type AddLessonDTO struct {
-	PrimaryColor   string    `json:"primaryColor"`
-	SecondaryColor string    `json:"secondaryColor"`
+	PrimaryColor   string    `json:"primaryColor" binding:"color"`
+	SecondaryColor string    `json:"secondaryColor" binding:"color"`
 	EndDate        time.Time `json:"endDate"`
 	StartDate      time.Time `json:"startDate"`
-	Subject        string    `json:"subject"`
-	Group          string    `json:"group"`
-	Teacher        string    `json:"teacher"`
-	Room           string    `json:"room"`
+	Subject        string    `json:"subject" binding:"required"`
+	Group          string    `json:"group" binding:"required"`
+	Teacher        string    `json:"teacher" binding:"required"`
+	Room           string    `json:"room" binding:"required"`
 }
 
 type UpdateLessonDTO struct {
-	Id          primitive.ObjectID `json:"id"`
-	Subject     string             `json:"subject"`
-	Group       string             `json:"group"`
-	Teacher     string             `json:"teacher"`
-	Room        string             `json:"room"`
+	Id          primitive.ObjectID `json:"id" binding:"required"`
+	Subject     string             `json:"subject" binding:"required"`
+	Group       string             `json:"group" binding:"required"`
+	Teacher     string             `json:"teacher" binding:"required"`
+	Room        string             `json:"room" binding:"required"`
 	Title       string             `json:"title"`
 	Homework    string             `json:"homework"`
 	Description string             `json:"description"`

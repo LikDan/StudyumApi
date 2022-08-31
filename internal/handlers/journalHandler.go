@@ -90,7 +90,7 @@ func (j *journalHandler) AddMark(ctx *gin.Context) {
 
 	var mark dto.AddMarkDTO
 	if err := ctx.BindJSON(&mark); err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -124,7 +124,7 @@ func (j *journalHandler) UpdateMark(ctx *gin.Context) {
 
 	var mark dto.UpdateMarkDTO
 	if err := ctx.BindJSON(&mark); err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 

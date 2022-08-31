@@ -85,7 +85,7 @@ func (s *scheduleHandler) AddLesson(ctx *gin.Context) {
 
 	var lessonDTO dto.AddLessonDTO
 	if err := ctx.BindJSON(&lessonDTO); err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -103,7 +103,7 @@ func (s *scheduleHandler) UpdateLesson(ctx *gin.Context) {
 
 	var lesson dto.UpdateLessonDTO
 	if err := ctx.BindJSON(&lesson); err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
