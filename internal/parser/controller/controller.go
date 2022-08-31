@@ -18,7 +18,8 @@ type Controller interface {
 	Apps() []apps.App
 
 	UpdateGeneralSchedule(app apps.App)
-	Update(ctx context.Context, app apps.App)
+	UpdateSchedule(ctx context.Context, app apps.App)
+	UpdateJournal(ctx context.Context, app apps.App)
 	GetLastUpdatedDate(ctx context.Context, id int) (error, time.Time)
 	InsertScheduleTypes(ctx context.Context, types []appDTO.ScheduleTypeInfoDTO) error
 	GetAppByStudyPlaceId(id int) (apps.App, error)
@@ -82,7 +83,39 @@ func (c *controller) UpdateGeneralSchedule(app apps.App) {
 	}
 }
 
-func (c *controller) Update(ctx context.Context, app apps.App) {
+func (c *controller) UpdateSchedule(ctx context.Context, app apps.App) {
+	types, err := c.repository.GetScheduleTypesToParse(ctx, app.GetName())
+	if err != nil {
+		return
+	}
+
+	for _, typeInfo := range types {
+		lessonsDTO := app.ScheduleUpdate(typeInfo)
+
+		lessons := make([]entities.Lesson, len(lessonsDTO))
+		for i, lessonDTO := range lessonsDTO {
+			lesson := entities.Lesson{
+				Id:             primitive.NewObjectID(),
+				StudyPlaceId:   app.StudyPlaceId(),
+				PrimaryColor:   lessonDTO.PrimaryColor,
+				SecondaryColor: lessonDTO.SecondaryColor,
+				EndDate:        lessonDTO.Shift.Date.Add(lessonDTO.Shift.End),
+				StartDate:      lessonDTO.Shift.Date.Add(lessonDTO.Shift.Start),
+				Subject:        lessonDTO.Subject,
+				Group:          lessonDTO.Group,
+				Teacher:        lessonDTO.Teacher,
+				Room:           lessonDTO.Room,
+				ParsedInfo:     lessonDTO.ParsedInfo,
+			}
+
+			lessons[i] = lesson
+		}
+
+		_ = c.repository.AddLessons(ctx, lessons)
+	}
+}
+
+func (c *controller) UpdateJournal(ctx context.Context, app apps.App) {
 	var users []entities.JournalUser
 	if _, err := c.repository.GetUsersToParse(ctx, app.GetName()); err != nil {
 		return
@@ -115,36 +148,6 @@ func (c *controller) Update(ctx context.Context, app apps.App) {
 		}
 
 		_ = c.repository.UpdateParseJournalUser(ctx, user)
-	}
-
-	types, err := c.repository.GetScheduleTypesToParse(ctx, app.GetName())
-	if err != nil {
-		return
-	}
-
-	for _, typeInfo := range types {
-		lessonsDTO := app.ScheduleUpdate(typeInfo)
-
-		lessons := make([]entities.Lesson, len(lessonsDTO))
-		for i, lessonDTO := range lessonsDTO {
-			lesson := entities.Lesson{
-				Id:             primitive.NewObjectID(),
-				StudyPlaceId:   app.StudyPlaceId(),
-				PrimaryColor:   lessonDTO.PrimaryColor,
-				SecondaryColor: lessonDTO.SecondaryColor,
-				EndDate:        lessonDTO.Shift.Date.Add(lessonDTO.Shift.End),
-				StartDate:      lessonDTO.Shift.Date.Add(lessonDTO.Shift.Start),
-				Subject:        lessonDTO.Subject,
-				Group:          lessonDTO.Group,
-				Teacher:        lessonDTO.Teacher,
-				Room:           lessonDTO.Room,
-				ParsedInfo:     lessonDTO.ParsedInfo,
-			}
-
-			lessons[i] = lesson
-		}
-
-		_ = c.repository.AddLessons(ctx, lessons)
 	}
 }
 

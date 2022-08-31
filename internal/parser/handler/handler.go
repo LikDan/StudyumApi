@@ -62,7 +62,9 @@ func NewParserHandler(firebase firebase.Firebase, controller controller.Controll
 
 func (h *handler) Update(app apps.App) {
 	ctx := context.Background()
-	h.controller.Update(ctx, app)
+
+	go h.controller.UpdateSchedule(ctx, app)
+	go h.controller.UpdateJournal(ctx, app)
 }
 
 func (h *handler) AddMark(mark entities.Mark) {
