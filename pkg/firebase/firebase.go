@@ -9,7 +9,7 @@ import (
 )
 
 type Firebase interface {
-	SendNotification(topic string, title string, body string, url string) (string, error)
+	SendNotification(ctx context.Context, token, topic, title, body, url string) (string, error)
 }
 
 type firebase struct {
@@ -28,8 +28,7 @@ func NewFirebase(credentials []byte) Firebase {
 	return &firebase{app: app}
 }
 
-func (f *firebase) SendNotification(topic string, title string, body string, url string) (string, error) {
-	ctx := context.Background()
+func (f *firebase) SendNotification(ctx context.Context, token, topic, title, body, url string) (string, error) {
 	client, err := f.app.Messaging(ctx)
 	if err != nil {
 		return "", err
@@ -41,6 +40,7 @@ func (f *firebase) SendNotification(topic string, title string, body string, url
 			Body:     body,
 			ImageURL: url,
 		},
+		Token: token,
 		Topic: topic,
 	}
 
