@@ -6,8 +6,8 @@ import (
 )
 
 type AddLessonDTO struct {
-	PrimaryColor   string    `json:"primaryColor" binding:"color"`
-	SecondaryColor string    `json:"secondaryColor" binding:"color"`
+	PrimaryColor   string    `json:"primaryColor" binding:"hexcolor|eq=transparent"`
+	SecondaryColor string    `json:"secondaryColor" binding:"hexcolor|eq=transparent"`
 	EndDate        time.Time `json:"endDate"`
 	StartDate      time.Time `json:"startDate"`
 	Subject        string    `json:"subject" binding:"required"`
