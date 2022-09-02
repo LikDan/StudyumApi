@@ -5,8 +5,8 @@ go 1.18
 
 require (
 	firebase.google.com/go/v4 v4.7.0
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-playground/validator/v10 v10.11.0
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/robfig/cron v1.2.0
 	github.com/sirupsen/logrus v1.8.1
 	go.mongodb.org/mongo-driver v1.8.1
