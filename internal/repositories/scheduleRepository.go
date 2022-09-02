@@ -11,7 +11,7 @@ import (
 )
 
 type ScheduleRepository interface {
-	GetSchedule(ctx context.Context, studyPlaceId int, type_ string, typeName string) (entities.Schedule, error)
+	GetSchedule(ctx context.Context, studyPlaceId int, type_ string, typeName string, asPreview bool) (entities.Schedule, error)
 	GetScheduleType(ctx context.Context, studyPlaceId int, type_ string) []string
 
 	AddLesson(ctx context.Context, lesson entities.Lesson) (primitive.ObjectID, error)
@@ -28,10 +28,15 @@ func NewScheduleRepository(repository *Repository) ScheduleRepository {
 	return &scheduleRepository{Repository: repository}
 }
 
-func (s *scheduleRepository) GetSchedule(ctx context.Context, studyPlaceId int, type_ string, typeName string) (entities.Schedule, error) {
+func (s *scheduleRepository) GetSchedule(ctx context.Context, studyPlaceId int, type_ string, typeName string, asPreview bool) (entities.Schedule, error) {
+	filter := bson.M{"_id": studyPlaceId}
+	if asPreview {
+		filter["restricted"] = false
+	}
+
 	startWeekDate := datetime.Date().AddDate(0, 0, 1-int(time.Now().Weekday()))
 	cursor, err := s.studyPlacesCollection.Aggregate(ctx, bson.A{
-		bson.M{"$match": bson.M{"_id": studyPlaceId}},
+		bson.M{"$match": filter},
 		bson.M{"$addFields": bson.M{"date": bson.M{"$range": bson.A{0, bson.M{"$multiply": bson.A{7, "$weeksCount"}}}}}},
 		bson.M{"$unwind": "$date"},
 		bson.M{

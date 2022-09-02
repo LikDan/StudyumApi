@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"strconv"
 	"studyum/internal/dto"
 	"studyum/internal/entities"
 	parser "studyum/internal/parser/handler"
@@ -11,6 +12,7 @@ import (
 )
 
 type ScheduleController interface {
+	GetPreviewSchedule(ctx context.Context, studyPlaceID string, type_ string, typeName string) (entities.Schedule, error)
 	GetSchedule(ctx context.Context, type_ string, typeName string, user entities.User) (entities.Schedule, error)
 	GetUserSchedule(ctx context.Context, user entities.User) (entities.Schedule, error)
 
@@ -32,16 +34,29 @@ func NewScheduleController(parser parser.Handler, repository repositories.Schedu
 	return &scheduleController{parser: parser, repository: repository}
 }
 
+func (s *scheduleController) GetPreviewSchedule(ctx context.Context, studyPlaceID string, type_ string, typeName string) (entities.Schedule, error) {
+	if studyPlaceID == "" || type_ == "" || typeName == "" {
+		return entities.Schedule{}, NotValidParams
+	}
+
+	id, err := strconv.Atoi(studyPlaceID)
+	if err != nil {
+		return entities.Schedule{}, err
+	}
+
+	return s.repository.GetSchedule(ctx, id, type_, typeName, true)
+}
+
 func (s *scheduleController) GetSchedule(ctx context.Context, type_ string, typeName string, user entities.User) (entities.Schedule, error) {
 	if type_ == "" || typeName == "" {
 		return entities.Schedule{}, NotValidParams
 	}
 
-	return s.repository.GetSchedule(ctx, user.StudyPlaceId, type_, typeName)
+	return s.repository.GetSchedule(ctx, user.StudyPlaceId, type_, typeName, false)
 }
 
 func (s *scheduleController) GetUserSchedule(ctx context.Context, user entities.User) (entities.Schedule, error) {
-	return s.repository.GetSchedule(ctx, user.StudyPlaceId, user.Type, user.TypeName)
+	return s.repository.GetSchedule(ctx, user.StudyPlaceId, user.Type, user.TypeName, false)
 }
 
 func (s *scheduleController) GetScheduleTypes(ctx context.Context, user entities.User) entities.Types {
@@ -112,7 +127,7 @@ func (s *scheduleController) DeleteLesson(ctx context.Context, idHex string, use
 }
 
 func (s *scheduleController) SaveCurrentScheduleAsGeneral(ctx context.Context, user entities.User, type_ string, typeName string) error {
-	schedule, err := s.repository.GetSchedule(ctx, user.StudyPlaceId, type_, typeName)
+	schedule, err := s.repository.GetSchedule(ctx, user.StudyPlaceId, type_, typeName, false)
 	if err != nil {
 		return err
 	}
