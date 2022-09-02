@@ -7,4 +7,5 @@ type StudyPlace struct {
 	Name              string   `json:"name" bson:"name"`
 	PrimaryColorSet   []string `json:"primaryColorSet" bson:"primaryColorSet"`
 	SecondaryColorSet []string `json:"secondaryColorSet" bson:"secondaryColorSet"`
+	Restricted        bool     `json:"restricted" bson:"restricted"`
 }

@@ -32,6 +32,8 @@ type scheduleHandler struct {
 func NewScheduleHandler(authHandler Handler, controller controllers.ScheduleController, group *gin.RouterGroup) ScheduleHandler {
 	h := &scheduleHandler{Handler: authHandler, controller: controller, Group: group}
 
+	group.GET("preview/:type/:name", h.GetPreviewSchedule)
+
 	group.GET(":type/:name", h.Auth(), h.GetSchedule)
 	group.GET("", h.Auth(), h.GetUserSchedule)
 	group.GET("getTypes", h.Auth(), h.GetScheduleTypes)
@@ -43,6 +45,20 @@ func NewScheduleHandler(authHandler Handler, controller controllers.ScheduleCont
 	group.POST("/makeGeneral", h.Auth("editSchedule"), h.SaveCurrentScheduleAsGeneral)
 
 	return h
+}
+
+func (s *scheduleHandler) GetPreviewSchedule(ctx *gin.Context) {
+	studyPlaceID := ctx.Query("studyPlaceID")
+	type_ := ctx.Param("type")
+	typeName := ctx.Param("name")
+
+	schedule, err := s.controller.GetPreviewSchedule(ctx, studyPlaceID, type_, typeName)
+	if err != nil {
+		s.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, schedule)
 }
 
 func (s *scheduleHandler) GetSchedule(ctx *gin.Context) {
