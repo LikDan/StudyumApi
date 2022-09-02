@@ -24,6 +24,8 @@ type UserHandler interface {
 	PutFirebaseToken(ctx *gin.Context)
 
 	RevokeToken(ctx *gin.Context)
+
+	UpdateJWTTokensViaRefresh(ctx *gin.Context)
 }
 
 type userHandler struct {
@@ -52,6 +54,8 @@ func NewUserHandler(authHandler Handler, controller controllers.UserController, 
 	group.DELETE("signout", h.SignOutUser)
 	group.DELETE("revoke", h.RevokeToken)
 
+	group.POST("jwt/update", h.UpdateJWTTokensViaRefresh)
+
 	group.PUT("firebase/token", h.Auth(), h.PutFirebaseToken)
 
 	return h
@@ -70,19 +74,19 @@ func (u *userHandler) GetUser(ctx *gin.Context) {
 func (u *userHandler) UpdateUser(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
-	var data dto.UserSignUpDTO
+	var data dto.EditUserDTO
 	if err := ctx.BindJSON(&data); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
 
-	user, err := u.controller.UpdateUser(ctx, user, data)
+	pair, err := u.controller.UpdateUser(ctx, user, data)
 	if err != nil {
 		u.Error(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, user)
+	ctx.JSON(http.StatusOK, pair)
 }
 
 func (u *userHandler) LoginUser(ctx *gin.Context) {
@@ -92,15 +96,15 @@ func (u *userHandler) LoginUser(ctx *gin.Context) {
 		return
 	}
 
-	user, err := u.controller.LoginUser(ctx, data)
+	token, pair, err := u.controller.LoginUser(ctx, data)
 	if err != nil {
 		u.Error(ctx, err)
 		return
 	}
 
-	u.putToken(ctx, user.Token)
+	u.putToken(ctx, token)
 
-	ctx.JSON(http.StatusOK, user)
+	ctx.JSON(http.StatusOK, pair)
 }
 
 func (u *userHandler) SignUpUser(ctx *gin.Context) {
@@ -215,4 +219,20 @@ func (u *userHandler) RevokeToken(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, token)
+}
+
+func (u *userHandler) UpdateJWTTokensViaRefresh(ctx *gin.Context) {
+	var refreshToken string
+	if err := ctx.BindJSON(&refreshToken); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err, tokens := u.controller.UpdateJWTTokensViaRefresh(ctx, refreshToken)
+	if err != nil {
+		u.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, tokens)
 }

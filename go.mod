@@ -5,6 +5,7 @@ go 1.18
 
 require (
 	firebase.google.com/go/v4 v4.7.0
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-playground/validator/v10 v10.11.0
 	github.com/robfig/cron v1.2.0
 	github.com/sirupsen/logrus v1.8.1

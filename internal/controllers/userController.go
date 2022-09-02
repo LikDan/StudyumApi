@@ -14,12 +14,13 @@ import (
 	"studyum/internal/entities"
 	"studyum/internal/repositories"
 	"studyum/pkg/hash"
+	"studyum/pkg/jwt"
 )
 
 type UserController interface {
-	UpdateUser(ctx context.Context, user entities.User, data dto.UserSignUpDTO) (entities.User, error)
+	UpdateUser(ctx context.Context, user entities.User, data dto.EditUserDTO) (jwt.TokenPair, error)
 
-	LoginUser(ctx context.Context, data dto.UserLoginDTO) (entities.User, error)
+	LoginUser(ctx context.Context, data dto.UserLoginDTO) (string, jwt.TokenPair, error)
 	SignUpUser(ctx context.Context, data dto.UserSignUpDTO) (entities.User, error)
 	SignUpUserStage1(ctx context.Context, user entities.User, data dto.UserSignUpStage1DTO) (entities.User, error)
 
@@ -31,14 +32,18 @@ type UserController interface {
 	GetOAuth2ConfigByName(name string) *oauth2.Config
 
 	PutFirebaseToken(ctx context.Context, token string, firebaseToken string) error
+
+	UpdateJWTTokensViaRefresh(ctx context.Context, refreshToken string) (error, jwt.TokenPair)
 }
 
 type userController struct {
 	repository repositories.UserRepository
+
+	jwt jwt.JWT[entities.JWTClaims]
 }
 
-func NewUserController(repository repositories.UserRepository) UserController {
-	return &userController{repository: repository}
+func NewUserController(jwt jwt.JWT[entities.JWTClaims], repository repositories.UserRepository) UserController {
+	return &userController{repository: repository, jwt: jwt}
 }
 
 func (u *userController) SignUpUser(ctx context.Context, data dto.UserSignUpDTO) (entities.User, error) {
@@ -89,11 +94,7 @@ func (u *userController) SignUpUserStage1(ctx context.Context, user entities.Use
 	return user, nil
 }
 
-func (u *userController) UpdateUser(ctx context.Context, user entities.User, data dto.UserSignUpDTO) (entities.User, error) {
-	if err := validator.New().Struct(&data); err != nil {
-		return entities.User{}, NotValidParams
-	}
-
+func (u *userController) UpdateUser(ctx context.Context, user entities.User, data dto.EditUserDTO) (jwt.TokenPair, error) {
 	if data.Password != "" && len(data.Password) > 8 {
 		user.Password = hash.Hash(data.Password)
 	}
@@ -101,17 +102,47 @@ func (u *userController) UpdateUser(ctx context.Context, user entities.User, dat
 	user.Login = data.Login
 	user.Name = data.Name
 	user.Email = data.Email
-	if err := u.repository.UpdateUser(ctx, user); err != nil {
-		return entities.User{}, err
+	if err := u.repository.UpdateUserByID(ctx, user); err != nil {
+		return jwt.TokenPair{}, err
 	}
 
-	return user, nil
+	claims := entities.JWTClaims{
+		ID:            user.Id,
+		Login:         user.Login,
+		Permissions:   user.Permissions,
+		FirebaseToken: user.FirebaseToken,
+	}
+	pair, err := u.jwt.GeneratePair(claims)
+	if err != nil {
+		return jwt.TokenPair{}, err
+	}
+
+	return pair, nil
 }
 
-func (u *userController) LoginUser(ctx context.Context, data dto.UserLoginDTO) (entities.User, error) {
+func (u *userController) LoginUser(ctx context.Context, data dto.UserLoginDTO) (string, jwt.TokenPair, error) {
 	data.Password = hash.Hash(data.Password)
+	user, err := u.repository.Login(ctx, data.Email, data.Password)
+	if err != nil {
+		return "", jwt.TokenPair{}, err
+	}
 
-	return u.repository.Login(ctx, data.Email, data.Password)
+	claims := entities.JWTClaims{
+		ID:            user.Id,
+		Login:         user.Login,
+		Permissions:   user.Permissions,
+		FirebaseToken: user.FirebaseToken,
+	}
+	pair, err := u.jwt.GeneratePair(claims)
+	if err != nil {
+		return "", jwt.TokenPair{}, err
+	}
+
+	if err = u.repository.SetRefreshTokenByUserID(ctx, pair.Refresh, user.Id); err != nil {
+		return "", jwt.TokenPair{}, err
+	}
+
+	return user.Token, pair, nil
 }
 
 func (u *userController) UpdateTokenByID(ctx context.Context, id primitive.ObjectID, token string) error {
@@ -196,4 +227,14 @@ func (u *userController) CallbackOAuth2(ctx context.Context, code string) (entit
 
 func (u *userController) PutFirebaseToken(ctx context.Context, token string, firebaseToken string) error {
 	return u.repository.PutFirebaseToken(ctx, token, firebaseToken)
+}
+
+func (u *userController) UpdateJWTTokensViaRefresh(ctx context.Context, refreshToken string) (error, jwt.TokenPair) {
+	pair, err := u.jwt.RefreshPair(ctx, refreshToken)
+	if err != nil {
+		return err, jwt.TokenPair{}
+	}
+
+	err = u.repository.SetRefreshToken(ctx, refreshToken, pair.Refresh)
+	return err, pair
 }
