@@ -8,12 +8,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
 	"studyum/internal/controllers"
+	"studyum/internal/entities"
 	"studyum/internal/handlers"
 	pController "studyum/internal/parser/controller"
 	pHandler "studyum/internal/parser/handler"
 	pRepository "studyum/internal/parser/repository"
 	"studyum/internal/repositories"
 	fb "studyum/pkg/firebase"
+	"studyum/pkg/jwt"
 	"time"
 )
 
@@ -37,17 +39,23 @@ func main() {
 	parserController := pController.NewParserController(parserRepository, firebase)
 	parserHandler := pHandler.NewParserHandler(parserController)
 
+	secret := os.Getenv("jwtSecret")
+	expTime := time.Minute * 10
+	jwtController := jwt.New[entities.JWTClaims](expTime, secret)
+
 	repository := repositories.NewRepository(client)
 	userRepository := repositories.NewUserRepository(repository)
 	generalRepository := repositories.NewGeneralRepository(repository)
 	journalRepository := repositories.NewJournalRepository(repository)
 	scheduleRepository := repositories.NewScheduleRepository(repository)
 
-	controller := controllers.NewController(userRepository)
-	userController := controllers.NewUserController(userRepository)
+	controller := controllers.NewController(jwtController, userRepository)
+	userController := controllers.NewUserController(jwtController, userRepository)
 	generalController := controllers.NewGeneralController(generalRepository)
 	journalController := controllers.NewJournalController(parserHandler, journalRepository)
 	scheduleController := controllers.NewScheduleController(parserHandler, scheduleRepository)
+
+	jwtController.SetGetClaimsFunc(controller.GetClaims)
 
 	engine := gin.Default()
 	api := engine.Group("/api")
