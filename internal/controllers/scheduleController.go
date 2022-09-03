@@ -148,18 +148,24 @@ func (s *scheduleController) SaveCurrentScheduleAsGeneral(ctx context.Context, u
 	lessons := make([]entities.GeneralLesson, len(schedule.Lessons))
 	for i, lesson := range schedule.Lessons {
 		_, weekIndex := lesson.StartDate.ISOWeek()
+		dayIndex := int(lesson.StartDate.Weekday()) - 1
+		if dayIndex == -1 {
+			dayIndex = 6
+		}
 
 		gLesson := entities.GeneralLesson{
-			Id:           primitive.NewObjectID(),
-			StudyPlaceId: user.StudyPlaceId,
-			EndTime:      lesson.EndDate.Format("15:04"),
-			StartTime:    lesson.StartDate.Format("15:04"),
-			Subject:      lesson.Subject,
-			Group:        lesson.Group,
-			Teacher:      lesson.Teacher,
-			Room:         lesson.Room,
-			DayIndex:     lesson.StartDate.Day(),
-			WeekIndex:    weekIndex,
+			Id:             primitive.NewObjectID(),
+			StudyPlaceId:   user.StudyPlaceId,
+			EndTime:        lesson.EndDate.Format("15:04"),
+			StartTime:      lesson.StartDate.Format("15:04"),
+			PrimaryColor:   lesson.PrimaryColor,
+			SecondaryColor: lesson.SecondaryColor,
+			Subject:        lesson.Subject,
+			Group:          lesson.Group,
+			Teacher:        lesson.Teacher,
+			Room:           lesson.Room,
+			DayIndex:       dayIndex,
+			WeekIndex:      weekIndex % schedule.Info.StudyPlace.WeeksCount,
 		}
 
 		lessons[i] = gLesson
