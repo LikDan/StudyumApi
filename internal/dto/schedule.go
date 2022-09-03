@@ -17,11 +17,8 @@ type AddLessonDTO struct {
 }
 
 type UpdateLessonDTO struct {
+	AddLessonDTO
 	Id          primitive.ObjectID `json:"id" binding:"required"`
-	Subject     string             `json:"subject" binding:"required"`
-	Group       string             `json:"group" binding:"required"`
-	Teacher     string             `json:"teacher" binding:"required"`
-	Room        string             `json:"room" binding:"required"`
 	Title       string             `json:"title"`
 	Homework    string             `json:"homework"`
 	Description string             `json:"description"`

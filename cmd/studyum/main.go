@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
 	"studyum/internal/controllers"
+	"studyum/internal/controllers/validators"
 	"studyum/internal/entities"
 	"studyum/internal/handlers"
 	pController "studyum/internal/parser/controller"
@@ -49,11 +51,13 @@ func main() {
 	journalRepository := repositories.NewJournalRepository(repository)
 	scheduleRepository := repositories.NewScheduleRepository(repository)
 
+	scheduleValidator := validators.NewSchedule(validator.New())
+
 	controller := controllers.NewController(jwtController, userRepository)
 	userController := controllers.NewUserController(jwtController, userRepository)
 	generalController := controllers.NewGeneralController(generalRepository)
 	journalController := controllers.NewJournalController(parserHandler, journalRepository)
-	scheduleController := controllers.NewScheduleController(parserHandler, scheduleRepository)
+	scheduleController := controllers.NewScheduleController(parserHandler, scheduleValidator, scheduleRepository)
 
 	jwtController.SetGetClaimsFunc(controller.GetClaims)
 

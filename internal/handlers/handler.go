@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 	"studyum/internal/controllers"
+	"studyum/internal/controllers/validators"
 )
 
 type Handler interface {
@@ -78,7 +79,8 @@ func (h *handler) Error(ctx *gin.Context, err error) {
 		errors.Is(mongo.ErrNilValue, err),
 		errors.Is(mongo.ErrEmptySlice, err),
 		errors.Is(mongo.ErrNilCursor, err),
-		errors.Is(controllers.NotValidParams, err):
+		errors.Is(controllers.NotValidParams, err),
+		errors.Is(validators.ValidationError, err):
 		code = http.StatusBadRequest
 		break
 	case errors.Is(controllers.NotAuthorizationError, err):
