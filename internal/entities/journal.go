@@ -12,11 +12,11 @@ type Journal struct {
 }
 
 type JournalInfo struct {
-	Editable     bool   `json:"editable" bson:"editable"`
-	StudyPlaceId int    `json:"studyPlaceId" bson:"studyPlaceId"`
-	Group        string `json:"group" bson:"group"`
-	Teacher      string `json:"teacher" bson:"teacher"`
-	Subject      string `json:"subject" bson:"subject"`
+	Editable     bool               `json:"editable" bson:"editable"`
+	StudyPlaceId primitive.ObjectID `json:"studyPlaceId" bson:"studyPlaceId"`
+	Group        string             `json:"group" bson:"group"`
+	Teacher      string             `json:"teacher" bson:"teacher"`
+	Subject      string             `json:"subject" bson:"subject"`
 }
 
 type JournalRow struct {
@@ -38,6 +38,6 @@ type Mark struct {
 	Mark         string                  `json:"mark" bson:"mark"`
 	StudentID    primitive.ObjectID      `json:"studentID" bson:"studentID"`
 	LessonId     primitive.ObjectID      `json:"lessonId" bson:"lessonId"`
-	StudyPlaceId int                     `json:"studyPlaceId" bson:"studyPlaceId"`
+	StudyPlaceId primitive.ObjectID      `json:"studyPlaceId" bson:"studyPlaceId"`
 	ParsedInfo   entities.ParsedInfoType `json:"-" bson:"parsedInfo"`
 }

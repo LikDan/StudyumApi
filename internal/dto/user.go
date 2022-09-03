@@ -1,5 +1,7 @@
 package dto
 
+import "go.mongodb.org/mongo-driver/bson/primitive"
+
 type UserLoginDTO struct {
 	Email    string `json:"email" binding:"email"`
 	Password string `json:"password" binding:"min=8"`
@@ -20,7 +22,7 @@ type EditUserDTO struct {
 }
 
 type UserSignUpStage1DTO struct {
-	StudyPlaceId int    `json:"studyPlaceId" binding:"required"`
-	Type         string `json:"type" binding:"required"`
-	TypeName     string `json:"typeName" binding:"required"`
+	StudyPlaceId primitive.ObjectID `json:"studyPlaceId" binding:"required"`
+	Type         string             `json:"type" binding:"required"`
+	TypeName     string             `json:"typeName" binding:"required"`
 }

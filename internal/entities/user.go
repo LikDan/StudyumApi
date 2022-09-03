@@ -14,7 +14,7 @@ type User struct {
 	PictureUrl    string             `json:"picture" bson:"picture"`
 	Type          string             `json:"type" bson:"type"`
 	TypeName      string             `json:"typeName" bson:"typeName"`
-	StudyPlaceId  int                `json:"studyPlaceId" bson:"studyPlaceId"`
+	StudyPlaceId  primitive.ObjectID `json:"studyPlaceId" bson:"studyPlaceId"`
 	Permissions   []string           `json:"permissions" bson:"permissions"`
 	Accepted      bool               `json:"accepted" bson:"accepted"`
 	Blocked       bool               `json:"blocked" bson:"blocked"`

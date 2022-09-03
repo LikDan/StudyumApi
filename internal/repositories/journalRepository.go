@@ -16,11 +16,11 @@ type JournalRepository interface {
 
 	GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]entities.JournalAvailableOption, error)
 
-	GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId int) (entities.Journal, error)
-	GetJournal(ctx context.Context, group string, subject string, typeName string, studyPlaceId int) (entities.Journal, error)
+	GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId primitive.ObjectID) (entities.Journal, error)
+	GetJournal(ctx context.Context, group string, subject string, typeName string, studyPlaceId primitive.ObjectID) (entities.Journal, error)
 
 	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
-	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId int) ([]entities.Lesson, error)
+	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId primitive.ObjectID) ([]entities.Lesson, error)
 }
 
 type journalRepository struct {
@@ -83,7 +83,7 @@ func (j *journalRepository) GetAvailableOptions(ctx context.Context, teacher str
 	return options, nil
 }
 
-func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId int) (entities.Journal, error) {
+func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
 	cursor, err := j.lessonsCollection.Aggregate(ctx, bson.A{
 		bson.M{"$match": bson.M{"group": group, "studyPlaceId": studyPlaceId}},
 		bson.M{"$group": bson.M{"_id": "$subject"}},
@@ -161,7 +161,7 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
 	return journal, nil
 }
 
-func (j *journalRepository) GetJournal(ctx context.Context, group string, subject string, typeName string, studyPlaceId int) (entities.Journal, error) {
+func (j *journalRepository) GetJournal(ctx context.Context, group string, subject string, typeName string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
 	cursor, err := j.usersCollection.Aggregate(ctx, mongo.Pipeline{
 		bson.D{{"$match", bson.M{"type": "group", "typeName": group, "studyPlaceId": studyPlaceId}}},
 		bson.D{{"$lookup", bson.M{
@@ -215,7 +215,7 @@ func (j *journalRepository) GetLessonByID(ctx context.Context, id primitive.Obje
 	return
 }
 
-func (j *journalRepository) GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId int) ([]entities.Lesson, error) {
+func (j *journalRepository) GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId primitive.ObjectID) ([]entities.Lesson, error) {
 	lessonsCursor, err := j.lessonsCollection.Aggregate(ctx, mongo.Pipeline{
 		bson.D{{"$lookup", bson.M{
 			"from":         "Marks",

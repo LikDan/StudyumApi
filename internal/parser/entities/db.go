@@ -7,7 +7,7 @@ import (
 
 type GeneralLesson struct {
 	Id           primitive.ObjectID `bson:"_id"`
-	StudyPlaceId int                `bson:"studyPlaceId"`
+	StudyPlaceId primitive.ObjectID `bson:"studyPlaceId"`
 	EndTime      string             `bson:"endTime"`
 	StartTime    string             `bson:"startTime"`
 	Subject      string             `bson:"subject"`
@@ -21,7 +21,7 @@ type GeneralLesson struct {
 
 type Lesson struct {
 	Id             primitive.ObjectID `bson:"_id"`
-	StudyPlaceId   int                `bson:"studyPlaceId"`
+	StudyPlaceId   primitive.ObjectID `bson:"studyPlaceId"`
 	PrimaryColor   string             `bson:"primaryColor"`
 	SecondaryColor string             `bson:"secondaryColor"`
 	EndDate        time.Time          `bson:"endDate"`
@@ -42,7 +42,7 @@ type Mark struct {
 	Mark         string             `bson:"mark"`
 	StudentID    primitive.ObjectID `bson:"studentID"`
 	LessonId     primitive.ObjectID `bson:"lessonId"`
-	StudyPlaceId int                `bson:"studyPlaceId"`
+	StudyPlaceId primitive.ObjectID `bson:"studyPlaceId"`
 	ParsedInfo   ParsedInfoType     `bson:"parsedInfo"`
 }
 
@@ -58,7 +58,7 @@ type User struct {
 	PictureUrl    string             `json:"picture" bson:"picture"`
 	Type          string             `json:"type" bson:"type"`
 	TypeName      string             `json:"typeName" bson:"typeName"`
-	StudyPlaceId  int                `json:"studyPlaceId" bson:"studyPlaceId"`
+	StudyPlaceId  primitive.ObjectID `json:"studyPlaceId" bson:"studyPlaceId"`
 	Permissions   []string           `json:"permissions" bson:"permissions"`
 	Accepted      bool               `json:"accepted" bson:"accepted"`
 	Blocked       bool               `json:"blocked" bson:"blocked"`
