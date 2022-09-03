@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"studyum/internal/controllers/validators"
 	"studyum/internal/dto"
 	"studyum/internal/entities"
 	parser "studyum/internal/parser/handler"
@@ -24,13 +25,14 @@ type ScheduleController interface {
 }
 
 type scheduleController struct {
-	parser parser.Handler
+	parser    parser.Handler
+	validator validators.Schedule
 
 	repository repositories.ScheduleRepository
 }
 
-func NewScheduleController(parser parser.Handler, repository repositories.ScheduleRepository) ScheduleController {
-	return &scheduleController{parser: parser, repository: repository}
+func NewScheduleController(parser parser.Handler, validator validators.Schedule, repository repositories.ScheduleRepository) ScheduleController {
+	return &scheduleController{parser: parser, validator: validator, repository: repository}
 }
 
 func (s *scheduleController) GetPreviewSchedule(ctx context.Context, studyPlaceID string, type_ string, typeName string) (entities.Schedule, error) {
@@ -68,6 +70,10 @@ func (s *scheduleController) GetScheduleTypes(ctx context.Context, user entities
 }
 
 func (s *scheduleController) AddLesson(ctx context.Context, dto dto.AddLessonDTO, user entities.User) (entities.Lesson, error) {
+	if err := s.validator.AddLesson(dto); err != nil {
+		return entities.Lesson{}, err
+	}
+
 	lesson := entities.Lesson{
 		StudyPlaceId:   user.StudyPlaceId,
 		PrimaryColor:   dto.PrimaryColor,
@@ -92,16 +98,24 @@ func (s *scheduleController) AddLesson(ctx context.Context, dto dto.AddLessonDTO
 }
 
 func (s *scheduleController) UpdateLesson(ctx context.Context, dto dto.UpdateLessonDTO, user entities.User) error {
+	if err := s.validator.UpdateLesson(dto); err != nil {
+		return err
+	}
+
 	lesson := entities.Lesson{
-		Id:           dto.Id,
-		StudyPlaceId: user.StudyPlaceId,
-		Subject:      dto.Subject,
-		Group:        dto.Group,
-		Teacher:      dto.Teacher,
-		Room:         dto.Room,
-		Title:        dto.Title,
-		Homework:     dto.Homework,
-		Description:  dto.Description,
+		Id:             dto.Id,
+		StudyPlaceId:   user.StudyPlaceId,
+		PrimaryColor:   dto.PrimaryColor,
+		SecondaryColor: dto.SecondaryColor,
+		EndDate:        dto.EndDate,
+		StartDate:      dto.StartDate,
+		Subject:        dto.Subject,
+		Group:          dto.Group,
+		Teacher:        dto.Teacher,
+		Room:           dto.Room,
+		Title:          dto.Title,
+		Homework:       dto.Homework,
+		Description:    dto.Description,
 	}
 
 	go s.parser.EditLesson(lesson)

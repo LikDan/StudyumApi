@@ -22,7 +22,7 @@ type Lesson struct {
 	Group          string                  `json:"group" bson:"group"`
 	Teacher        string                  `json:"teacher" bson:"teacher"`
 	Room           string                  `json:"room" bson:"room"`
-	Marks          []Mark                  `json:"marks" bson:"marks"`
+	Marks          []Mark                  `json:"marks" bson:"-"`
 	Title          string                  `json:"title" bson:"title"`
 	Homework       string                  `json:"homework" bson:"homework"`
 	Description    string                  `json:"description" bson:"description"`
