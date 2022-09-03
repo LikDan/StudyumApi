@@ -8,7 +8,7 @@ import (
 
 type LessonDTO struct {
 	Id             primitive.ObjectID
-	StudyPlaceId   int
+	StudyPlaceId   primitive.ObjectID
 	PrimaryColor   string
 	SecondaryColor string
 	EndDate        time.Time

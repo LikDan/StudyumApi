@@ -21,7 +21,7 @@ type Repository interface {
 
 	UpdateGeneralSchedule(ctx context.Context, lessons []entities.GeneralLesson) error
 	GetLessonIDByDateNameAndGroup(ctx context.Context, date time.Time, name string, group string) (primitive.ObjectID, error)
-	GetLastUpdatedDate(ctx context.Context, id int) (error, time.Time)
+	GetLastUpdatedDate(ctx context.Context, id primitive.ObjectID) (error, time.Time)
 	AddLessons(ctx context.Context, lessons []entities.Lesson) error
 
 	AddMarks(ctx context.Context, marks []entities.Mark) error
@@ -132,7 +132,7 @@ func (p *repository) GetLessonIDByDateNameAndGroup(ctx context.Context, date tim
 	return lesson.Id, nil
 }
 
-func (p *repository) GetLastUpdatedDate(ctx context.Context, id int) (error, time.Time) {
+func (p *repository) GetLastUpdatedDate(ctx context.Context, id primitive.ObjectID) (error, time.Time) {
 	opt := options.FindOne()
 	opt.Sort = bson.M{"startDate": -1}
 

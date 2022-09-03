@@ -10,6 +10,6 @@ type MarkDTO struct {
 	Mark         string
 	StudentID    primitive.ObjectID
 	LessonId     primitive.ObjectID
-	StudyPlaceId int
+	StudyPlaceId primitive.ObjectID
 	ParsedInfo   entities.ParsedInfoType
 }

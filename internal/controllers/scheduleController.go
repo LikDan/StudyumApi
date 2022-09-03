@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"strconv"
 	"studyum/internal/dto"
 	"studyum/internal/entities"
 	parser "studyum/internal/parser/handler"
@@ -39,7 +38,7 @@ func (s *scheduleController) GetPreviewSchedule(ctx context.Context, studyPlaceI
 		return entities.Schedule{}, NotValidParams
 	}
 
-	id, err := strconv.Atoi(studyPlaceID)
+	id, err := primitive.ObjectIDFromHex(studyPlaceID)
 	if err != nil {
 		return entities.Schedule{}, err
 	}

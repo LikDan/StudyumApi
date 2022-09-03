@@ -13,7 +13,7 @@ type Schedule struct {
 
 type Lesson struct {
 	Id             primitive.ObjectID      `json:"id" bson:"_id"`
-	StudyPlaceId   int                     `json:"studyPlaceId" bson:"studyPlaceId"`
+	StudyPlaceId   primitive.ObjectID      `json:"studyPlaceId" bson:"studyPlaceId"`
 	PrimaryColor   string                  `json:"primaryColor" bson:"primaryColor"`
 	SecondaryColor string                  `json:"secondaryColor" bson:"secondaryColor"`
 	EndDate        time.Time               `json:"endDate" bson:"endDate"`
@@ -31,7 +31,7 @@ type Lesson struct {
 
 type GeneralLesson struct {
 	Id             primitive.ObjectID      `json:"id" bson:"_id"`
-	StudyPlaceId   int                     `json:"studyPlaceId" bson:"studyPlaceId"`
+	StudyPlaceId   primitive.ObjectID      `json:"studyPlaceId" bson:"studyPlaceId"`
 	PrimaryColor   string                  `json:"primaryColor" bson:"primaryColor"`
 	SecondaryColor string                  `json:"secondaryColor" bson:"secondaryColor"`
 	EndTime        string                  `json:"endTime" bson:"endTime"`

@@ -2,6 +2,7 @@ package apps
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/internal/parser/appDTO"
 	"studyum/internal/parser/entities"
 	"time"
@@ -11,7 +12,7 @@ type App interface {
 	Init(time time.Time)
 
 	GetName() string
-	StudyPlaceId() int
+	StudyPlaceId() primitive.ObjectID
 	GetUpdateCronPattern() string
 
 	ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []appDTO.LessonDTO

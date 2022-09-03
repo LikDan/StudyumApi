@@ -11,12 +11,12 @@ import (
 )
 
 type ScheduleRepository interface {
-	GetSchedule(ctx context.Context, studyPlaceId int, type_ string, typeName string, asPreview bool) (entities.Schedule, error)
-	GetScheduleType(ctx context.Context, studyPlaceId int, type_ string) []string
+	GetSchedule(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string, typeName string, asPreview bool) (entities.Schedule, error)
+	GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string) []string
 
 	AddLesson(ctx context.Context, lesson entities.Lesson) (primitive.ObjectID, error)
-	UpdateLesson(ctx context.Context, lesson entities.Lesson, studyPlaceId int) error
-	FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId int) (entities.Lesson, error)
+	UpdateLesson(ctx context.Context, lesson entities.Lesson, studyPlaceId primitive.ObjectID) error
+	FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId primitive.ObjectID) (entities.Lesson, error)
 	UpdateGeneralSchedule(ctx context.Context, lessons []entities.GeneralLesson, type_ string, typeName string) error
 }
 
@@ -28,7 +28,7 @@ func NewScheduleRepository(repository *Repository) ScheduleRepository {
 	return &scheduleRepository{Repository: repository}
 }
 
-func (s *scheduleRepository) GetSchedule(ctx context.Context, studyPlaceId int, type_ string, typeName string, asPreview bool) (entities.Schedule, error) {
+func (s *scheduleRepository) GetSchedule(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string, typeName string, asPreview bool) (entities.Schedule, error) {
 	filter := bson.M{"_id": studyPlaceId}
 	if asPreview {
 		filter["restricted"] = false
@@ -163,7 +163,7 @@ func (s *scheduleRepository) GetSchedule(ctx context.Context, studyPlaceId int, 
 	return schedule, nil
 }
 
-func (s *scheduleRepository) GetScheduleType(ctx context.Context, studyPlaceId int, type_ string) []string {
+func (s *scheduleRepository) GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string) []string {
 	namesInterface, _ := s.lessonsCollection.Distinct(ctx, type_, bson.M{"studyPlaceId": studyPlaceId})
 
 	names := make([]string, len(namesInterface))
@@ -180,14 +180,14 @@ func (s *scheduleRepository) AddLesson(ctx context.Context, lesson entities.Less
 	return lesson.Id, err
 }
 
-func (s *scheduleRepository) UpdateLesson(ctx context.Context, lesson entities.Lesson, studyPlaceId int) error {
+func (s *scheduleRepository) UpdateLesson(ctx context.Context, lesson entities.Lesson, studyPlaceId primitive.ObjectID) error {
 	lesson.StudyPlaceId = studyPlaceId
 
 	_, err := s.lessonsCollection.UpdateOne(ctx, bson.M{"_id": lesson.Id, "studyPlaceId": studyPlaceId}, bson.M{"$set": lesson})
 	return err
 }
 
-func (s *scheduleRepository) FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId int) (entities.Lesson, error) {
+func (s *scheduleRepository) FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId primitive.ObjectID) (entities.Lesson, error) {
 	var lesson entities.Lesson
 	err := s.lessonsCollection.FindOneAndDelete(ctx, bson.M{"_id": id, "studyPlaceId": studyPlaceId}).Decode(&lesson)
 	return lesson, err

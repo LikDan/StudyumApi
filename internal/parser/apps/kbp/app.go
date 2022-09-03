@@ -3,6 +3,7 @@ package kbp
 import (
 	"bytes"
 	htmlParser "github.com/PuerkitoBio/goquery"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"net/http"
 	"strconv"
@@ -81,8 +82,11 @@ func (a *app) Init(date time.Time) {
 }
 
 func (a *app) GetName() string              { return "kbp" }
-func (a *app) StudyPlaceId() int            { return 0 }
 func (a *app) GetUpdateCronPattern() string { return "@every 30m" }
+func (a *app) StudyPlaceId() primitive.ObjectID {
+	id, _ := primitive.ObjectIDFromHex("631261e11b8b855cc75cec35")
+	return id
+}
 
 func (a *app) ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []appDTO.LessonDTO {
 	return a.ParseLessons(typeInfo, false)

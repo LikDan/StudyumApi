@@ -15,10 +15,10 @@ const (
 )
 
 type DayState struct {
-	State        State `bson:"status" json:"status"`
-	WeekIndex    int   `bson:"weekIndex" json:"weekIndex"`
-	DayIndex     int   `bson:"dayIndex" json:"dayIndex"`
-	StudyPlaceId int   `bson:"educationPlaceId" json:"-"`
+	State        State              `json:"status"`
+	WeekIndex    int                `json:"weekIndex"`
+	DayIndex     int                `json:"dayIndex"`
+	StudyPlaceId primitive.ObjectID `json:"-"`
 }
 
 type JournalUser struct {
@@ -37,9 +37,9 @@ type ScheduleTypeInfo struct {
 }
 
 type ScheduleStateInfo struct {
-	State     State `bson:"status" json:"status"`
-	WeekIndex int   `bson:"weekIndex" json:"weekIndex"`
-	DayIndex  int   `bson:"dayIndex" json:"dayIndex"`
+	State     State `json:"status"`
+	WeekIndex int   `json:"weekIndex"`
+	DayIndex  int   `json:"dayIndex"`
 }
 
 func GetScheduleStateInfoByIndexes(states []ScheduleStateInfo, weekIndex, dayIndex int) ScheduleStateInfo {

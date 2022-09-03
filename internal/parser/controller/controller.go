@@ -23,9 +23,9 @@ type Controller interface {
 	UpdateGeneralSchedule(app apps.App)
 	UpdateSchedule(ctx context.Context, app apps.App)
 	UpdateJournal(ctx context.Context, app apps.App)
-	GetLastUpdatedDate(ctx context.Context, id int) (error, time.Time)
+	GetLastUpdatedDate(ctx context.Context, id primitive.ObjectID) (error, time.Time)
 	InsertScheduleTypes(ctx context.Context, types []appDTO.ScheduleTypeInfoDTO) error
-	GetAppByStudyPlaceId(id int) (apps.App, error)
+	GetAppByStudyPlaceId(id primitive.ObjectID) (apps.App, error)
 
 	AddMark(ctx context.Context, markDTO dto.MarkDTO)
 	EditMark(ctx context.Context, markDTO dto.MarkDTO)
@@ -230,7 +230,7 @@ func (c *controller) InsertScheduleTypes(ctx context.Context, dto []appDTO.Sched
 	return c.repository.InsertScheduleTypes(ctx, types)
 }
 
-func (c *controller) GetAppByStudyPlaceId(id int) (apps.App, error) {
+func (c *controller) GetAppByStudyPlaceId(id primitive.ObjectID) (apps.App, error) {
 	for _, app := range c.apps {
 		if app.StudyPlaceId() == id {
 			return app, nil
@@ -376,6 +376,6 @@ func (c *controller) DeleteLesson(ctx context.Context, lessonDTO dto.LessonDTO) 
 	app.OnLessonDelete(ctx, lesson)
 }
 
-func (c *controller) GetLastUpdatedDate(ctx context.Context, id int) (error, time.Time) {
+func (c *controller) GetLastUpdatedDate(ctx context.Context, id primitive.ObjectID) (error, time.Time) {
 	return c.repository.GetLastUpdatedDate(ctx, id)
 }
