@@ -20,7 +20,7 @@ import (
 type UserController interface {
 	UpdateUser(ctx context.Context, user entities.User, data dto.EditUserDTO) (jwt.TokenPair, error)
 
-	LoginUser(ctx context.Context, data dto.UserLoginDTO) (string, jwt.TokenPair, error)
+	LoginUser(ctx context.Context, data dto.UserLoginDTO) (entities.User, jwt.TokenPair, error)
 	SignUpUser(ctx context.Context, data dto.UserSignUpDTO) (entities.User, error)
 	SignUpUserStage1(ctx context.Context, user entities.User, data dto.UserSignUpStage1DTO) (entities.User, error)
 
@@ -32,8 +32,6 @@ type UserController interface {
 	GetOAuth2ConfigByName(name string) *oauth2.Config
 
 	PutFirebaseToken(ctx context.Context, token string, firebaseToken string) error
-
-	UpdateJWTTokensViaRefresh(ctx context.Context, refreshToken string) (error, jwt.TokenPair)
 }
 
 type userController struct {
@@ -120,11 +118,11 @@ func (u *userController) UpdateUser(ctx context.Context, user entities.User, dat
 	return pair, nil
 }
 
-func (u *userController) LoginUser(ctx context.Context, data dto.UserLoginDTO) (string, jwt.TokenPair, error) {
+func (u *userController) LoginUser(ctx context.Context, data dto.UserLoginDTO) (entities.User, jwt.TokenPair, error) {
 	data.Password = hash.Hash(data.Password)
 	user, err := u.repository.Login(ctx, data.Email, data.Password)
 	if err != nil {
-		return "", jwt.TokenPair{}, err
+		return entities.User{}, jwt.TokenPair{}, err
 	}
 
 	claims := entities.JWTClaims{
@@ -135,14 +133,14 @@ func (u *userController) LoginUser(ctx context.Context, data dto.UserLoginDTO) (
 	}
 	pair, err := u.jwt.GeneratePair(claims)
 	if err != nil {
-		return "", jwt.TokenPair{}, err
+		return entities.User{}, jwt.TokenPair{}, err
 	}
 
 	if err = u.repository.SetRefreshTokenByUserID(ctx, pair.Refresh, user.Id); err != nil {
-		return "", jwt.TokenPair{}, err
+		return entities.User{}, jwt.TokenPair{}, err
 	}
 
-	return user.Token, pair, nil
+	return user, pair, nil
 }
 
 func (u *userController) UpdateTokenByID(ctx context.Context, id primitive.ObjectID, token string) error {
@@ -227,14 +225,4 @@ func (u *userController) CallbackOAuth2(ctx context.Context, code string) (entit
 
 func (u *userController) PutFirebaseToken(ctx context.Context, token string, firebaseToken string) error {
 	return u.repository.PutFirebaseToken(ctx, token, firebaseToken)
-}
-
-func (u *userController) UpdateJWTTokensViaRefresh(ctx context.Context, refreshToken string) (error, jwt.TokenPair) {
-	pair, err := u.jwt.RefreshPair(ctx, refreshToken)
-	if err != nil {
-		return err, jwt.TokenPair{}
-	}
-
-	err = u.repository.SetRefreshToken(ctx, refreshToken, pair.Refresh)
-	return err, pair
 }

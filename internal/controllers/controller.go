@@ -13,7 +13,9 @@ var NotAuthorizationError = errors.New("not authorized")
 
 type Controller interface {
 	Auth(ctx context.Context, token string, permissions ...string) (entities.User, error)
+
 	AuthJWT(ctx context.Context, token string, permissions ...string) (entities.User, error)
+	AuthJWTByRefreshToken(ctx context.Context, token string, permissions ...string) (entities.User, jwt.TokenPair, error)
 
 	GetClaims(ctx context.Context, refreshToken string) (error, entities.JWTClaims)
 }
@@ -47,10 +49,10 @@ func (c *controller) AuthJWT(ctx context.Context, token string, permissions ...s
 		return entities.User{}, errors.Wrap(NotAuthorizationError, "not valid token")
 	}
 
-	for _, permission := range claims.Claims.Permissions {
+	for _, permission := range permissions {
 		ret := true
-		for _, requiredPermission := range permissions {
-			if permission == requiredPermission {
+		for _, existedPermission := range claims.Claims.Permissions {
+			if permission == existedPermission {
 				ret = false
 				break
 			}
@@ -63,7 +65,7 @@ func (c *controller) AuthJWT(ctx context.Context, token string, permissions ...s
 
 	user, err := c.repository.GetUserByID(ctx, claims.Claims.ID)
 	if err != nil {
-		if errors.Is(mongo.ErrNoDocuments, err) {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return entities.User{}, NotAuthorizationError
 		} else {
 			return entities.User{}, err
@@ -71,6 +73,30 @@ func (c *controller) AuthJWT(ctx context.Context, token string, permissions ...s
 	}
 
 	return user, err
+}
+
+func (c *controller) UpdateJWTTokensViaRefresh(ctx context.Context, refreshToken string) (error, jwt.TokenPair) {
+	pair, err := c.jwt.RefreshPair(ctx, refreshToken)
+	if err != nil {
+		return err, jwt.TokenPair{}
+	}
+
+	err = c.repository.SetRefreshToken(ctx, refreshToken, pair.Refresh)
+	return err, pair
+}
+
+func (c *controller) AuthJWTByRefreshToken(ctx context.Context, token string, permissions ...string) (entities.User, jwt.TokenPair, error) {
+	err, pair := c.UpdateJWTTokensViaRefresh(ctx, token)
+	if err != nil {
+		return entities.User{}, jwt.TokenPair{}, err
+	}
+
+	user, err := c.AuthJWT(ctx, pair.Access, permissions...)
+	if err != nil {
+		return entities.User{}, jwt.TokenPair{}, err
+	}
+
+	return user, pair, nil
 }
 
 func (c *controller) GetClaims(ctx context.Context, refreshToken string) (error, entities.JWTClaims) {
@@ -84,6 +110,7 @@ func (c *controller) GetClaims(ctx context.Context, refreshToken string) (error,
 	}
 
 	claims := entities.JWTClaims{
+		ID:            user.Id,
 		Login:         user.Login,
 		Permissions:   user.Permissions,
 		FirebaseToken: user.FirebaseToken,
