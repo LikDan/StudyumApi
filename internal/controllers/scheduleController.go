@@ -12,8 +12,7 @@ import (
 )
 
 type ScheduleController interface {
-	GetPreviewSchedule(ctx context.Context, studyPlaceID string, type_ string, typeName string) (entities.Schedule, error)
-	GetSchedule(ctx context.Context, type_ string, typeName string, user entities.User) (entities.Schedule, error)
+	GetSchedule(ctx context.Context, studyPlaceID string, type_ string, typeName string, user entities.User) (entities.Schedule, error)
 	GetUserSchedule(ctx context.Context, user entities.User) (entities.Schedule, error)
 
 	GetScheduleTypes(ctx context.Context, user entities.User, idHex string) entities.Types
@@ -35,25 +34,19 @@ func NewScheduleController(parser parser.Handler, validator validators.Schedule,
 	return &scheduleController{parser: parser, validator: validator, repository: repository}
 }
 
-func (s *scheduleController) GetPreviewSchedule(ctx context.Context, studyPlaceID string, type_ string, typeName string) (entities.Schedule, error) {
-	if studyPlaceID == "" || type_ == "" || typeName == "" {
-		return entities.Schedule{}, NotValidParams
-	}
-
-	id, err := primitive.ObjectIDFromHex(studyPlaceID)
-	if err != nil {
-		return entities.Schedule{}, err
-	}
-
-	return s.repository.GetSchedule(ctx, id, type_, typeName, true)
-}
-
-func (s *scheduleController) GetSchedule(ctx context.Context, type_ string, typeName string, user entities.User) (entities.Schedule, error) {
+func (s *scheduleController) GetSchedule(ctx context.Context, studyPlaceIDHex string, type_ string, typeName string, user entities.User) (entities.Schedule, error) {
 	if type_ == "" || typeName == "" {
 		return entities.Schedule{}, NotValidParams
 	}
 
-	return s.repository.GetSchedule(ctx, user.StudyPlaceId, type_, typeName, false)
+	studyPlaceID := user.StudyPlaceId
+	restricted := true
+	if id, err := primitive.ObjectIDFromHex(studyPlaceIDHex); err == nil && id != user.StudyPlaceId {
+		studyPlaceID = id
+		restricted = false
+	}
+
+	return s.repository.GetSchedule(ctx, studyPlaceID, type_, typeName, !restricted)
 }
 
 func (s *scheduleController) GetUserSchedule(ctx context.Context, user entities.User) (entities.Schedule, error) {

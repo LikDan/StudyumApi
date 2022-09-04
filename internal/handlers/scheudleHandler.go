@@ -32,11 +32,9 @@ type scheduleHandler struct {
 func NewScheduleHandler(authHandler Handler, controller controllers.ScheduleController, group *gin.RouterGroup) ScheduleHandler {
 	h := &scheduleHandler{Handler: authHandler, controller: controller, Group: group}
 
-	group.GET("preview/:type/:name", h.GetPreviewSchedule)
-
-	group.GET(":type/:name", h.Auth(), h.GetSchedule)
+	group.GET("getTypes", h.User(), h.GetScheduleTypes)
+	group.GET(":type/:name", h.User(), h.GetSchedule)
 	group.GET("", h.Auth(), h.GetUserSchedule)
-	group.GET("getTypes", h.Auth(), h.GetScheduleTypes)
 
 	group.POST("", h.Auth("editSchedule"), h.AddLesson)
 	group.PUT("", h.Auth("editSchedule"), h.UpdateLesson)
@@ -47,27 +45,15 @@ func NewScheduleHandler(authHandler Handler, controller controllers.ScheduleCont
 	return h
 }
 
-func (s *scheduleHandler) GetPreviewSchedule(ctx *gin.Context) {
-	studyPlaceID := ctx.Query("studyPlaceID")
-	type_ := ctx.Param("type")
-	typeName := ctx.Param("name")
-
-	schedule, err := s.controller.GetPreviewSchedule(ctx, studyPlaceID, type_, typeName)
-	if err != nil {
-		s.Error(ctx, err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, schedule)
-}
-
 func (s *scheduleHandler) GetSchedule(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
+	studyPlaceID := ctx.Query("studyPlaceID")
+
 	type_ := ctx.Param("type")
 	typeName := ctx.Param("name")
 
-	schedule, err := s.controller.GetSchedule(ctx, type_, typeName, user)
+	schedule, err := s.controller.GetSchedule(ctx, studyPlaceID, type_, typeName, user)
 	if err != nil {
 		s.Error(ctx, err)
 		return

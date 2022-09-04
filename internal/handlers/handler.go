@@ -11,6 +11,7 @@ import (
 
 type Handler interface {
 	Auth(permissions ...string) gin.HandlerFunc
+	User(permissions ...string) gin.HandlerFunc
 	AuthToken(permissions ...string) gin.HandlerFunc
 	Error(ctx *gin.Context, err error)
 }
@@ -53,6 +54,33 @@ func (h *handler) Auth(permissions ...string) gin.HandlerFunc {
 		user, err := h.controller.AuthJWT(ctx, token, permissions...)
 		if err != nil {
 			h.Error(ctx, err)
+			return
+		}
+
+		ctx.Set("user", user)
+	}
+}
+
+func (h *handler) User(permissions ...string) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		token := ctx.GetHeader("Authentication")
+		if token == "" {
+			token, err := ctx.Cookie("authToken")
+			if err != nil {
+				return
+			}
+
+			user, err := h.controller.Auth(ctx, token, permissions...)
+			if err != nil {
+				return
+			}
+
+			ctx.Set("user", user)
+			return
+		}
+
+		user, err := h.controller.AuthJWT(ctx, token, permissions...)
+		if err != nil {
 			return
 		}
 
