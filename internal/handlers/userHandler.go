@@ -24,8 +24,6 @@ type UserHandler interface {
 	PutFirebaseToken(ctx *gin.Context)
 
 	RevokeToken(ctx *gin.Context)
-
-	UpdateJWTTokensViaRefresh(ctx *gin.Context)
 }
 
 type userHandler struct {
@@ -54,15 +52,9 @@ func NewUserHandler(authHandler Handler, controller controllers.UserController, 
 	group.DELETE("signout", h.SignOutUser)
 	group.DELETE("revoke", h.RevokeToken)
 
-	group.POST("jwt/update", h.UpdateJWTTokensViaRefresh)
-
 	group.PUT("firebase/token", h.Auth(), h.PutFirebaseToken)
 
 	return h
-}
-
-func (u *userHandler) putToken(ctx *gin.Context, token string) {
-	ctx.SetCookie("authToken", token, 60*60*24*30, "", "", false, false)
 }
 
 func (u *userHandler) GetUser(ctx *gin.Context) {
@@ -96,15 +88,15 @@ func (u *userHandler) LoginUser(ctx *gin.Context) {
 		return
 	}
 
-	token, pair, err := u.controller.LoginUser(ctx, data)
+	user, pair, err := u.controller.LoginUser(ctx, data)
 	if err != nil {
 		u.Error(ctx, err)
 		return
 	}
 
-	u.putToken(ctx, token)
+	u.SetTokenPairCookie(ctx, pair)
 
-	ctx.JSON(http.StatusOK, pair)
+	ctx.JSON(http.StatusOK, user)
 }
 
 func (u *userHandler) SignUpUser(ctx *gin.Context) {
@@ -119,8 +111,6 @@ func (u *userHandler) SignUpUser(ctx *gin.Context) {
 		u.Error(ctx, err)
 		return
 	}
-
-	u.putToken(ctx, user.Token)
 
 	ctx.JSON(http.StatusOK, user)
 }
@@ -144,7 +134,7 @@ func (u *userHandler) SignUpUserStage1(ctx *gin.Context) {
 }
 
 func (u *userHandler) OAuth2(ctx *gin.Context) {
-	configName := ctx.Param("oauthConfigName")
+	configName := ctx.Param("oauth")
 	config := u.controller.GetOAuth2ConfigByName(configName)
 
 	if config == nil {
@@ -171,8 +161,6 @@ func (u *userHandler) CallbackOAuth2(ctx *gin.Context) {
 func (u *userHandler) PutAuthToken(ctx *gin.Context) {
 	bytes, _ := ctx.GetRawData()
 	token := string(bytes)
-
-	u.putToken(ctx, token)
 
 	user, err := u.controller.GetUserViaToken(ctx, token)
 	if err != nil {
@@ -201,8 +189,10 @@ func (u *userHandler) PutFirebaseToken(ctx *gin.Context) {
 }
 
 func (u *userHandler) SignOutUser(ctx *gin.Context) {
-	ctx.SetCookie("authToken", "", -1, "", "", false, false)
-	ctx.JSON(http.StatusOK, "authToken")
+	ctx.SetCookie("access", "", -1, "", "", false, false)
+	ctx.SetCookie("refresh", "", -1, "", "", false, false)
+
+	ctx.JSON(http.StatusOK, "successful")
 }
 
 func (u *userHandler) RevokeToken(ctx *gin.Context) {
@@ -219,20 +209,4 @@ func (u *userHandler) RevokeToken(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, token)
-}
-
-func (u *userHandler) UpdateJWTTokensViaRefresh(ctx *gin.Context) {
-	var refreshToken string
-	if err := ctx.BindJSON(&refreshToken); err != nil {
-		ctx.JSON(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	err, tokens := u.controller.UpdateJWTTokensViaRefresh(ctx, refreshToken)
-	if err != nil {
-		u.Error(ctx, err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, tokens)
 }

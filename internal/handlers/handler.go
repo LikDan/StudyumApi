@@ -2,18 +2,22 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
+	j "github.com/golang-jwt/jwt"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 	"studyum/internal/controllers"
 	"studyum/internal/controllers/validators"
+	"studyum/pkg/jwt"
 )
 
 type Handler interface {
-	Auth(permissions ...string) gin.HandlerFunc
 	User(permissions ...string) gin.HandlerFunc
-	AuthToken(permissions ...string) gin.HandlerFunc
+	Auth(permissions ...string) gin.HandlerFunc
+
 	Error(ctx *gin.Context, err error)
+
+	SetTokenPairCookie(ctx *gin.Context, pair jwt.TokenPair)
 }
 
 type handler struct {
@@ -24,67 +28,49 @@ func NewHandler(controller controllers.Controller) Handler {
 	return &handler{controller: controller}
 }
 
-func (h *handler) AuthToken(permissions ...string) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		token, err := ctx.Cookie("authToken")
-		if err != nil {
-			ctx.JSON(http.StatusUnauthorized, "no token")
-			ctx.Abort()
-			return
-		}
-
-		user, err := h.controller.Auth(ctx, token, permissions...)
-		if err != nil {
-			h.Error(ctx, err)
-			return
-		}
-
-		ctx.Set("user", user)
+func (h *handler) auth(ctx *gin.Context, permissions ...string) error {
+	token, err := ctx.Cookie("access")
+	if err != nil {
+		return err
 	}
+
+	user, err := h.controller.AuthJWT(ctx, token, permissions...)
+	if err != nil {
+		refreshToken, err := ctx.Cookie("refresh")
+		if err != nil {
+			return nil
+		}
+
+		var pair jwt.TokenPair
+		user, pair, err = h.controller.AuthJWTByRefreshToken(ctx, refreshToken, permissions...)
+		if err != nil {
+			return err
+		}
+
+		h.SetTokenPairCookie(ctx, pair)
+	}
+
+	ctx.Set("user", user)
+	return nil
 }
 
 func (h *handler) Auth(permissions ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		token := ctx.GetHeader("Authentication")
-		if token == "" {
-			h.AuthToken(permissions...)(ctx)
-			return
-		}
-
-		user, err := h.controller.AuthJWT(ctx, token, permissions...)
+		err := h.auth(ctx, permissions...)
 		if err != nil {
 			h.Error(ctx, err)
-			return
 		}
-
-		ctx.Set("user", user)
 	}
+}
+
+func (h *handler) SetTokenPairCookie(ctx *gin.Context, pair jwt.TokenPair) {
+	ctx.SetCookie("refresh", pair.Refresh, 60*60*24*30, "/", "", false, true)
+	ctx.SetCookie("access", pair.Access, 60*15, "/", "", false, true)
 }
 
 func (h *handler) User(permissions ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		token := ctx.GetHeader("Authentication")
-		if token == "" {
-			token, err := ctx.Cookie("authToken")
-			if err != nil {
-				return
-			}
-
-			user, err := h.controller.Auth(ctx, token, permissions...)
-			if err != nil {
-				return
-			}
-
-			ctx.Set("user", user)
-			return
-		}
-
-		user, err := h.controller.AuthJWT(ctx, token, permissions...)
-		if err != nil {
-			return
-		}
-
-		ctx.Set("user", user)
+		_ = h.auth(ctx, permissions...)
 	}
 }
 
@@ -93,28 +79,29 @@ func (h *handler) Error(ctx *gin.Context, err error) {
 
 	switch {
 	case
-		errors.Is(mongo.ErrMissingResumeToken, err):
+		errors.Is(err, mongo.ErrMissingResumeToken):
 		code = http.StatusBadGateway
 		break
 	case
-		errors.Is(mongo.ErrUnacknowledgedWrite, err),
-		errors.Is(mongo.ErrClientDisconnected, err):
+		errors.Is(err, mongo.ErrUnacknowledgedWrite),
+		errors.Is(err, mongo.ErrClientDisconnected):
 		code = http.StatusInternalServerError
 		break
 	case
-		errors.Is(mongo.ErrNilDocument, err),
-		errors.Is(mongo.ErrNoDocuments, err),
-		errors.Is(mongo.ErrNilValue, err),
-		errors.Is(mongo.ErrEmptySlice, err),
-		errors.Is(mongo.ErrNilCursor, err),
-		errors.Is(controllers.NotValidParams, err),
-		errors.Is(validators.ValidationError, err):
+		errors.Is(err, mongo.ErrNilDocument),
+		errors.Is(err, mongo.ErrNoDocuments),
+		errors.Is(err, mongo.ErrNilValue),
+		errors.Is(err, mongo.ErrEmptySlice),
+		errors.Is(err, mongo.ErrNilCursor),
+		errors.Is(err, controllers.NotValidParams),
+		errors.Is(err, validators.ValidationError):
 		code = http.StatusBadRequest
 		break
-	case errors.Is(controllers.NotAuthorizationError, err):
+	case errors.Is(err, controllers.NotAuthorizationError),
+		errors.Is(err, j.ErrSignatureInvalid):
 		code = http.StatusUnauthorized
 		break
-	case errors.Is(controllers.NoPermission, err):
+	case errors.Is(err, controllers.NoPermission):
 		code = http.StatusForbidden
 		break
 	default:
