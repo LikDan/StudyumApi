@@ -41,7 +41,7 @@ func main() {
 	parserController := pController.NewParserController(parserRepository, firebase)
 	parserHandler := pHandler.NewParserHandler(parserController)
 
-	secret := os.Getenv("jwtSecret")
+	secret := os.Getenv("JWT_SECRET")
 	expTime := time.Minute * 10
 	jwtController := jwt.New[entities.JWTClaims](expTime, secret)
 
