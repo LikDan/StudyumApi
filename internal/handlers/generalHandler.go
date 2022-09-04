@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
+	"strconv"
 	"studyum/internal/controllers"
 )
 
@@ -36,7 +37,14 @@ func (g *generalHandler) Uptime(ctx *gin.Context) {
 }
 
 func (g *generalHandler) GetStudyPlaces(ctx *gin.Context) {
-	err, studyPlaces := g.controller.GetStudyPlaces(ctx)
+	isRestricted := ctx.Query("restricted")
+	restricted, err := strconv.ParseBool(isRestricted)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err, studyPlaces := g.controller.GetStudyPlaces(ctx, restricted)
 	if err != nil {
 		g.Error(ctx, err)
 		return

@@ -18,6 +18,8 @@ type ScheduleRepository interface {
 	UpdateLesson(ctx context.Context, lesson entities.Lesson, studyPlaceId primitive.ObjectID) error
 	FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId primitive.ObjectID) (entities.Lesson, error)
 	UpdateGeneralSchedule(ctx context.Context, lessons []entities.GeneralLesson, type_ string, typeName string) error
+
+	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace entities.StudyPlace)
 }
 
 type scheduleRepository struct {
@@ -26,6 +28,11 @@ type scheduleRepository struct {
 
 func NewScheduleRepository(repository *Repository) ScheduleRepository {
 	return &scheduleRepository{Repository: repository}
+}
+
+func (s *scheduleRepository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace entities.StudyPlace) {
+	err = s.studyPlacesCollection.FindOne(ctx, bson.M{"_id": id, "restricted": restricted}).Decode(&studyPlace)
+	return
 }
 
 func (s *scheduleRepository) GetSchedule(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string, typeName string, asPreview bool) (entities.Schedule, error) {

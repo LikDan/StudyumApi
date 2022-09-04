@@ -3,11 +3,13 @@ package repositories
 import (
 	"context"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/internal/entities"
 )
 
 type GeneralRepository interface {
-	GetAllStudyPlaces(ctx context.Context) (error, []entities.StudyPlace)
+	GetAllStudyPlaces(ctx context.Context, restricted bool) (error, []entities.StudyPlace)
+	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (error, entities.StudyPlace)
 }
 
 type generalRepository struct {
@@ -18,9 +20,19 @@ func NewGeneralRepository(repository *Repository) GeneralRepository {
 	return &generalRepository{Repository: repository}
 }
 
-func (g *generalRepository) GetAllStudyPlaces(ctx context.Context) (error, []entities.StudyPlace) {
+func (g *generalRepository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace entities.StudyPlace) {
+	err = g.studyPlacesCollection.FindOne(ctx, bson.M{"_id": id, "restricted": restricted}).Decode(&studyPlace)
+	return
+}
+
+func (g *generalRepository) GetAllStudyPlaces(ctx context.Context, restricted bool) (error, []entities.StudyPlace) {
+	filter := bson.M{}
+	if !restricted {
+		filter["restricted"] = false
+	}
+
 	var studyPlaces []entities.StudyPlace
-	studyPlacesCursor, err := g.studyPlacesCollection.Find(ctx, bson.M{})
+	studyPlacesCursor, err := g.studyPlacesCollection.Find(ctx, filter)
 	if err != nil {
 		return err, nil
 	}
