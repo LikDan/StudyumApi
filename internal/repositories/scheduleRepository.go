@@ -15,7 +15,7 @@ type ScheduleRepository interface {
 	GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string) []string
 
 	AddLesson(ctx context.Context, lesson entities.Lesson) (primitive.ObjectID, error)
-	UpdateLesson(ctx context.Context, lesson entities.Lesson, studyPlaceId primitive.ObjectID) error
+	UpdateLesson(ctx context.Context, lesson entities.Lesson) error
 	FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId primitive.ObjectID) (entities.Lesson, error)
 	UpdateGeneralSchedule(ctx context.Context, lessons []entities.GeneralLesson, type_ string, typeName string) error
 
@@ -187,10 +187,8 @@ func (s *scheduleRepository) AddLesson(ctx context.Context, lesson entities.Less
 	return lesson.Id, err
 }
 
-func (s *scheduleRepository) UpdateLesson(ctx context.Context, lesson entities.Lesson, studyPlaceId primitive.ObjectID) error {
-	lesson.StudyPlaceId = studyPlaceId
-
-	_, err := s.lessonsCollection.UpdateOne(ctx, bson.M{"_id": lesson.Id, "studyPlaceId": studyPlaceId}, bson.M{"$set": lesson})
+func (s *scheduleRepository) UpdateLesson(ctx context.Context, lesson entities.Lesson) error {
+	_, err := s.lessonsCollection.UpdateOne(ctx, bson.M{"_id": lesson.Id, "studyPlaceId": lesson.StudyPlaceId}, bson.M{"$set": lesson})
 	return err
 }
 

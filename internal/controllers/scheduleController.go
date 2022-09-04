@@ -122,7 +122,7 @@ func (s *scheduleController) UpdateLesson(ctx context.Context, dto dto.UpdateLes
 
 	go s.parser.EditLesson(lesson)
 
-	return s.repository.UpdateLesson(ctx, lesson, user.StudyPlaceId)
+	return s.repository.UpdateLesson(ctx, lesson)
 }
 
 func (s *scheduleController) DeleteLesson(ctx context.Context, idHex string, user entities.User) error {
