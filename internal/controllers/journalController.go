@@ -48,7 +48,7 @@ func (j *journalController) GetJournalAvailableOptions(ctx context.Context, user
 		}}, nil
 	}
 
-	options, err := j.repository.GetAvailableOptions(ctx, user.Name, slices.Contains(user.Permissions, "editJournal"))
+	options, err := j.repository.GetAvailableOptions(ctx, user.TypeName, slices.Contains(user.Permissions, "editJournal"))
 	if err != nil {
 		return nil, err
 	}

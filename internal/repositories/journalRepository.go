@@ -152,7 +152,15 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
 		return entities.Journal{}, err
 	}
 
-	cursor.Next(ctx)
+	if !cursor.Next(ctx) {
+		return entities.Journal{
+			Info: entities.JournalInfo{
+				Editable:     false,
+				StudyPlaceId: studyPlaceId,
+				Group:        group,
+			},
+		}, nil
+	}
 	var journal entities.Journal
 	if err = cursor.Decode(&journal); err != nil {
 		return entities.Journal{}, err
@@ -201,7 +209,17 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 		return entities.Journal{}, err
 	}
 
-	cursor.Next(ctx)
+	if !cursor.Next(ctx) {
+		return entities.Journal{
+			Info: entities.JournalInfo{
+				Editable:     true,
+				StudyPlaceId: studyPlaceId,
+				Group:        group,
+				Teacher:      typeName,
+				Subject:      subject,
+			},
+		}, nil
+	}
 	var journal entities.Journal
 	if err = cursor.Decode(&journal); err != nil {
 		return entities.Journal{}, err
