@@ -28,7 +28,7 @@ func NewHandler(controller controllers.Controller) Handler {
 	return &handler{controller: controller}
 }
 
-func (h *handler) auth(ctx *gin.Context, permissions ...string) error {
+func (h *handler) authViaAccessToken(ctx *gin.Context, permissions ...string) error {
 	token, err := ctx.Cookie("access")
 	if err != nil {
 		return err
@@ -36,21 +36,36 @@ func (h *handler) auth(ctx *gin.Context, permissions ...string) error {
 
 	user, err := h.controller.AuthJWT(ctx, token, permissions...)
 	if err != nil {
-		refreshToken, err := ctx.Cookie("refresh")
-		if err != nil {
-			return nil
-		}
-
-		var pair jwt.TokenPair
-		user, pair, err = h.controller.AuthJWTByRefreshToken(ctx, refreshToken, permissions...)
-		if err != nil {
-			return err
-		}
-
-		h.SetTokenPairCookie(ctx, pair)
+		return err
 	}
 
 	ctx.Set("user", user)
+	return nil
+}
+
+func (h *handler) authViaRefreshToken(ctx *gin.Context, permissions ...string) error {
+	refreshToken, err := ctx.Cookie("refresh")
+	if err != nil {
+		return err
+	}
+
+	user, pair, err := h.controller.AuthJWTByRefreshToken(ctx, refreshToken, permissions...)
+	if err != nil {
+		return err
+	}
+
+	h.SetTokenPairCookie(ctx, pair)
+
+	ctx.Set("user", user)
+	return nil
+}
+
+func (h *handler) auth(ctx *gin.Context, permissions ...string) error {
+	if err := h.authViaAccessToken(ctx, permissions...); err != nil {
+		if err = h.authViaRefreshToken(ctx, permissions...); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
