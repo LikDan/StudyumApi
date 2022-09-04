@@ -91,7 +91,8 @@ func (s *scheduleHandler) GetUserSchedule(ctx *gin.Context) {
 func (s *scheduleHandler) GetScheduleTypes(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
-	types := s.controller.GetScheduleTypes(ctx, user)
+	id := ctx.Query("id")
+	types := s.controller.GetScheduleTypes(ctx, user, id)
 
 	ctx.JSON(http.StatusOK, types)
 }
