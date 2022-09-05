@@ -48,7 +48,6 @@ type Mark struct {
 
 type User struct {
 	Id            primitive.ObjectID `json:"id" bson:"_id"`
-	Token         string             `json:"-" bson:"token"`
 	Password      string             `json:"password" bson:"password"`
 	Email         string             `json:"email" bson:"email"`
 	FirebaseToken string             `json:"-" bson:"firebaseToken"`
