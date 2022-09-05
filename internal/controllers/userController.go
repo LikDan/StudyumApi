@@ -52,20 +52,12 @@ func (u *userController) SignUpUser(ctx context.Context, data dto.UserSignUpDTO)
 	data.Password = hash.Hash(data.Password)
 
 	user := entities.User{
-		Id:            primitive.NilObjectID,
-		Token:         "",
 		Password:      data.Password,
 		Email:         data.Email,
 		VerifiedEmail: false,
 		Login:         data.Login,
 		Name:          data.Name,
 		PictureUrl:    "https://www.shareicon.net/data/128x128/2016/07/05/791214_man_512x512.png",
-		Type:          "",
-		TypeName:      "",
-		StudyPlaceId:  primitive.NilObjectID,
-		Permissions:   nil,
-		Accepted:      false,
-		Blocked:       false,
 	}
 	if _, err := u.repository.SignUp(ctx, user); err != nil {
 		return entities.User{}, err
@@ -208,14 +200,6 @@ func (u *userController) CallbackOAuth2(ctx context.Context, code string) (entit
 
 		user.Id, err = u.repository.SignUp(ctx, user)
 		if err != nil {
-			return entities.User{}, err
-		}
-	}
-
-	if user.Token == "" {
-		user.Token = hash.GenerateSecureToken()
-
-		if err = u.repository.UpdateUserTokenByEmail(ctx, user.Email, user.Token); err != nil {
 			return entities.User{}, err
 		}
 	}
