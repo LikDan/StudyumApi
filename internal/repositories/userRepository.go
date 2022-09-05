@@ -16,7 +16,7 @@ type UserRepository interface {
 	SignUp(ctx context.Context, user entities.User) (primitive.ObjectID, error)
 	SignUpStage1(ctx context.Context, user entities.User) error
 
-	Login(ctx context.Context, email string, password string) (entities.User, error)
+	GetUserByLogin(ctx context.Context, email string) (entities.User, error)
 
 	UpdateUser(ctx context.Context, user entities.User) error
 	UpdateUserByID(ctx context.Context, user entities.User) error
@@ -73,9 +73,9 @@ func (u *userRepository) SignUpStage1(ctx context.Context, user entities.User) e
 	return err
 }
 
-func (u *userRepository) Login(ctx context.Context, email string, password string) (entities.User, error) {
+func (u *userRepository) GetUserByLogin(ctx context.Context, email string) (entities.User, error) {
 	var user entities.User
-	err := u.usersCollection.FindOne(ctx, bson.M{"email": email, "password": password}).Decode(&user)
+	err := u.usersCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
 
 	return user, err
 }

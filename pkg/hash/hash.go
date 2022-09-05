@@ -1,14 +1,19 @@
 package hash
 
 import (
-	"crypto/md5"
 	"crypto/rand"
 	"encoding/hex"
+	"golang.org/x/crypto/bcrypt"
 )
 
-func Hash(s string) string {
-	hash := md5.Sum([]byte(s))
-	return hex.EncodeToString(hash[:])
+func Hash(s string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(s), bcrypt.DefaultCost)
+	return string(bytes), err
+}
+
+func CompareHashAndPassword(s string, s2 string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(s), []byte(s2))
+	return err == nil
 }
 
 func GenerateSecureToken() string {

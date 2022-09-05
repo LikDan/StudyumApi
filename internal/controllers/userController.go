@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/oauth2"
@@ -45,21 +44,21 @@ func NewUserController(jwt jwt.JWT[entities.JWTClaims], repository repositories.
 }
 
 func (u *userController) SignUpUser(ctx context.Context, data dto.UserSignUpDTO) (entities.User, error) {
-	if err := validator.New().Struct(&data); err != nil {
-		return entities.User{}, NotValidParams
+	password, err := hash.Hash(data.Password)
+	if err != nil {
+		return entities.User{}, err
 	}
 
-	data.Password = hash.Hash(data.Password)
-
 	user := entities.User{
-		Password:      data.Password,
+		Password:      password,
 		Email:         data.Email,
 		VerifiedEmail: false,
 		Login:         data.Login,
 		Name:          data.Name,
 		PictureUrl:    "https://www.shareicon.net/data/128x128/2016/07/05/791214_man_512x512.png",
 	}
-	if _, err := u.repository.SignUp(ctx, user); err != nil {
+	user.Id, err = u.repository.SignUp(ctx, user)
+	if err != nil {
 		return entities.User{}, err
 	}
 
@@ -86,7 +85,12 @@ func (u *userController) SignUpUserStage1(ctx context.Context, user entities.Use
 
 func (u *userController) UpdateUser(ctx context.Context, user entities.User, data dto.EditUserDTO) (jwt.TokenPair, error) {
 	if data.Password != "" && len(data.Password) > 8 {
-		user.Password = hash.Hash(data.Password)
+		password, err := hash.Hash(data.Password)
+		if err != nil {
+			return jwt.TokenPair{}, err
+		}
+
+		user.Password = password
 	}
 
 	user.Login = data.Login
@@ -111,10 +115,13 @@ func (u *userController) UpdateUser(ctx context.Context, user entities.User, dat
 }
 
 func (u *userController) LoginUser(ctx context.Context, data dto.UserLoginDTO) (entities.User, jwt.TokenPair, error) {
-	data.Password = hash.Hash(data.Password)
-	user, err := u.repository.Login(ctx, data.Email, data.Password)
+	user, err := u.repository.GetUserByLogin(ctx, data.Email)
 	if err != nil {
 		return entities.User{}, jwt.TokenPair{}, err
+	}
+
+	if !hash.CompareHashAndPassword(user.Password, data.Password) {
+		return entities.User{}, jwt.TokenPair{}, NotValidParams
 	}
 
 	claims := entities.JWTClaims{
