@@ -19,11 +19,11 @@ type UserHandler interface {
 
 	OAuth2(ctx *gin.Context)
 	CallbackOAuth2(ctx *gin.Context)
-	PutAuthToken(ctx *gin.Context)
 
 	PutFirebaseToken(ctx *gin.Context)
 
 	RevokeToken(ctx *gin.Context)
+	TerminateSession(ctx *gin.Context)
 }
 
 type userHandler struct {
@@ -47,10 +47,10 @@ func NewUserHandler(authHandler Handler, controller controllers.UserController, 
 
 	group.GET("auth/:oauth", h.OAuth2)
 	group.GET("callback", h.CallbackOAuth2)
-	group.PUT("auth/token", h.PutAuthToken)
 
-	group.DELETE("signout", h.SignOutUser)
-	group.DELETE("revoke", h.RevokeToken)
+	group.DELETE("signout", h.Auth(), h.SignOutUser)
+	group.DELETE("revoke", h.Auth(), h.RevokeToken)
+	group.DELETE("terminate/:ip", h.Auth(), h.TerminateSession)
 
 	group.PUT("firebase/token", h.Auth(), h.PutFirebaseToken)
 
@@ -88,7 +88,7 @@ func (u *userHandler) LoginUser(ctx *gin.Context) {
 		return
 	}
 
-	user, pair, err := u.controller.LoginUser(ctx, data)
+	user, pair, err := u.controller.LoginUser(ctx, data, ctx.ClientIP())
 	if err != nil {
 		u.Error(ctx, err)
 		return
@@ -155,20 +155,7 @@ func (u *userHandler) CallbackOAuth2(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Redirect(307, "http://"+ctx.Query("state")+"/user/receiveToken?token="+user.Token)
-}
-
-func (u *userHandler) PutAuthToken(ctx *gin.Context) {
-	bytes, _ := ctx.GetRawData()
-	token := string(bytes)
-
-	user, err := u.controller.GetUserViaToken(ctx, token)
-	if err != nil {
-		u.Error(ctx, err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, user)
+	ctx.Redirect(307, "http://"+ctx.Query("state")+"/user/receiveToken?token="+user.FirebaseToken)
 }
 
 func (u *userHandler) PutFirebaseToken(ctx *gin.Context) {
@@ -180,7 +167,7 @@ func (u *userHandler) PutFirebaseToken(ctx *gin.Context) {
 		return
 	}
 
-	if err := u.controller.PutFirebaseToken(ctx, user.Token, token); err != nil {
+	if err := u.controller.PutFirebaseTokenByUserID(ctx, user.Id, token); err != nil {
 		u.Error(ctx, err)
 		return
 	}
@@ -189,6 +176,15 @@ func (u *userHandler) PutFirebaseToken(ctx *gin.Context) {
 }
 
 func (u *userHandler) SignOutUser(ctx *gin.Context) {
+	refreshToken, err := ctx.Cookie("refresh")
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, "no cookie")
+	}
+
+	if err = u.controller.SignOut(ctx, refreshToken); err != nil {
+		u.Error(ctx, err)
+	}
+
 	ctx.SetCookie("access", "", -1, "", "", false, false)
 	ctx.SetCookie("refresh", "", -1, "", "", false, false)
 
@@ -196,7 +192,7 @@ func (u *userHandler) SignOutUser(ctx *gin.Context) {
 }
 
 func (u *userHandler) RevokeToken(ctx *gin.Context) {
-	token, err := ctx.Cookie("authToken")
+	token, err := ctx.Cookie("refresh")
 	if err != nil {
 		ctx.JSON(http.StatusForbidden, "token not present")
 		return
@@ -209,4 +205,16 @@ func (u *userHandler) RevokeToken(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, token)
+}
+
+func (u *userHandler) TerminateSession(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+	ip := ctx.Param("ip")
+
+	err := u.controller.TerminateSession(ctx, user, ip)
+	if err != nil {
+		u.Error(ctx, err)
+	}
+
+	ctx.JSON(http.StatusOK, ip)
 }

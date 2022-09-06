@@ -9,25 +9,25 @@ import (
 
 type UserRepository interface {
 	GetUserByID(ctx context.Context, id primitive.ObjectID) (entities.User, error)
-	GetUserViaToken(ctx context.Context, token string, permissions ...string) (entities.User, error)
 	GetUserViaRefreshToken(ctx context.Context, refreshToken string) (entities.User, error)
 	GetUserByEmail(ctx context.Context, email string) (entities.User, error)
 
 	SignUp(ctx context.Context, user entities.User) (primitive.ObjectID, error)
 	SignUpStage1(ctx context.Context, user entities.User) error
 
-	GetUserByLogin(ctx context.Context, email string) (entities.User, error)
+	DeleteSessionByRefreshToken(ctx context.Context, token string) error
+	DeleteSessionByIP(ctx context.Context, id primitive.ObjectID, ip string) error
 
 	UpdateUser(ctx context.Context, user entities.User) error
 	UpdateUserByID(ctx context.Context, user entities.User) error
 
-	SetRefreshToken(ctx context.Context, old string, new string) error
-	SetRefreshTokenByUserID(ctx context.Context, refresh string, id primitive.ObjectID) error
+	SetRefreshToken(ctx context.Context, old string, session entities.Session) error
+	AddSessionByUserID(ctx context.Context, session entities.Session, id primitive.ObjectID, sessionsAmount int) error
 	RevokeToken(ctx context.Context, token string) error
 	UpdateToken(ctx context.Context, id primitive.ObjectID, token string) error
 	UpdateUserTokenByEmail(ctx context.Context, email, token string) error
 
-	PutFirebaseToken(ctx context.Context, token string, firebaseToken string) error
+	PutFirebaseTokenByUserID(ctx context.Context, id primitive.ObjectID, firebaseToken string) error
 }
 
 type userRepository struct {
@@ -43,19 +43,8 @@ func (u *userRepository) GetUserByID(ctx context.Context, id primitive.ObjectID)
 	return
 }
 
-func (u *userRepository) GetUserViaToken(ctx context.Context, token string, permissions ...string) (entities.User, error) {
-	var user entities.User
-
-	filter := bson.M{"token": token}
-	if len(permissions) != 0 {
-		filter["permissions"] = bson.M{"$all": permissions}
-	}
-	err := u.usersCollection.FindOne(ctx, filter).Decode(&user)
-	return user, err
-}
-
 func (u *userRepository) GetUserViaRefreshToken(ctx context.Context, refreshToken string) (user entities.User, err error) {
-	err = u.usersCollection.FindOne(ctx, bson.M{"refreshToken": refreshToken}).Decode(&user)
+	err = u.usersCollection.FindOne(ctx, bson.M{"sessions.refreshToken": refreshToken}).Decode(&user)
 	return
 }
 
@@ -69,19 +58,22 @@ func (u *userRepository) SignUp(ctx context.Context, user entities.User) (primit
 }
 
 func (u *userRepository) SignUpStage1(ctx context.Context, user entities.User) error {
-	_, err := u.usersCollection.UpdateOne(ctx, bson.M{"token": user.Token}, bson.M{"$set": user})
+	_, err := u.usersCollection.UpdateByID(ctx, user.Id, bson.M{"$set": user})
 	return err
 }
 
-func (u *userRepository) GetUserByLogin(ctx context.Context, email string) (entities.User, error) {
-	var user entities.User
-	err := u.usersCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
+func (u *userRepository) DeleteSessionByRefreshToken(ctx context.Context, token string) error {
+	_, err := u.usersCollection.UpdateOne(ctx, bson.M{}, bson.M{"$pull": bson.M{"sessions": bson.M{"refreshToken": token}}})
+	return err
+}
 
-	return user, err
+func (u *userRepository) DeleteSessionByIP(ctx context.Context, id primitive.ObjectID, ip string) error {
+	_, err := u.usersCollection.UpdateByID(ctx, id, bson.M{"$pull": bson.M{"sessions": bson.M{"ip": ip}}})
+	return err
 }
 
 func (u *userRepository) UpdateUser(ctx context.Context, user entities.User) error {
-	_, err := u.usersCollection.UpdateOne(ctx, bson.M{"token": user.Token}, bson.M{"$set": user})
+	_, err := u.usersCollection.UpdateByID(ctx, user.Id, bson.M{"$set": user})
 	return err
 }
 
@@ -90,18 +82,23 @@ func (u *userRepository) UpdateUserByID(ctx context.Context, user entities.User)
 	return err
 }
 
-func (u *userRepository) SetRefreshToken(ctx context.Context, old, new string) error {
-	_, err := u.usersCollection.UpdateOne(ctx, bson.M{"refreshToken": old}, bson.M{"$set": bson.M{"refreshToken": new}})
+func (u *userRepository) SetRefreshToken(ctx context.Context, old string, session entities.Session) error {
+	_, err := u.usersCollection.UpdateOne(ctx, bson.M{"sessions.refreshToken": old}, bson.M{"$set": bson.M{"sessions.$": session}})
 	return err
 }
 
-func (u *userRepository) SetRefreshTokenByUserID(ctx context.Context, refresh string, id primitive.ObjectID) error {
-	_, err := u.usersCollection.UpdateByID(ctx, id, bson.M{"$set": bson.M{"refreshToken": refresh}})
+func (u *userRepository) AddSessionByUserID(ctx context.Context, session entities.Session, id primitive.ObjectID, sessionsAmount int) error {
+	query := bson.M{"$addToSet": bson.M{"sessions": session}}
+	if sessionsAmount == 0 {
+		query = bson.M{"$set": bson.M{"sessions": bson.A{session}}}
+	}
+
+	_, err := u.usersCollection.UpdateByID(ctx, id, query)
 	return err
 }
 
 func (u *userRepository) RevokeToken(ctx context.Context, token string) error {
-	_, err := u.usersCollection.UpdateOne(ctx, bson.M{"token": token}, bson.M{"$set": bson.M{"token": ""}})
+	_, err := u.usersCollection.UpdateOne(ctx, bson.M{"sessions.refreshToken": token}, bson.M{"$set": bson.M{"sessions": bson.A{}}})
 	return err
 }
 
@@ -122,7 +119,7 @@ func (u *userRepository) GetUserByEmail(ctx context.Context, email string) (enti
 	return user, err
 }
 
-func (u *userRepository) PutFirebaseToken(ctx context.Context, token string, firebaseToken string) error {
-	_, err := u.usersCollection.UpdateOne(ctx, bson.M{"token": token}, bson.M{"$set": bson.M{"firebaseToken": firebaseToken}})
+func (u *userRepository) PutFirebaseTokenByUserID(ctx context.Context, id primitive.ObjectID, firebaseToken string) error {
+	_, err := u.usersCollection.UpdateByID(ctx, id, bson.M{"$set": bson.M{"firebaseToken": firebaseToken}})
 	return err
 }

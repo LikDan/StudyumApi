@@ -14,23 +14,24 @@ import (
 	"studyum/internal/repositories"
 	"studyum/pkg/hash"
 	"studyum/pkg/jwt"
+	"time"
 )
 
 type UserController interface {
 	UpdateUser(ctx context.Context, user entities.User, data dto.EditUserDTO) (jwt.TokenPair, error)
 
-	LoginUser(ctx context.Context, data dto.UserLoginDTO) (entities.User, jwt.TokenPair, error)
+	LoginUser(ctx context.Context, data dto.UserLoginDTO, ip string) (entities.User, jwt.TokenPair, error)
 	SignUpUser(ctx context.Context, data dto.UserSignUpDTO) (entities.User, error)
 	SignUpUserStage1(ctx context.Context, user entities.User, data dto.UserSignUpStage1DTO) (entities.User, error)
+	SignOut(ctx context.Context, refreshToken string) error
 
-	UpdateTokenByID(ctx context.Context, id primitive.ObjectID, token string) error
 	RevokeToken(ctx context.Context, token string) error
+	TerminateSession(ctx context.Context, user entities.User, ip string) error
 
-	GetUserViaToken(ctx context.Context, token string) (entities.User, error)
 	CallbackOAuth2(ctx context.Context, code string) (entities.User, error)
 	GetOAuth2ConfigByName(name string) *oauth2.Config
 
-	PutFirebaseToken(ctx context.Context, token string, firebaseToken string) error
+	PutFirebaseTokenByUserID(ctx context.Context, id primitive.ObjectID, firebaseToken string) error
 }
 
 type userController struct {
@@ -83,6 +84,10 @@ func (u *userController) SignUpUserStage1(ctx context.Context, user entities.Use
 	return user, nil
 }
 
+func (u *userController) SignOut(ctx context.Context, refreshToken string) error {
+	return u.repository.DeleteSessionByRefreshToken(ctx, refreshToken)
+}
+
 func (u *userController) UpdateUser(ctx context.Context, user entities.User, data dto.EditUserDTO) (jwt.TokenPair, error) {
 	if data.Password != "" && len(data.Password) > 8 {
 		password, err := hash.Hash(data.Password)
@@ -114,8 +119,8 @@ func (u *userController) UpdateUser(ctx context.Context, user entities.User, dat
 	return pair, nil
 }
 
-func (u *userController) LoginUser(ctx context.Context, data dto.UserLoginDTO) (entities.User, jwt.TokenPair, error) {
-	user, err := u.repository.GetUserByLogin(ctx, data.Email)
+func (u *userController) LoginUser(ctx context.Context, data dto.UserLoginDTO, ip string) (entities.User, jwt.TokenPair, error) {
+	user, err := u.repository.GetUserByEmail(ctx, data.Email)
 	if err != nil {
 		return entities.User{}, jwt.TokenPair{}, err
 	}
@@ -135,26 +140,29 @@ func (u *userController) LoginUser(ctx context.Context, data dto.UserLoginDTO) (
 		return entities.User{}, jwt.TokenPair{}, err
 	}
 
-	if err = u.repository.SetRefreshTokenByUserID(ctx, pair.Refresh, user.Id); err != nil {
+	session := entities.Session{
+		RefreshToken: pair.Refresh,
+		IP:           ip,
+		LastOnline:   time.Now(),
+	}
+
+	if err = u.repository.AddSessionByUserID(ctx, session, user.Id, len(user.Sessions)); err != nil {
 		return entities.User{}, jwt.TokenPair{}, err
 	}
 
 	return user, pair, nil
 }
 
-func (u *userController) UpdateTokenByID(ctx context.Context, id primitive.ObjectID, token string) error {
-	return u.repository.UpdateToken(ctx, id, token)
-}
-
 func (u *userController) RevokeToken(ctx context.Context, token string) error {
 	return u.repository.RevokeToken(ctx, token)
 }
-func (u *userController) GetOAuth2ConfigByName(name string) *oauth2.Config {
-	return Configs[name]
+
+func (u *userController) TerminateSession(ctx context.Context, user entities.User, ip string) error {
+	return u.repository.DeleteSessionByIP(ctx, user.Id, ip)
 }
 
-func (u *userController) GetUserViaToken(ctx context.Context, token string) (entities.User, error) {
-	return u.repository.GetUserViaToken(ctx, token)
+func (u *userController) GetOAuth2ConfigByName(name string) *oauth2.Config {
+	return Configs[name]
 }
 
 func (u *userController) CallbackOAuth2(ctx context.Context, code string) (entities.User, error) {
@@ -191,7 +199,6 @@ func (u *userController) CallbackOAuth2(ctx context.Context, code string) (entit
 		}
 		user = entities.User{
 			Id:            primitive.NewObjectID(),
-			Token:         hash.GenerateSecureToken(),
 			Email:         googleUser.Email,
 			VerifiedEmail: googleUser.VerifiedEmail,
 			Login:         googleUser.Name,
@@ -214,6 +221,6 @@ func (u *userController) CallbackOAuth2(ctx context.Context, code string) (entit
 	return user, nil
 }
 
-func (u *userController) PutFirebaseToken(ctx context.Context, token string, firebaseToken string) error {
-	return u.repository.PutFirebaseToken(ctx, token, firebaseToken)
+func (u *userController) PutFirebaseTokenByUserID(ctx context.Context, token primitive.ObjectID, firebaseToken string) error {
+	return u.repository.PutFirebaseTokenByUserID(ctx, token, firebaseToken)
 }

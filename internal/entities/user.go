@@ -4,7 +4,6 @@ import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type User struct {
 	Id            primitive.ObjectID `json:"id" bson:"_id"`
-	Token         string             `json:"-" bson:"token"`
 	Password      string             `json:"password" bson:"password"`
 	Email         string             `json:"email" bson:"email"`
 	FirebaseToken string             `json:"-" bson:"firebaseToken"`
@@ -18,6 +17,7 @@ type User struct {
 	Permissions   []string           `json:"permissions" bson:"permissions"`
 	Accepted      bool               `json:"accepted" bson:"accepted"`
 	Blocked       bool               `json:"blocked" bson:"blocked"`
+	Sessions      []Session          `json:"sessions" bson:"sessions"`
 }
 
 type OAuth2CallbackUser struct {

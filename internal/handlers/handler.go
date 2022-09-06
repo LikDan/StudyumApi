@@ -34,7 +34,7 @@ func (h *handler) authViaAccessToken(ctx *gin.Context, permissions ...string) er
 		return err
 	}
 
-	user, err := h.controller.AuthJWT(ctx, token, permissions...)
+	user, err := h.controller.Auth(ctx, token, permissions...)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (h *handler) authViaRefreshToken(ctx *gin.Context, permissions ...string) e
 		return err
 	}
 
-	user, pair, err := h.controller.AuthJWTByRefreshToken(ctx, refreshToken, permissions...)
+	user, pair, err := h.controller.AuthJWTByRefreshToken(ctx, refreshToken, ctx.ClientIP(), permissions...)
 	if err != nil {
 		return err
 	}
