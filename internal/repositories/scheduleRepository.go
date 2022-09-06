@@ -81,7 +81,7 @@ func (s *scheduleRepository) GetSchedule(ctx context.Context, studyPlaceId primi
 						},
 					}, bson.M{
 						"$addFields": bson.M{
-							"type":      "GENERAL",
+							"isGeneral": true,
 							"startDate": bson.M{"$toDate": bson.M{"$concat": bson.A{bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$$date"}}, "T", "$startTime"}}},
 							"endDate":   bson.M{"$toDate": bson.M{"$concat": bson.A{bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$$date"}}, "T", "$endTime"}}},
 						},
@@ -107,6 +107,7 @@ func (s *scheduleRepository) GetSchedule(ctx context.Context, studyPlaceId primi
 						},
 					}, bson.M{
 						"$addFields": bson.M{
+							"isGeneral": false,
 							"startDate": "$startDate",
 							"endDate":   "$endDate",
 						},

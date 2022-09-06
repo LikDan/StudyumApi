@@ -26,6 +26,7 @@ type Lesson struct {
 	Title          string                  `json:"title" bson:"title"`
 	Homework       string                  `json:"homework" bson:"homework"`
 	Description    string                  `json:"description" bson:"description"`
+	IsGeneral      bool                    `json:"isGeneral" bson:"isGeneral"`
 	ParsedInfo     entities.ParsedInfoType `json:"-" bson:"parsedInfo"`
 }
 
