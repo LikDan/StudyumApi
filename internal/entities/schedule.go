@@ -18,11 +18,11 @@ type Lesson struct {
 	SecondaryColor string                  `json:"secondaryColor" bson:"secondaryColor"`
 	EndDate        time.Time               `json:"endDate" bson:"endDate"`
 	StartDate      time.Time               `json:"startDate" bson:"startDate"`
+	Marks          []Mark                  `json:"marks" bson:"marks"`
 	Subject        string                  `json:"subject" bson:"subject"`
 	Group          string                  `json:"group" bson:"group"`
 	Teacher        string                  `json:"teacher" bson:"teacher"`
 	Room           string                  `json:"room" bson:"room"`
-	Marks          []Mark                  `json:"marks" bson:"-"`
 	Title          string                  `json:"title" bson:"title"`
 	Homework       string                  `json:"homework" bson:"homework"`
 	Description    string                  `json:"description" bson:"description"`

@@ -7,7 +7,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/internal/parser/appDTO"
 	"studyum/internal/parser/apps"
-	"studyum/internal/parser/apps/kbp"
 	"studyum/internal/parser/dto"
 	"studyum/internal/parser/entities"
 	"studyum/internal/parser/repository"
@@ -48,7 +47,7 @@ func NewParserController(repository repository.Repository, firebase firebase.Fir
 	return &controller{
 		repository: repository,
 		firebase:   firebase,
-		apps:       []apps.App{kbp.NewApp()},
+		apps:       []apps.App{},
 	}
 }
 
