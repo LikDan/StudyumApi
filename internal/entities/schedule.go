@@ -16,6 +16,7 @@ type Lesson struct {
 	StudyPlaceId   primitive.ObjectID      `json:"studyPlaceId" bson:"studyPlaceId"`
 	PrimaryColor   string                  `json:"primaryColor" bson:"primaryColor"`
 	SecondaryColor string                  `json:"secondaryColor" bson:"secondaryColor"`
+	Type           string                  `json:"type" bson:"type"`
 	EndDate        time.Time               `json:"endDate" bson:"endDate"`
 	StartDate      time.Time               `json:"startDate" bson:"startDate"`
 	Marks          []Mark                  `json:"marks" bson:"marks"`

@@ -18,6 +18,10 @@ type ScheduleHandler interface {
 	UpdateLesson(ctx *gin.Context)
 	DeleteLesson(ctx *gin.Context)
 
+	AddGeneralLessons(ctx *gin.Context)
+
+	AddLessons(ctx *gin.Context)
+
 	SaveCurrentScheduleAsGeneral(ctx *gin.Context)
 }
 
@@ -39,6 +43,9 @@ func NewScheduleHandler(authHandler Handler, controller controllers.ScheduleCont
 	group.POST("", h.Auth("editSchedule"), h.AddLesson)
 	group.PUT("", h.Auth("editSchedule"), h.UpdateLesson)
 	group.DELETE(":id", h.Auth("editSchedule"), h.DeleteLesson)
+
+	group.POST("/list", h.Auth("editSchedule"), h.AddLessons)
+	group.POST("/general/list", h.Auth("editSchedule"), h.AddGeneralLessons)
 
 	group.POST("/makeGeneral", h.Auth("editSchedule"), h.SaveCurrentScheduleAsGeneral)
 
@@ -99,6 +106,42 @@ func (s *scheduleHandler) AddLesson(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, lesson)
+}
+
+func (s *scheduleHandler) AddLessons(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	var lessonsDTO []dto.AddLessonDTO
+	if err := ctx.BindJSON(&lessonsDTO); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	lessons, err := s.controller.AddLessons(ctx, user, lessonsDTO)
+	if err != nil {
+		s.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, lessons)
+}
+
+func (s *scheduleHandler) AddGeneralLessons(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	var lessonsDTO []dto.AddGeneralLessonDTO
+	if err := ctx.BindJSON(&lessonsDTO); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	lessons, err := s.controller.AddGeneralLessons(ctx, user, lessonsDTO)
+	if err != nil {
+		s.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, lessons)
 }
 
 func (s *scheduleHandler) UpdateLesson(ctx *gin.Context) {

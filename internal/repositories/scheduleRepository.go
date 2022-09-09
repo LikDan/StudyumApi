@@ -14,6 +14,8 @@ type ScheduleRepository interface {
 	GetSchedule(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string, typeName string, asPreview bool) (entities.Schedule, error)
 	GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string) []string
 
+	AddLessons(ctx context.Context, lessons []entities.Lesson) error
+	AddGeneralLessons(ctx context.Context, lessons []entities.GeneralLesson) error
 	AddLesson(ctx context.Context, lesson entities.Lesson) (primitive.ObjectID, error)
 	UpdateLesson(ctx context.Context, lesson entities.Lesson) error
 	FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId primitive.ObjectID) (entities.Lesson, error)
@@ -260,6 +262,21 @@ func (s *scheduleRepository) GetScheduleType(ctx context.Context, studyPlaceId p
 	}
 
 	return names
+}
+
+func (s *scheduleRepository) AddGeneralLessons(ctx context.Context, lessons []entities.GeneralLesson) error {
+	_, err := s.generalLessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": lessons[0].StudyPlaceId})
+	if err != nil {
+		return err
+	}
+
+	_, err = s.generalLessonsCollection.InsertMany(ctx, slicetools.ToInterface(lessons))
+	return err
+}
+
+func (s *scheduleRepository) AddLessons(ctx context.Context, lessons []entities.Lesson) error {
+	_, err := s.lessonsCollection.InsertMany(ctx, slicetools.ToInterface(lessons))
+	return err
 }
 
 func (s *scheduleRepository) AddLesson(ctx context.Context, lesson entities.Lesson) (primitive.ObjectID, error) {

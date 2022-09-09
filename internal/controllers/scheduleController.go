@@ -17,6 +17,8 @@ type ScheduleController interface {
 
 	GetScheduleTypes(ctx context.Context, user entities.User, idHex string) entities.Types
 
+	AddGeneralLessons(ctx context.Context, user entities.User, lessonsDTO []dto.AddGeneralLessonDTO) ([]entities.GeneralLesson, error)
+	AddLessons(ctx context.Context, user entities.User, lessonsDTO []dto.AddLessonDTO) ([]entities.Lesson, error)
 	AddLesson(ctx context.Context, lesson dto.AddLessonDTO, user entities.User) (entities.Lesson, error)
 	UpdateLesson(ctx context.Context, lesson dto.UpdateLessonDTO, user entities.User) error
 	DeleteLesson(ctx context.Context, idHex string, user entities.User) error
@@ -69,6 +71,67 @@ func (s *scheduleController) GetScheduleTypes(ctx context.Context, user entities
 		Subjects: s.repository.GetScheduleType(ctx, studyPlaceID, "subject"),
 		Rooms:    s.repository.GetScheduleType(ctx, studyPlaceID, "room"),
 	}
+}
+
+func (s *scheduleController) AddGeneralLessons(ctx context.Context, user entities.User, lessonsDTO []dto.AddGeneralLessonDTO) ([]entities.GeneralLesson, error) {
+	lessons := make([]entities.GeneralLesson, len(lessonsDTO))
+	for _, lessonDTO := range lessonsDTO {
+		if err := s.validator.AddGeneralLesson(lessonDTO); err != nil {
+			return nil, err
+		}
+
+		lesson := entities.GeneralLesson{
+			Id:             primitive.NewObjectID(),
+			StudyPlaceId:   user.StudyPlaceId,
+			PrimaryColor:   lessonDTO.PrimaryColor,
+			SecondaryColor: lessonDTO.SecondaryColor,
+			StartTime:      lessonDTO.StartTime,
+			EndTime:        lessonDTO.EndTime,
+			Subject:        lessonDTO.Subject,
+			Group:          lessonDTO.Group,
+			Teacher:        lessonDTO.Teacher,
+			Room:           lessonDTO.Room,
+			DayIndex:       lessonDTO.DayIndex,
+			WeekIndex:      lessonDTO.WeekIndex,
+		}
+		lessons = append(lessons, lesson)
+	}
+
+	if err := s.repository.AddGeneralLessons(ctx, lessons); err != nil {
+		return nil, err
+	}
+
+	return lessons, nil
+}
+
+func (s *scheduleController) AddLessons(ctx context.Context, user entities.User, lessonsDTO []dto.AddLessonDTO) ([]entities.Lesson, error) {
+	lessons := make([]entities.Lesson, len(lessonsDTO))
+	for _, lessonDTO := range lessonsDTO {
+		if err := s.validator.AddLesson(lessonDTO); err != nil {
+			return nil, err
+		}
+
+		lesson := entities.Lesson{
+			Id:             primitive.NewObjectID(),
+			StudyPlaceId:   user.StudyPlaceId,
+			PrimaryColor:   lessonDTO.PrimaryColor,
+			SecondaryColor: lessonDTO.SecondaryColor,
+			Type:           lessonDTO.Type,
+			EndDate:        lessonDTO.EndDate,
+			StartDate:      lessonDTO.StartDate,
+			Subject:        lessonDTO.Subject,
+			Group:          lessonDTO.Group,
+			Teacher:        lessonDTO.Teacher,
+			Room:           lessonDTO.Room,
+		}
+		lessons = append(lessons, lesson)
+	}
+
+	if err := s.repository.AddLessons(ctx, lessons); err != nil {
+		return nil, err
+	}
+
+	return lessons, nil
 }
 
 func (s *scheduleController) AddLesson(ctx context.Context, dto dto.AddLessonDTO, user entities.User) (entities.Lesson, error) {
