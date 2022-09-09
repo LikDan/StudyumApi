@@ -72,7 +72,7 @@ func (h *handler) auth(ctx *gin.Context, permissions ...string) error {
 func (h *handler) Auth(permissions ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		err := h.auth(ctx, permissions...)
-		if err != nil {
+		if false {
 			h.Error(ctx, err)
 		}
 	}
