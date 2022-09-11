@@ -69,11 +69,27 @@ func (h *handler) auth(ctx *gin.Context, permissions ...string) error {
 	return nil
 }
 
+func (h *handler) authViaApiToken(ctx *gin.Context) bool {
+	accessToken := ctx.GetHeader("ApiToken")
+	if accessToken == "" {
+		return false
+	}
+
+	user, err := h.controller.AuthViaApiToken(ctx, accessToken)
+	if err != nil {
+		return false
+	}
+
+	ctx.Set("user", user)
+	return true
+}
+
 func (h *handler) Auth(permissions ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		err := h.auth(ctx, permissions...)
-		if err != nil {
-			h.Error(ctx, err)
+		if err := h.auth(ctx, permissions...); err != nil {
+			if !h.authViaApiToken(ctx) {
+				h.Error(ctx, err)
+			}
 		}
 	}
 }

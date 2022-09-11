@@ -15,18 +15,20 @@ var NotAuthorizationError = errors.New("not authorized")
 type Controller interface {
 	Auth(ctx context.Context, token string, permissions ...string) (entities.User, error)
 	AuthJWTByRefreshToken(ctx context.Context, token string, ip string, permissions ...string) (entities.User, jwt.TokenPair, error)
+	AuthViaApiToken(ctx context.Context, token string) (entities.User, error)
 
 	GetClaims(ctx context.Context, refreshToken string) (error, entities.JWTClaims)
 }
 
 type controller struct {
-	repository repositories.UserRepository
+	userRepository    repositories.UserRepository
+	generalRepository repositories.GeneralRepository
 
 	jwt jwt.JWT[entities.JWTClaims]
 }
 
-func NewController(jwt jwt.JWT[entities.JWTClaims], repository repositories.UserRepository) Controller {
-	return &controller{repository: repository, jwt: jwt}
+func NewController(jwt jwt.JWT[entities.JWTClaims], userRepository repositories.UserRepository, generalRepository repositories.GeneralRepository) Controller {
+	return &controller{userRepository: userRepository, generalRepository: generalRepository, jwt: jwt}
 }
 
 func (c *controller) Auth(ctx context.Context, token string, permissions ...string) (entities.User, error) {
@@ -49,7 +51,7 @@ func (c *controller) Auth(ctx context.Context, token string, permissions ...stri
 		}
 	}
 
-	user, err := c.repository.GetUserByID(ctx, claims.Claims.ID)
+	user, err := c.userRepository.GetUserByID(ctx, claims.Claims.ID)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return entities.User{}, NotAuthorizationError
@@ -69,7 +71,7 @@ func (c *controller) UpdateJWTTokensViaNewSession(ctx context.Context, session e
 
 	old := session.RefreshToken
 	session.RefreshToken = pair.Refresh
-	err = c.repository.SetRefreshToken(ctx, old, session)
+	err = c.userRepository.SetRefreshToken(ctx, old, session)
 	return err, pair
 }
 
@@ -92,8 +94,22 @@ func (c *controller) AuthJWTByRefreshToken(ctx context.Context, token string, ip
 	return user, pair, nil
 }
 
+func (c *controller) AuthViaApiToken(ctx context.Context, token string) (entities.User, error) {
+	err, studyPlace := c.generalRepository.GetStudyPlaceByApiToken(ctx, token)
+	if err != nil {
+		return entities.User{}, err
+	}
+
+	user, err := c.userRepository.GetUserByID(ctx, studyPlace.AdminID)
+	if err != nil {
+		return entities.User{}, err
+	}
+
+	return user, nil
+}
+
 func (c *controller) GetClaims(ctx context.Context, refreshToken string) (error, entities.JWTClaims) {
-	user, err := c.repository.GetUserViaRefreshToken(ctx, refreshToken)
+	user, err := c.userRepository.GetUserViaRefreshToken(ctx, refreshToken)
 	if err != nil {
 		if errors.Is(mongo.ErrNoDocuments, err) {
 			return NotAuthorizationError, entities.JWTClaims{}
