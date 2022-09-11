@@ -9,6 +9,7 @@ import (
 	"studyum/internal/entities"
 	parser "studyum/internal/parser/handler"
 	"studyum/internal/repositories"
+	"time"
 )
 
 type ScheduleController interface {
@@ -22,6 +23,8 @@ type ScheduleController interface {
 	AddLesson(ctx context.Context, lesson dto.AddLessonDTO, user entities.User) (entities.Lesson, error)
 	UpdateLesson(ctx context.Context, lesson dto.UpdateLessonDTO, user entities.User) error
 	DeleteLesson(ctx context.Context, idHex string, user entities.User) error
+	RemoveLessonBetweenDates(ctx context.Context, user entities.User, date1, date2 time.Time) error
+
 	SaveCurrentScheduleAsGeneral(ctx context.Context, user entities.User, type_ string, typeName string) error
 }
 
@@ -241,4 +244,12 @@ func (s *scheduleController) SaveCurrentScheduleAsGeneral(ctx context.Context, u
 	}
 
 	return nil
+}
+
+func (s *scheduleController) RemoveLessonBetweenDates(ctx context.Context, user entities.User, date1, date2 time.Time) error {
+	if !date1.Before(date2) {
+		return errors.Wrap(validators.ValidationError, "start time is after end time")
+	}
+
+	return s.repository.RemoveLessonBetweenDates(ctx, date1, date2, user.StudyPlaceId)
 }

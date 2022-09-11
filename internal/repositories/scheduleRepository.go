@@ -20,6 +20,7 @@ type ScheduleRepository interface {
 	UpdateLesson(ctx context.Context, lesson entities.Lesson) error
 	FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId primitive.ObjectID) (entities.Lesson, error)
 	UpdateGeneralSchedule(ctx context.Context, lessons []entities.GeneralLesson, type_ string, typeName string) error
+	RemoveLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID) error
 
 	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace entities.StudyPlace)
 }
@@ -185,7 +186,7 @@ func (s *scheduleRepository) GetSchedule(ctx context.Context, studyPlaceID primi
 									}, "T", "$endTime"},
 								},
 							},
-							"isGeneral": false,
+							"isGeneral": true,
 						},
 					},
 				},
@@ -306,4 +307,9 @@ func (s *scheduleRepository) UpdateGeneralSchedule(ctx context.Context, lessons 
 	}
 
 	return nil
+}
+
+func (s *scheduleRepository) RemoveLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID) error {
+	_, err := s.lessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": id, "startDate": bson.M{"$gte": date1}, "endDate": bson.M{"$lte": date2}})
+	return err
 }
