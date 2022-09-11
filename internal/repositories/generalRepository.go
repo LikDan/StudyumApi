@@ -10,6 +10,7 @@ import (
 type GeneralRepository interface {
 	GetAllStudyPlaces(ctx context.Context, restricted bool) (error, []entities.StudyPlace)
 	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (error, entities.StudyPlace)
+	GetStudyPlaceByApiToken(ctx context.Context, token string) (error, entities.StudyPlace)
 }
 
 type generalRepository struct {
@@ -42,4 +43,9 @@ func (g *generalRepository) GetAllStudyPlaces(ctx context.Context, restricted bo
 	}
 
 	return nil, studyPlaces
+}
+
+func (g *generalRepository) GetStudyPlaceByApiToken(ctx context.Context, token string) (err error, studyPlace entities.StudyPlace) {
+	err = g.studyPlacesCollection.FindOne(ctx, bson.M{"apiToken": token}).Decode(&studyPlace)
+	return
 }
