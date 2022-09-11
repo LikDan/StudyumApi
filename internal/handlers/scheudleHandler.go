@@ -6,6 +6,7 @@ import (
 	"studyum/internal/controllers"
 	"studyum/internal/dto"
 	"studyum/internal/utils"
+	"time"
 )
 
 type ScheduleHandler interface {
@@ -21,6 +22,7 @@ type ScheduleHandler interface {
 	AddGeneralLessons(ctx *gin.Context)
 
 	AddLessons(ctx *gin.Context)
+	RemoveLessonsBetweenDates(ctx *gin.Context)
 
 	SaveCurrentScheduleAsGeneral(ctx *gin.Context)
 }
@@ -43,6 +45,7 @@ func NewScheduleHandler(authHandler Handler, controller controllers.ScheduleCont
 	group.POST("", h.Auth("editSchedule"), h.AddLesson)
 	group.PUT("", h.Auth("editSchedule"), h.UpdateLesson)
 	group.DELETE(":id", h.Auth("editSchedule"), h.DeleteLesson)
+	group.DELETE("between/:startDate/:endDate", h.Auth("editSchedule"), h.RemoveLessonsBetweenDates)
 
 	group.POST("/list", h.Auth("editSchedule"), h.AddLessons)
 	group.POST("/general/list", h.Auth("editSchedule"), h.AddGeneralLessons)
@@ -188,4 +191,27 @@ func (s *scheduleHandler) SaveCurrentScheduleAsGeneral(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, "successful")
+}
+
+func (s *scheduleHandler) RemoveLessonsBetweenDates(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	startDate, err := time.Parse(time.RFC3339, ctx.Param("startDate"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	endDate, err := time.Parse(time.RFC3339, ctx.Param("endDate"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err = s.controller.RemoveLessonBetweenDates(ctx, user, startDate, endDate); err != nil {
+		s.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, "removed")
 }
