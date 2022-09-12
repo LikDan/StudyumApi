@@ -123,8 +123,10 @@ func (u *userController) SignUpUserWithCode(ctx context.Context, ip string, data
 		return entities.User{}, jwt.TokenPair{}, err
 	}
 
-	if err = u.signUpCodesController.RemoveCodeByID(ctx, codeData.Id); err != nil {
-		return entities.User{}, jwt.TokenPair{}, err
+	if codeData.Id != primitive.NilObjectID {
+		if err = u.signUpCodesController.RemoveCodeByID(ctx, codeData.Id); err != nil {
+			return entities.User{}, jwt.TokenPair{}, err
+		}
 	}
 
 	loginData := dto.UserLoginDTO{
