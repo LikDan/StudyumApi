@@ -43,3 +43,10 @@ type ScheduleTypeInfoDTO struct {
 	Group         string
 	Url           string
 }
+
+type SignUpCode struct {
+	Code     string
+	Name     string
+	Type     string
+	Typename string
+}

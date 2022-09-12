@@ -14,6 +14,7 @@ type App interface {
 	GetName() string
 	StudyPlaceId() primitive.ObjectID
 	GetUpdateCronPattern() string
+	LaunchCron() bool
 
 	ScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []appDTO.LessonDTO
 	GeneralScheduleUpdate(typeInfo entities.ScheduleTypeInfo) []appDTO.GeneralLessonDTO
@@ -28,6 +29,8 @@ type App interface {
 	OnLessonAdd(ctx context.Context, lesson entities.Lesson) appDTO.ParsedInfoTypeDTO
 	OnLessonEdit(ctx context.Context, lesson entities.Lesson) appDTO.ParsedInfoTypeDTO
 	OnLessonDelete(ctx context.Context, lesson entities.Lesson)
+
+	GetSignUpDataByCode(ctx context.Context, code string) (appDTO.SignUpCode, error)
 
 	CommitUpdate()
 }

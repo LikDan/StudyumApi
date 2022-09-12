@@ -42,20 +42,6 @@ type ScheduleStateInfo struct {
 	DayIndex  int   `json:"dayIndex"`
 }
 
-func GetScheduleStateInfoByIndexes(states []ScheduleStateInfo, weekIndex, dayIndex int) ScheduleStateInfo {
-	for _, state := range states {
-		if state.WeekIndex == weekIndex && state.DayIndex == dayIndex {
-			return state
-		}
-	}
-
-	return ScheduleStateInfo{
-		State:     NotUpdated,
-		WeekIndex: weekIndex,
-		DayIndex:  dayIndex,
-	}
-}
-
 type Shift struct {
 	Start time.Duration
 	End   time.Duration
@@ -67,4 +53,12 @@ func NewShift(sHour, sMinute, eHour, eMinute int) Shift {
 		Start: time.Duration(sHour*60*60+sMinute*60) * time.Second,
 		End:   time.Duration(eHour*60*60+eMinute*60) * time.Second,
 	}
+}
+
+type SignUpCode struct {
+	Code         string
+	Name         string
+	StudyPlaceID primitive.ObjectID
+	Type         string
+	Typename     string
 }

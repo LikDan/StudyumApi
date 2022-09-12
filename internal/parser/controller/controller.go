@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/internal/parser/appDTO"
 	"studyum/internal/parser/apps"
+	"studyum/internal/parser/apps/kbp"
 	"studyum/internal/parser/dto"
 	"studyum/internal/parser/entities"
 	"studyum/internal/parser/repository"
@@ -33,6 +34,8 @@ type Controller interface {
 	AddLesson(ctx context.Context, lessonDTO dto.LessonDTO)
 	EditLesson(ctx context.Context, lessonDTO dto.LessonDTO)
 	DeleteLesson(ctx context.Context, lessonDTO dto.LessonDTO)
+
+	GetSignUpDataByCode(ctx context.Context, code string) (entities.SignUpCode, error)
 }
 
 type controller struct {
@@ -47,7 +50,7 @@ func NewParserController(repository repository.Repository, firebase firebase.Fir
 	return &controller{
 		repository: repository,
 		firebase:   firebase,
-		apps:       []apps.App{},
+		apps:       []apps.App{kbp.NewApp()},
 	}
 }
 
@@ -377,4 +380,23 @@ func (c *controller) DeleteLesson(ctx context.Context, lessonDTO dto.LessonDTO) 
 
 func (c *controller) GetLastUpdatedDate(ctx context.Context, id primitive.ObjectID) (error, time.Time) {
 	return c.repository.GetLastUpdatedDate(ctx, id)
+}
+
+func (c *controller) GetSignUpDataByCode(ctx context.Context, code string) (entities.SignUpCode, error) {
+	for _, app := range c.apps {
+		codeDTO, err := app.GetSignUpDataByCode(ctx, code)
+		if err != nil {
+			continue
+		}
+
+		return entities.SignUpCode{
+			Code:         codeDTO.Code,
+			Name:         codeDTO.Name,
+			StudyPlaceID: app.StudyPlaceId(),
+			Type:         codeDTO.Type,
+			Typename:     codeDTO.Typename,
+		}, nil
+	}
+
+	return entities.SignUpCode{}, errors.New("bad code")
 }
