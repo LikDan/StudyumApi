@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/oauth2"
@@ -125,7 +126,7 @@ func (u *userController) SignUpUserWithCode(ctx context.Context, ip string, data
 
 	if codeData.Id != primitive.NilObjectID {
 		if err = u.signUpCodesController.RemoveCodeByID(ctx, codeData.Id); err != nil {
-			return entities.User{}, jwt.TokenPair{}, err
+			logrus.Warn("cannot remove code in db err: " + err.Error())
 		}
 	}
 
