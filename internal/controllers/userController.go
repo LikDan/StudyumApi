@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"studyum/internal/dto"
 	"studyum/internal/entities"
+	parser "studyum/internal/parser/handler"
 	"studyum/internal/repositories"
 	"studyum/pkg/hash"
 	"studyum/pkg/jwt"
@@ -40,10 +41,12 @@ type userController struct {
 	signUpCodesController SignUpCodesController
 
 	jwt jwt.JWT[entities.JWTClaims]
+
+	parser parser.Handler
 }
 
-func NewUserController(jwt jwt.JWT[entities.JWTClaims], signUpCodesController SignUpCodesController, repository repositories.UserRepository) UserController {
-	return &userController{repository: repository, signUpCodesController: signUpCodesController, jwt: jwt}
+func NewUserController(jwt jwt.JWT[entities.JWTClaims], signUpCodesController SignUpCodesController, repository repositories.UserRepository, parser parser.Handler) UserController {
+	return &userController{repository: repository, signUpCodesController: signUpCodesController, jwt: jwt, parser: parser}
 }
 
 func (u *userController) SignUpUser(ctx context.Context, data dto.UserSignUpDTO) (entities.User, error) {
@@ -89,7 +92,12 @@ func (u *userController) SignUpUserStage1(ctx context.Context, user entities.Use
 func (u *userController) SignUpUserWithCode(ctx context.Context, ip string, data dto.UserSignUpWithCodeDTO) (entities.User, jwt.TokenPair, error) {
 	codeData, err := u.signUpCodesController.GetDataByCode(ctx, data.Code)
 	if err != nil {
-		return entities.User{}, jwt.TokenPair{}, err
+		appCodeData, err2 := u.parser.GetSignUpDataByCode(ctx, data.Code)
+		if err2 != nil {
+			return entities.User{}, jwt.TokenPair{}, err
+		}
+
+		codeData = appCodeData
 	}
 
 	password, err := hash.Hash(data.Password)

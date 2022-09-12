@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/internal/entities"
 	"studyum/internal/parser/apps"
 	"studyum/internal/parser/controller"
@@ -21,6 +22,8 @@ type Handler interface {
 	AddLesson(lesson entities.Lesson)
 	EditLesson(lesson entities.Lesson)
 	DeleteLesson(lesson entities.Lesson)
+
+	GetSignUpDataByCode(ctx context.Context, code string) (entities.SignUpCode, error)
 }
 
 type handler struct {
@@ -59,6 +62,10 @@ func NewParserHandler(controller controller.Controller) Handler {
 
 func (h *handler) Update(app apps.App) {
 	ctx := context.Background()
+
+	if !app.LaunchCron() {
+		return
+	}
 
 	go h.controller.UpdateSchedule(ctx, app)
 	go h.controller.UpdateJournal(ctx, app)
@@ -155,4 +162,22 @@ func (h *handler) DeleteLesson(lesson entities.Lesson) {
 		Room:           lesson.Room,
 	}
 	h.controller.DeleteLesson(ctx, lessonDTO)
+}
+
+func (h *handler) GetSignUpDataByCode(ctx context.Context, code string) (entities.SignUpCode, error) {
+	codeDTO, err := h.controller.GetSignUpDataByCode(ctx, code)
+	if err != nil {
+		return entities.SignUpCode{}, err
+	}
+
+	codeData := entities.SignUpCode{
+		Id:           primitive.NilObjectID,
+		Code:         codeDTO.Code,
+		Name:         codeDTO.Name,
+		StudyPlaceID: codeDTO.StudyPlaceID,
+		Type:         codeDTO.Type,
+		Typename:     codeDTO.Typename,
+	}
+
+	return codeData, nil
 }

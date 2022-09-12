@@ -58,7 +58,7 @@ func main() {
 	scheduleValidator := validators.NewSchedule(validator.New())
 
 	controller := controllers.NewController(jwtController, userRepository, generalRepository)
-	userController := controllers.NewUserController(jwtController, signUpCodesController, userRepository)
+	userController := controllers.NewUserController(jwtController, signUpCodesController, userRepository, parserHandler)
 	generalController := controllers.NewGeneralController(generalRepository)
 	journalController := controllers.NewJournalController(parserHandler, journalRepository)
 	scheduleController := controllers.NewScheduleController(parserHandler, scheduleValidator, scheduleRepository, generalController)
