@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"studyum/internal/controllers"
 	"studyum/internal/controllers/validators"
+	"studyum/pkg/datetime"
 	"studyum/pkg/jwt"
 )
 
@@ -125,7 +126,8 @@ func (h *handler) Error(ctx *gin.Context, err error) {
 		errors.Is(err, mongo.ErrEmptySlice),
 		errors.Is(err, mongo.ErrNilCursor),
 		errors.Is(err, controllers.NotValidParams),
-		errors.Is(err, validators.ValidationError):
+		errors.Is(err, validators.ValidationError),
+		errors.Is(err, datetime.DurationError):
 		code = http.StatusBadRequest
 		break
 	case errors.Is(err, controllers.NotAuthorizationError),

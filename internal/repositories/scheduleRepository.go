@@ -23,6 +23,7 @@ type ScheduleRepository interface {
 	RemoveLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID) error
 
 	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace entities.StudyPlace)
+	GetGeneralLessons(ctx context.Context, studyPlaceId primitive.ObjectID, weekIndex, dayIndex int) ([]entities.GeneralLesson, error)
 }
 
 type scheduleRepository struct {
@@ -309,7 +310,21 @@ func (s *scheduleRepository) UpdateGeneralSchedule(ctx context.Context, lessons 
 	return nil
 }
 
+func (s *scheduleRepository) GetGeneralLessons(ctx context.Context, studyPlaceId primitive.ObjectID, weekIndex, dayIndex int) ([]entities.GeneralLesson, error) {
+	cursor, err := s.generalLessonsCollection.Find(ctx, bson.M{"studyPlaceId": studyPlaceId, "weekIndex": weekIndex, "dayIndex": dayIndex})
+	if err != nil {
+		return nil, err
+	}
+
+	var lessons []entities.GeneralLesson
+	if err = cursor.All(ctx, &lessons); err != nil {
+		return nil, err
+	}
+
+	return lessons, nil
+}
+
 func (s *scheduleRepository) RemoveLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID) error {
-	_, err := s.lessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": id, "startDate": bson.M{"$gte": date1}, "endDate": bson.M{"$lte": date2}})
+	_, err := s.lessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": id, "startDate": bson.M{"$gte": date1, "$lt": date2}})
 	return err
 }

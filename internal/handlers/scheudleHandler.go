@@ -25,6 +25,7 @@ type ScheduleHandler interface {
 	RemoveLessonsBetweenDates(ctx *gin.Context)
 
 	SaveCurrentScheduleAsGeneral(ctx *gin.Context)
+	SaveGeneralScheduleAsCurrent(ctx *gin.Context)
 }
 
 type scheduleHandler struct {
@@ -51,6 +52,7 @@ func NewScheduleHandler(authHandler Handler, controller controllers.ScheduleCont
 	group.POST("/general/list", h.Auth("editSchedule"), h.AddGeneralLessons)
 
 	group.POST("/makeGeneral", h.Auth("editSchedule"), h.SaveCurrentScheduleAsGeneral)
+	group.POST("/makeCurrent/:date", h.Auth("editSchedule"), h.SaveGeneralScheduleAsCurrent)
 
 	return h
 }
@@ -186,6 +188,24 @@ func (s *scheduleHandler) SaveCurrentScheduleAsGeneral(ctx *gin.Context) {
 
 	err := s.controller.SaveCurrentScheduleAsGeneral(ctx, user, type_, typeName)
 	if err != nil {
+		s.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, "successful")
+}
+
+func (s *scheduleHandler) SaveGeneralScheduleAsCurrent(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	date_ := ctx.Param("date")
+	date, err := time.Parse(time.RFC3339, date_)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err = s.controller.SaveGeneralScheduleAsCurrent(ctx, user, date); err != nil {
 		s.Error(ctx, err)
 		return
 	}
