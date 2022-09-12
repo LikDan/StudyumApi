@@ -4,7 +4,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
 	"studyum/internal/dto"
-	"time"
+	"studyum/pkg/datetime"
 )
 
 type Schedule interface {
@@ -23,12 +23,12 @@ func NewSchedule(validate *validator.Validate) Schedule {
 }
 
 func (s *schedule) AddGeneralLesson(dto dto.AddGeneralLessonDTO) error {
-	startDuration, err := time.ParseDuration(dto.StartTime)
+	startDuration, err := datetime.ParseDuration(dto.StartTime)
 	if err != nil {
 		return err
 	}
 
-	endDuration, err := time.ParseDuration(dto.EndTime)
+	endDuration, err := datetime.ParseDuration(dto.EndTime)
 	if err != nil {
 		return err
 	}

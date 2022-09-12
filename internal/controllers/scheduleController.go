@@ -26,17 +26,19 @@ type ScheduleController interface {
 	RemoveLessonBetweenDates(ctx context.Context, user entities.User, date1, date2 time.Time) error
 
 	SaveCurrentScheduleAsGeneral(ctx context.Context, user entities.User, type_ string, typeName string) error
+	SaveGeneralScheduleAsCurrent(ctx context.Context, user entities.User, date time.Time) error
 }
 
 type scheduleController struct {
 	parser    parser.Handler
 	validator validators.Schedule
 
-	repository repositories.ScheduleRepository
+	repository        repositories.ScheduleRepository
+	generalController GeneralController
 }
 
-func NewScheduleController(parser parser.Handler, validator validators.Schedule, repository repositories.ScheduleRepository) ScheduleController {
-	return &scheduleController{parser: parser, validator: validator, repository: repository}
+func NewScheduleController(parser parser.Handler, validator validators.Schedule, repository repositories.ScheduleRepository, generalController GeneralController) ScheduleController {
+	return &scheduleController{parser: parser, validator: validator, repository: repository, generalController: generalController}
 }
 
 func (s *scheduleController) GetSchedule(ctx context.Context, studyPlaceIDHex string, type_ string, typeName string, user entities.User) (entities.Schedule, error) {
@@ -77,7 +79,7 @@ func (s *scheduleController) GetScheduleTypes(ctx context.Context, user entities
 }
 
 func (s *scheduleController) AddGeneralLessons(ctx context.Context, user entities.User, lessonsDTO []dto.AddGeneralLessonDTO) ([]entities.GeneralLesson, error) {
-	lessons := make([]entities.GeneralLesson, len(lessonsDTO))
+	lessons := make([]entities.GeneralLesson, 0, len(lessonsDTO))
 	for _, lessonDTO := range lessonsDTO {
 		if err := s.validator.AddGeneralLesson(lessonDTO); err != nil {
 			return nil, err
@@ -108,7 +110,7 @@ func (s *scheduleController) AddGeneralLessons(ctx context.Context, user entitie
 }
 
 func (s *scheduleController) AddLessons(ctx context.Context, user entities.User, lessonsDTO []dto.AddLessonDTO) ([]entities.Lesson, error) {
-	lessons := make([]entities.Lesson, len(lessonsDTO))
+	lessons := make([]entities.Lesson, 0, len(lessonsDTO))
 	for _, lessonDTO := range lessonsDTO {
 		if err := s.validator.AddLesson(lessonDTO); err != nil {
 			return nil, err
@@ -207,6 +209,14 @@ func (s *scheduleController) DeleteLesson(ctx context.Context, idHex string, use
 	return nil
 }
 
+func (s *scheduleController) RemoveLessonBetweenDates(ctx context.Context, user entities.User, date1, date2 time.Time) error {
+	if !date1.Before(date2) {
+		return errors.Wrap(validators.ValidationError, "start time is after end time")
+	}
+
+	return s.repository.RemoveLessonBetweenDates(ctx, date1, date2, user.StudyPlaceId)
+}
+
 func (s *scheduleController) SaveCurrentScheduleAsGeneral(ctx context.Context, user entities.User, type_ string, typeName string) error {
 	schedule, err := s.repository.GetSchedule(ctx, user.StudyPlaceId, type_, typeName, false)
 	if err != nil {
@@ -246,10 +256,59 @@ func (s *scheduleController) SaveCurrentScheduleAsGeneral(ctx context.Context, u
 	return nil
 }
 
-func (s *scheduleController) RemoveLessonBetweenDates(ctx context.Context, user entities.User, date1, date2 time.Time) error {
-	if !date1.Before(date2) {
-		return errors.Wrap(validators.ValidationError, "start time is after end time")
+func (s *scheduleController) SaveGeneralScheduleAsCurrent(ctx context.Context, user entities.User, date time.Time) error {
+	startDayDate := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
+
+	err, studyPlace := s.generalController.GetStudyPlaceByID(ctx, user.StudyPlaceId, false)
+	if err != nil {
+		return err
 	}
 
-	return s.repository.RemoveLessonBetweenDates(ctx, date1, date2, user.StudyPlaceId)
+	_, week := date.ISOWeek()
+	weekday := int(date.Weekday()) - 1
+	if weekday == -1 {
+		weekday = 6
+	}
+
+	generalLessons, err := s.repository.GetGeneralLessons(ctx, user.StudyPlaceId, week%studyPlace.WeeksCount, weekday)
+	if err != nil {
+		return err
+	}
+
+	lessons := make([]entities.Lesson, len(generalLessons))
+	for i, generalLesson := range generalLessons {
+		startDate, err := time.Parse("2006-01-02T15:04", date.Format("2006-01-02T")+generalLesson.StartTime)
+		if err != nil {
+			return err
+		}
+
+		endDate, err := time.Parse("2006-01-02T15:04", date.Format("2006-01-02T")+generalLesson.EndTime)
+		if err != nil {
+			return err
+		}
+
+		lesson := entities.Lesson{
+			Id:             primitive.NewObjectID(),
+			StudyPlaceId:   user.StudyPlaceId,
+			PrimaryColor:   generalLesson.PrimaryColor,
+			SecondaryColor: generalLesson.SecondaryColor,
+			Type:           "General",
+			StartDate:      startDate,
+			EndDate:        endDate,
+			Subject:        generalLesson.Subject,
+			Group:          generalLesson.Group,
+			Teacher:        generalLesson.Teacher,
+			Room:           generalLesson.Room,
+			Title:          "",
+			Homework:       "",
+			Description:    "",
+		}
+
+		lessons[i] = lesson
+	}
+
+	if err = s.repository.RemoveLessonBetweenDates(ctx, startDayDate, startDayDate.AddDate(0, 0, 1), user.StudyPlaceId); err != nil {
+		return err
+	}
+	return s.repository.AddLessons(ctx, lessons)
 }
