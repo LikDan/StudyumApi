@@ -23,6 +23,7 @@ type UserController interface {
 	LoginUser(ctx context.Context, data dto.UserLoginDTO, ip string) (entities.User, jwt.TokenPair, error)
 	SignUpUser(ctx context.Context, data dto.UserSignUpDTO) (entities.User, error)
 	SignUpUserStage1(ctx context.Context, user entities.User, data dto.UserSignUpStage1DTO) (entities.User, error)
+	SignUpUserWithCode(ctx context.Context, ip string, data dto.UserSignUpWithCodeDTO) (entities.User, jwt.TokenPair, error)
 	SignOut(ctx context.Context, refreshToken string) error
 
 	RevokeToken(ctx context.Context, token string) error
@@ -35,13 +36,14 @@ type UserController interface {
 }
 
 type userController struct {
-	repository repositories.UserRepository
+	repository            repositories.UserRepository
+	signUpCodesController SignUpCodesController
 
 	jwt jwt.JWT[entities.JWTClaims]
 }
 
-func NewUserController(jwt jwt.JWT[entities.JWTClaims], repository repositories.UserRepository) UserController {
-	return &userController{repository: repository, jwt: jwt}
+func NewUserController(jwt jwt.JWT[entities.JWTClaims], signUpCodesController SignUpCodesController, repository repositories.UserRepository) UserController {
+	return &userController{repository: repository, signUpCodesController: signUpCodesController, jwt: jwt}
 }
 
 func (u *userController) SignUpUser(ctx context.Context, data dto.UserSignUpDTO) (entities.User, error) {
@@ -82,6 +84,47 @@ func (u *userController) SignUpUserStage1(ctx context.Context, user entities.Use
 	}
 
 	return user, nil
+}
+
+func (u *userController) SignUpUserWithCode(ctx context.Context, ip string, data dto.UserSignUpWithCodeDTO) (entities.User, jwt.TokenPair, error) {
+	codeData, err := u.signUpCodesController.GetDataByCode(ctx, data.Code)
+	if err != nil {
+		return entities.User{}, jwt.TokenPair{}, err
+	}
+
+	password, err := hash.Hash(data.Password)
+	if err != nil {
+		return entities.User{}, jwt.TokenPair{}, err
+	}
+
+	user := entities.User{
+		Id:           primitive.NewObjectID(),
+		Password:     password,
+		Email:        data.Email,
+		Login:        data.Login,
+		Name:         codeData.Name,
+		PictureUrl:   "https://www.shareicon.net/data/128x128/2016/07/05/791214_man_512x512.png",
+		Type:         codeData.Type,
+		TypeName:     codeData.Typename,
+		StudyPlaceId: codeData.StudyPlaceID,
+		Accepted:     true,
+	}
+
+	user.Id, err = u.repository.SignUp(ctx, user)
+	if err != nil {
+		return entities.User{}, jwt.TokenPair{}, err
+	}
+
+	if err = u.signUpCodesController.RemoveCodeByID(ctx, codeData.Id); err != nil {
+		return entities.User{}, jwt.TokenPair{}, err
+	}
+
+	loginData := dto.UserLoginDTO{
+		Email:    data.Email,
+		Password: data.Password,
+	}
+
+	return u.LoginUser(ctx, loginData, ip)
 }
 
 func (u *userController) SignOut(ctx context.Context, refreshToken string) error {

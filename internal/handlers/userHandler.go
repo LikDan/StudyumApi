@@ -15,6 +15,7 @@ type UserHandler interface {
 	LoginUser(ctx *gin.Context)
 	SignUpUser(ctx *gin.Context)
 	SignUpUserStage1(ctx *gin.Context)
+	SignUpUserWithToken(ctx *gin.Context)
 	SignOutUser(ctx *gin.Context)
 
 	OAuth2(ctx *gin.Context)
@@ -41,8 +42,8 @@ func NewUserHandler(authHandler Handler, controller controllers.UserController, 
 	group.PUT("", h.Auth(), h.UpdateUser)
 
 	group.PUT("login", h.LoginUser)
+	group.POST("signup/withToken", h.SignUpUserWithToken)
 	group.POST("signup", h.SignUpUser)
-
 	group.PUT("signup/stage1", h.Auth(), h.SignUpUserStage1)
 
 	group.GET("auth/:oauth", h.OAuth2)
@@ -111,6 +112,24 @@ func (u *userHandler) SignUpUser(ctx *gin.Context) {
 		u.Error(ctx, err)
 		return
 	}
+
+	ctx.JSON(http.StatusOK, user)
+}
+
+func (u *userHandler) SignUpUserWithToken(ctx *gin.Context) {
+	var data dto.UserSignUpWithCodeDTO
+	if err := ctx.BindJSON(&data); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	user, pair, err := u.controller.SignUpUserWithCode(ctx, ctx.ClientIP(), data)
+	if err != nil {
+		u.Error(ctx, err)
+		return
+	}
+
+	u.SetTokenPairCookie(ctx, pair)
 
 	ctx.JSON(http.StatusOK, user)
 }
