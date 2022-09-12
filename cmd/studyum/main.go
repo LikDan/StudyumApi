@@ -41,6 +41,10 @@ func main() {
 	parserController := pController.NewParserController(parserRepository, firebase)
 	parserHandler := pHandler.NewParserHandler(parserController)
 
+	codesRepository := repositories.NewCodesRepository(client)
+	signUpCodesRepository := repositories.NewSignUpCodesRepository(codesRepository)
+	signUpCodesController := controllers.NewSignUpCodesController(signUpCodesRepository)
+
 	secret := os.Getenv("JWT_SECRET")
 	expTime := time.Minute * 10
 	jwtController := jwt.New[entities.JWTClaims](expTime, secret)
@@ -54,7 +58,7 @@ func main() {
 	scheduleValidator := validators.NewSchedule(validator.New())
 
 	controller := controllers.NewController(jwtController, userRepository, generalRepository)
-	userController := controllers.NewUserController(jwtController, userRepository)
+	userController := controllers.NewUserController(jwtController, signUpCodesController, userRepository)
 	generalController := controllers.NewGeneralController(generalRepository)
 	journalController := controllers.NewJournalController(parserHandler, journalRepository)
 	scheduleController := controllers.NewScheduleController(parserHandler, scheduleValidator, scheduleRepository, generalController)
