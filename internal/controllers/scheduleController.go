@@ -122,12 +122,16 @@ func (s *scheduleController) AddLessons(ctx context.Context, user entities.User,
 			PrimaryColor:   lessonDTO.PrimaryColor,
 			SecondaryColor: lessonDTO.SecondaryColor,
 			Type:           lessonDTO.Type,
-			EndDate:        lessonDTO.EndDate,
 			StartDate:      lessonDTO.StartDate,
+			EndDate:        lessonDTO.EndDate,
 			Subject:        lessonDTO.Subject,
 			Group:          lessonDTO.Group,
 			Teacher:        lessonDTO.Teacher,
 			Room:           lessonDTO.Room,
+		}
+
+		if err := s.repository.RemoveLessonBetweenDates(ctx, lessonDTO.StartDate, lessonDTO.EndDate, user.StudyPlaceId); err != nil {
+			return nil, err
 		}
 		lessons = append(lessons, lesson)
 	}
