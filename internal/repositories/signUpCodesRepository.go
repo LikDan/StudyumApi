@@ -13,19 +13,19 @@ type SignUpCodesRepository interface {
 }
 
 type signUpCodesRepository struct {
-	*CodesRepository
+	*Repository
 }
 
-func NewSignUpCodesRepository(codesRepository *CodesRepository) SignUpCodesRepository {
-	return &signUpCodesRepository{CodesRepository: codesRepository}
+func NewSignUpCodesRepository(codesRepository *Repository) SignUpCodesRepository {
+	return &signUpCodesRepository{Repository: codesRepository}
 }
 
 func (s *signUpCodesRepository) GetDataByCode(ctx context.Context, code string) (data entities.SignUpCode, err error) {
-	err = s.signUpCollection.FindOne(ctx, bson.M{"code": code}).Decode(&data)
+	err = s.signUpCodesCollection.FindOne(ctx, bson.M{"code": code}).Decode(&data)
 	return
 }
 
 func (s *signUpCodesRepository) RemoveCodeByID(ctx context.Context, id primitive.ObjectID) error {
-	_, err := s.signUpCollection.DeleteOne(ctx, bson.M{"_id": id})
+	_, err := s.signUpCodesCollection.DeleteOne(ctx, bson.M{"_id": id})
 	return err
 }
