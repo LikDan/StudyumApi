@@ -21,6 +21,7 @@ type ScheduleRepository interface {
 	FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId primitive.ObjectID) (entities.Lesson, error)
 	UpdateGeneralSchedule(ctx context.Context, lessons []entities.GeneralLesson, type_ string, typeName string) error
 	RemoveLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID) error
+	RemoveGroupLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID, group string) error
 
 	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace entities.StudyPlace)
 	GetGeneralLessons(ctx context.Context, studyPlaceId primitive.ObjectID, weekIndex, dayIndex int) ([]entities.GeneralLesson, error)
@@ -326,5 +327,10 @@ func (s *scheduleRepository) GetGeneralLessons(ctx context.Context, studyPlaceId
 
 func (s *scheduleRepository) RemoveLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID) error {
 	_, err := s.lessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": id, "startDate": bson.M{"$gte": date1, "$lt": date2}})
+	return err
+}
+
+func (s *scheduleRepository) RemoveGroupLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID, group string) error {
+	_, err := s.lessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": id, "group": group, "startDate": bson.M{"$gte": date1, "$lt": date2}})
 	return err
 }
