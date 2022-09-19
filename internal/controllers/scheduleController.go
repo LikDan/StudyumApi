@@ -130,7 +130,7 @@ func (s *scheduleController) AddLessons(ctx context.Context, user entities.User,
 			Room:           lessonDTO.Room,
 		}
 
-		if err := s.repository.RemoveLessonBetweenDates(ctx, lessonDTO.StartDate, lessonDTO.EndDate, user.StudyPlaceId); err != nil {
+		if err := s.repository.RemoveGroupLessonBetweenDates(ctx, lesson.StartDate, lesson.EndDate, user.StudyPlaceId, lesson.Group); err != nil {
 			return nil, err
 		}
 		lessons = append(lessons, lesson)
