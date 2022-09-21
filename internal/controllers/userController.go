@@ -57,6 +57,7 @@ func (u *userController) SignUpUser(ctx context.Context, data dto.UserSignUpDTO)
 	}
 
 	user := entities.User{
+		Id:            primitive.NewObjectID(),
 		Password:      password,
 		Email:         data.Email,
 		VerifiedEmail: false,
@@ -107,7 +108,7 @@ func (u *userController) SignUpUserWithCode(ctx context.Context, ip string, data
 	}
 
 	user := entities.User{
-		Id:           primitive.NewObjectID(),
+		Id:           codeData.Id,
 		Password:     password,
 		Email:        data.Email,
 		Login:        data.Login,

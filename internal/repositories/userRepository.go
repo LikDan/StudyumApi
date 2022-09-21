@@ -49,7 +49,6 @@ func (u *userRepository) GetUserViaRefreshToken(ctx context.Context, refreshToke
 }
 
 func (u *userRepository) SignUp(ctx context.Context, user entities.User) (primitive.ObjectID, error) {
-	user.Id = primitive.NewObjectID()
 	if _, err := u.usersCollection.InsertOne(ctx, user); err != nil {
 		return primitive.NilObjectID, err
 	}
