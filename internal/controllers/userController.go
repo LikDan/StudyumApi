@@ -31,7 +31,7 @@ type UserController interface {
 	RevokeToken(ctx context.Context, token string) error
 	TerminateSession(ctx context.Context, user entities.User, ip string) error
 
-	CallbackOAuth2(ctx context.Context, code string) (entities.User, error)
+	CallbackOAuth2(ctx context.Context, code string) (jwt.TokenPair, error)
 	GetOAuth2ConfigByName(name string) *oauth2.Config
 
 	PutFirebaseTokenByUserID(ctx context.Context, id primitive.ObjectID, firebaseToken string) error
@@ -220,15 +220,15 @@ func (u *userController) GetOAuth2ConfigByName(name string) *oauth2.Config {
 	return Configs[name]
 }
 
-func (u *userController) CallbackOAuth2(ctx context.Context, code string) (entities.User, error) {
-	token, err := googleOAuthConfig.Exchange(context.Background(), code)
+func (u *userController) CallbackOAuth2(ctx context.Context, code string) (jwt.TokenPair, error) {
+	token, err := googleOAuthConfig.Exchange(ctx, code)
 	if err != nil {
-		return entities.User{}, err
+		return jwt.TokenPair{}, err
 	}
 
 	response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
 	if err != nil {
-		return entities.User{}, err
+		return jwt.TokenPair{}, err
 	}
 
 	defer func(Body io.ReadCloser) {
@@ -237,28 +237,26 @@ func (u *userController) CallbackOAuth2(ctx context.Context, code string) (entit
 
 	content, err := io.ReadAll(response.Body)
 	if err != nil {
-		return entities.User{}, err
+		return jwt.TokenPair{}, err
 	}
 
-	var googleUser entities.OAuth2CallbackUser
-	err = json.Unmarshal(content, &googleUser)
+	var callbackUser entities.OAuth2CallbackUser
+	if err = json.Unmarshal(content, &callbackUser); err != nil {
+		return jwt.TokenPair{}, err
+	}
+
+	user, err := u.repository.GetUserByEmail(ctx, callbackUser.Email)
 	if err != nil {
-		return entities.User{}, err
-	}
-
-	var user entities.User
-
-	if _, err = u.repository.GetUserByEmail(ctx, googleUser.Email); err != nil {
 		if !errors.Is(mongo.ErrNoDocuments, err) {
-			return entities.User{}, err
+			return jwt.TokenPair{}, err
 		}
 		user = entities.User{
 			Id:            primitive.NewObjectID(),
-			Email:         googleUser.Email,
-			VerifiedEmail: googleUser.VerifiedEmail,
-			Login:         googleUser.Name,
-			Name:          googleUser.Name,
-			PictureUrl:    googleUser.PictureUrl,
+			Email:         callbackUser.Email,
+			VerifiedEmail: callbackUser.VerifiedEmail,
+			Login:         callbackUser.Name,
+			Name:          callbackUser.Name,
+			PictureUrl:    callbackUser.PictureUrl,
 			Type:          "",
 			TypeName:      "",
 			StudyPlaceId:  primitive.NilObjectID,
@@ -269,11 +267,22 @@ func (u *userController) CallbackOAuth2(ctx context.Context, code string) (entit
 
 		user.Id, err = u.repository.SignUp(ctx, user)
 		if err != nil {
-			return entities.User{}, err
+			return jwt.TokenPair{}, err
 		}
 	}
 
-	return user, nil
+	claims := entities.JWTClaims{
+		ID:            user.Id,
+		Login:         user.Login,
+		Permissions:   user.Permissions,
+		FirebaseToken: user.FirebaseToken,
+	}
+	pair, err := u.jwt.GeneratePair(claims)
+	if err != nil {
+		return jwt.TokenPair{}, err
+	}
+
+	return pair, nil
 }
 
 func (u *userController) PutFirebaseTokenByUserID(ctx context.Context, token primitive.ObjectID, firebaseToken string) error {
