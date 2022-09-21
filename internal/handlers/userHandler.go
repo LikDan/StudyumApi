@@ -176,7 +176,7 @@ func (u *userHandler) CallbackOAuth2(ctx *gin.Context) {
 
 	u.SetTokenPairCookie(ctx, pair)
 
-	ctx.SetSameSite(http.SameSiteStrictMode)
+	ctx.SetSameSite(http.SameSiteNoneMode)
 	ctx.Redirect(302, "http://"+ctx.Query("state")+"/")
 }
 
