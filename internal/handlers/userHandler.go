@@ -168,13 +168,16 @@ func (u *userHandler) OAuth2(ctx *gin.Context) {
 func (u *userHandler) CallbackOAuth2(ctx *gin.Context) {
 	code := ctx.Query("code")
 
-	user, err := u.controller.CallbackOAuth2(ctx, code)
+	pair, err := u.controller.CallbackOAuth2(ctx, code)
 	if err != nil {
 		u.Error(ctx, err)
 		return
 	}
 
-	ctx.Redirect(307, "http://"+ctx.Query("state")+"/user/receiveToken?token="+user.FirebaseToken)
+	u.SetTokenPairCookie(ctx, pair)
+
+	ctx.SetSameSite(http.SameSiteStrictMode)
+	ctx.Redirect(302, "http://"+ctx.Query("state")+"/")
 }
 
 func (u *userHandler) PutFirebaseToken(ctx *gin.Context) {
