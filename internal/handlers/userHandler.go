@@ -47,7 +47,7 @@ func NewUserHandler(authHandler Handler, controller controllers.UserController, 
 	group.PUT("signup/stage1", h.Auth(), h.SignUpUserStage1)
 
 	group.GET("auth/:oauth", h.OAuth2)
-	group.GET("callback", h.CallbackOAuth2)
+	group.GET("oauth2/callback/:oauth", h.CallbackOAuth2)
 
 	group.DELETE("signout", h.Auth(), h.SignOutUser)
 	group.DELETE("revoke", h.Auth(), h.RevokeToken)
@@ -166,9 +166,10 @@ func (u *userHandler) OAuth2(ctx *gin.Context) {
 }
 
 func (u *userHandler) CallbackOAuth2(ctx *gin.Context) {
+	configName := ctx.Param("oauth")
 	code := ctx.Query("code")
 
-	pair, err := u.controller.CallbackOAuth2(ctx, code)
+	pair, err := u.controller.CallbackOAuth2(ctx, configName, code)
 	if err != nil {
 		u.Error(ctx, err)
 		return

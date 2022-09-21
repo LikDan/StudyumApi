@@ -7,7 +7,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"golang.org/x/oauth2"
 	"io"
 	"net/http"
 	"studyum/internal/dto"
@@ -31,8 +30,8 @@ type UserController interface {
 	RevokeToken(ctx context.Context, token string) error
 	TerminateSession(ctx context.Context, user entities.User, ip string) error
 
-	CallbackOAuth2(ctx context.Context, code string) (jwt.TokenPair, error)
-	GetOAuth2ConfigByName(name string) *oauth2.Config
+	CallbackOAuth2(ctx context.Context, configName string, code string) (jwt.TokenPair, error)
+	GetOAuth2ConfigByName(name string) *entities.OAuth2
 
 	PutFirebaseTokenByUserID(ctx context.Context, id primitive.ObjectID, firebaseToken string) error
 }
@@ -216,17 +215,19 @@ func (u *userController) TerminateSession(ctx context.Context, user entities.Use
 	return u.repository.DeleteSessionByIP(ctx, user.Id, ip)
 }
 
-func (u *userController) GetOAuth2ConfigByName(name string) *oauth2.Config {
+func (u *userController) GetOAuth2ConfigByName(name string) *entities.OAuth2 {
 	return Configs[name]
 }
 
-func (u *userController) CallbackOAuth2(ctx context.Context, code string) (jwt.TokenPair, error) {
-	token, err := googleOAuthConfig.Exchange(ctx, code)
+func (u *userController) CallbackOAuth2(ctx context.Context, configName string, code string) (jwt.TokenPair, error) {
+	config := u.GetOAuth2ConfigByName(configName)
+
+	token, err := config.Exchange(ctx, code)
 	if err != nil {
 		return jwt.TokenPair{}, err
 	}
 
-	response, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + token.AccessToken)
+	response, err := http.Get(config.DataUrl + token.AccessToken)
 	if err != nil {
 		return jwt.TokenPair{}, err
 	}
