@@ -30,7 +30,7 @@ jobs:
           envs: REPO_NAME, GITHUB_REPOSITORY
 
           script: |
-            rm -r $(echo ${GITHUB_REPOSITORY#*/})
-            rm -r $(echo ${REPO_NAME})
+            rm -r ${GITHUB_REPOSITORY#*/}
+            rm -r ${REPO_NAME}
 
 
