@@ -24,6 +24,7 @@ jobs:
           key: ${{ secrets.SSHKEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
           script: |
+            rm -r ${GITHUB_REPOSITORY#*/}
             git clone git@github.com:${{ github.repository }}.git
             cd ${GITHUB_REPOSITORY#*/}
             docker build -t ${GITHUB_REPOSITORY#*/} . 
