@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Connect and deploy to Digital Ocean
+      - name: Connect and deploy to Digital Ocean droplet
         uses: appleboy/ssh-action@v0.1.3
 
         with:
