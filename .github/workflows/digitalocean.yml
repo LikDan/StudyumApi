@@ -10,6 +10,9 @@ on:
         description: 'Image version'
         required: true
 
+env:
+  IMAGE_NAME: "studyum-api"
+
 jobs:
   deploy:
     name: Deploy
@@ -25,13 +28,13 @@ jobs:
           key: ${{ secrets.SSHKEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
 
-          envs: GITHUB_REPOSITORY
+          envs: GITHUB_REPOSITORY, IMAGE_NAME
 
           script: |
             rm -r ${GITHUB_REPOSITORY#*/}
             git clone git@github.com:${{ github.repository }}.git
             cd ${GITHUB_REPOSITORY#*/}
-            docker build -t ${GITHUB_REPOSITORY,,#*/} . 
+            docker build -t ${IMAGE_NAME} . 
             docker run \
             -d -p 274:8080 \
             -e DB_URL='${{ secrets.DB_URL }}' \
@@ -40,6 +43,6 @@ jobs:
             -e GIN_MODE='release' \
             -e OAUTH2_CALLBACK='https://studyum.net' \
             --restart always \
-            --name ${GITHUB_REPOSITORY#*/} \
-            ${GITHUB_REPOSITORY#*/}
+            --name ${IMAGE_NAME} \
+            ${IMAGE_NAME}
 
