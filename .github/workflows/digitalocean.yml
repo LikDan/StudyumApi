@@ -10,6 +10,9 @@ on:
         description: 'Image version'
         required: true
 
+env:
+  REPO_NAME: ${GITHUB_REPOSITORY#*/}
+
 jobs:
   deploy:
     name: Deploy
@@ -23,7 +26,11 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSHKEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
+
+          envs: REPO_NAME, GITHUB_REPOSITORY
+
           script: |
-            rm -r $(echo ${GITHUB_REPOSITORY#*/})
+            rm -r $(echo $GITHUB_REPOSITORY#*/)
+            rm -r $(echo $REPO_NAME)
 
 
