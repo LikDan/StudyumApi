@@ -13,12 +13,14 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    needs: build_and_push
 
     steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
       - name: Deploy to Digital Ocean droplet via SSH action
 #        uses: appleboy/ssh-action@v0.1.3
-        run:
+        run: |
           echo git clone ${{ github.repository }}
 
 
