@@ -195,7 +195,7 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 			"pipeline":     mongo.Pipeline{bson.D{{"$match", bson.M{"$expr": bson.M{"$eq": bson.A{"$studentID", "$$studentID"}}}}}},
 			"as":           "subjects.marks",
 		}}},
-		bson.D{{"$sort", bson.M{"subjects.date": 1}}},
+		bson.D{{"$sort", bson.M{"subjects.startDate": 1}}},
 		bson.D{{"$addFields", bson.M{"userType": "student", "subjects.studentID": "$_id"}}},
 		bson.D{{"$group", bson.M{"_id": "$_id", "title": bson.M{"$first": "$name"}, "userType": bson.M{"$first": "$userType"}, "lessons": bson.M{"$push": "$subjects"}}}},
 		bson.D{{"$sort", bson.M{"title": 1}}},
@@ -203,7 +203,7 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 		bson.D{{"$project", bson.M{"_id": 0}}},
 		bson.D{{"$lookup", bson.M{
 			"from":     "Lessons",
-			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": typeName, "group": group, "studyPlaceId": studyPlaceId}}}},
+			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": typeName, "group": group, "studyPlaceId": studyPlaceId}}}, bson.D{{"$sort", bson.M{"startDate": 1}}}},
 			"as":       "dates",
 		}}},
 		bson.D{{"$addFields", bson.M{"info": bson.M{
