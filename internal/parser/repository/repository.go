@@ -45,7 +45,7 @@ type repository struct {
 }
 
 func NewParserRepository(client *mongo.Client) Repository {
-	database := client.Database("Schedule")
+	database := client.Database("Studyum")
 
 	return &repository{
 		generalLessonsCollection: database.Collection("GeneralLessons"),
