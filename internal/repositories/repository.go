@@ -14,7 +14,7 @@ type Repository struct {
 }
 
 func NewRepository(client *mongo.Client) *Repository {
-	database := client.Database("Schedule")
+	database := client.Database("Studyum")
 
 	return &Repository{
 		generalLessonsCollection: database.Collection("GeneralLessons"),
