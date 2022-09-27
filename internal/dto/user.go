@@ -23,7 +23,6 @@ type UserSignUpWithCodeDTO struct {
 
 type EditUserDTO struct {
 	Login    string `json:"login" binding:"required"`
-	Name     string `json:"name" binding:"required"`
 	Email    string `json:"email" binding:"email"`
 	Password string `json:"password" binding:"min=8|eq="`
 }

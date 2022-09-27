@@ -176,7 +176,6 @@ func (u *userController) UpdateUser(ctx context.Context, user entities.User, dat
 	}
 
 	user.Login = data.Login
-	user.Name = data.Name
 	user.Email = data.Email
 
 	u.encrypt.Encrypt(&user)
