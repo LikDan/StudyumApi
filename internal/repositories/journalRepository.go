@@ -171,16 +171,16 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
 
 func (j *journalRepository) GetJournal(ctx context.Context, group string, subject string, typeName string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
 	cursor, err := j.usersCollection.Aggregate(ctx, mongo.Pipeline{
-		bson.D{{"$match", bson.M{"type": "group", "typeName": group, "studyPlaceId": studyPlaceId}}},
 		bson.D{{"$group", bson.M{"_id": nil, "users": bson.M{"$push": "$$ROOT"}}}},
 		bson.D{{"$lookup", bson.M{
 			"from":     "SignUpCodes",
-			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"type": "group", "typename": group, "studyPlaceID": studyPlaceId}}}},
+			"pipeline": mongo.Pipeline{},
 			"as":       "codeUsers",
 		}}},
 		bson.D{{"$project", bson.M{"_id": nil, "users": bson.M{"$concatArrays": bson.A{"$users", "$codeUsers"}}}}},
 		bson.D{{"$unwind", "$users"}},
 		bson.D{{"$replaceRoot", bson.M{"newRoot": "$users"}}},
+		bson.D{{"$match", bson.M{"type": "group", "typename": group, "studyPlaceID": studyPlaceId}}},
 		bson.D{{"$lookup", bson.M{
 			"from":     "Lessons",
 			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": typeName, "group": group, "studyPlaceId": studyPlaceId}}}},
