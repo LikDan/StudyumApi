@@ -69,7 +69,7 @@ func (c *controller) Auth(ctx context.Context, token string, permissions ...stri
 		return entities.User{}, errors.Wrap(ForbiddenError, "not accepted")
 	}
 
-	if !user.Blocked {
+	if user.Blocked {
 		return entities.User{}, errors.Wrap(ForbiddenError, "blocked")
 	}
 
