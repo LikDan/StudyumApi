@@ -23,7 +23,7 @@ type UserController interface {
 	UpdateUser(ctx context.Context, user entities.User, data dto.EditUserDTO) (jwt.TokenPair, error)
 
 	LoginUser(ctx context.Context, data dto.UserLoginDTO, ip string) (entities.User, jwt.TokenPair, error)
-	SignUpUser(ctx context.Context, data dto.UserSignUpDTO) (entities.User, error)
+	SignUpUser(ctx context.Context, data dto.UserSignUpDTO, ip string) (entities.User, jwt.TokenPair, error)
 	SignUpUserStage1(ctx context.Context, user entities.User, data dto.UserSignUpStage1DTO) (entities.User, error)
 	SignUpUserWithCode(ctx context.Context, ip string, data dto.UserSignUpWithCodeDTO) (entities.User, jwt.TokenPair, error)
 	SignOut(ctx context.Context, refreshToken string) error
@@ -51,10 +51,10 @@ func NewUserController(jwt jwt.JWT[entities.JWTClaims], signUpCodesController Si
 	return &userController{repository: repository, signUpCodesController: signUpCodesController, jwt: jwt, encrypt: encrypt, parser: parser}
 }
 
-func (u *userController) SignUpUser(ctx context.Context, data dto.UserSignUpDTO) (entities.User, error) {
+func (u *userController) SignUpUser(ctx context.Context, data dto.UserSignUpDTO, ip string) (entities.User, jwt.TokenPair, error) {
 	password, err := hash.Hash(data.Password)
 	if err != nil {
-		return entities.User{}, err
+		return entities.User{}, jwt.TokenPair{}, err
 	}
 
 	user := entities.User{
@@ -70,11 +70,16 @@ func (u *userController) SignUpUser(ctx context.Context, data dto.UserSignUpDTO)
 	u.encrypt.Encrypt(&user)
 	user.Id, err = u.repository.SignUp(ctx, user)
 	if err != nil {
-		return entities.User{}, err
+		return entities.User{}, jwt.TokenPair{}, err
 	}
 
 	u.encrypt.Decrypt(&user)
-	return user, nil
+
+	loginData := dto.UserLoginDTO{
+		Email:    data.Email,
+		Password: data.Password,
+	}
+	return u.LoginUser(ctx, loginData, ip)
 }
 
 func (u *userController) SignUpUserStage1(ctx context.Context, user entities.User, data dto.UserSignUpStage1DTO) (entities.User, error) {
