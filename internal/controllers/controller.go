@@ -12,6 +12,7 @@ import (
 )
 
 var NotAuthorizationError = errors.New("not authorized")
+var ForbiddenError = errors.New("forbidden")
 
 type Controller interface {
 	Auth(ctx context.Context, token string, permissions ...string) (entities.User, error)
@@ -39,6 +40,17 @@ func (c *controller) Auth(ctx context.Context, token string, permissions ...stri
 		return entities.User{}, errors.Wrap(NotAuthorizationError, "not valid token")
 	}
 
+	user, err := c.userRepository.GetUserByID(ctx, claims.Claims.ID)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return entities.User{}, NotAuthorizationError
+		} else {
+			return entities.User{}, err
+		}
+	}
+
+	c.encrypt.Decrypt(&user)
+
 	for _, permission := range permissions {
 		ret := true
 		for _, existedPermission := range claims.Claims.Permissions {
@@ -53,17 +65,15 @@ func (c *controller) Auth(ctx context.Context, token string, permissions ...stri
 		}
 	}
 
-	user, err := c.userRepository.GetUserByID(ctx, claims.Claims.ID)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return entities.User{}, NotAuthorizationError
-		} else {
-			return entities.User{}, err
-		}
+	if !user.Accepted {
+		return entities.User{}, errors.Wrap(ForbiddenError, "not accepted")
 	}
 
-	c.encrypt.Decrypt(&user)
-	return user, err
+	if !user.Blocked {
+		return entities.User{}, errors.Wrap(ForbiddenError, "blocked")
+	}
+
+	return user, nil
 }
 
 func (c *controller) UpdateJWTTokensViaNewSession(ctx context.Context, session entities.Session) (error, jwt.TokenPair) {
