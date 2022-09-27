@@ -107,12 +107,13 @@ func (u *userHandler) SignUpUser(ctx *gin.Context) {
 		return
 	}
 
-	user, err := u.controller.SignUpUser(ctx, data)
+	user, pair, err := u.controller.SignUpUser(ctx, data, "")
 	if err != nil {
 		u.Error(ctx, err)
 		return
 	}
 
+	u.SetTokenPairCookie(ctx, pair)
 	ctx.JSON(http.StatusOK, user)
 }
 
