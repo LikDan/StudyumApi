@@ -10,7 +10,7 @@ import (
 type UserRepository interface {
 	GetUserByID(ctx context.Context, id primitive.ObjectID) (entities.User, error)
 	GetUserViaRefreshToken(ctx context.Context, refreshToken string) (entities.User, error)
-	GetUserByEmail(ctx context.Context, email string) (entities.User, error)
+	GetUserByLogin(ctx context.Context, email string) (entities.User, error)
 
 	SignUp(ctx context.Context, user entities.User) (primitive.ObjectID, error)
 	SignUpStage1(ctx context.Context, user entities.User) error
@@ -113,9 +113,9 @@ func (u *userRepository) UpdateUserTokenByEmail(ctx context.Context, email, toke
 	return err
 }
 
-func (u *userRepository) GetUserByEmail(ctx context.Context, email string) (entities.User, error) {
+func (u *userRepository) GetUserByLogin(ctx context.Context, login string) (entities.User, error) {
 	var user entities.User
-	err := u.usersCollection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
+	err := u.usersCollection.FindOne(ctx, bson.M{"login": login}).Decode(&user)
 
 	return user, err
 }

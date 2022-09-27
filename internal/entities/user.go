@@ -5,10 +5,10 @@ import "go.mongodb.org/mongo-driver/bson/primitive"
 type User struct {
 	Id            primitive.ObjectID `json:"id" bson:"_id"`
 	Password      string             `json:"password" bson:"password"`
-	Email         string             `json:"email" bson:"email"`
+	Email         string             `json:"email" bson:"email" encryption:""`
 	VerifiedEmail bool               `json:"verifiedEmail" bson:"verifiedEmail"`
 	FirebaseToken string             `json:"-" bson:"firebaseToken" encryption:""`
-	Login         string             `json:"login" bson:"login" encryption:""`
+	Login         string             `json:"login" bson:"login"`
 	Name          string             `json:"name" bson:"name" encryption:""`
 	PictureUrl    string             `json:"picture" bson:"picture" encryption:""`
 	Type          string             `json:"type" bson:"type"`
