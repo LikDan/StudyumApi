@@ -70,6 +70,11 @@ func (j *journalController) GetJournal(ctx context.Context, group string, subjec
 	}
 
 	j.encrypt.Decrypt(&journal)
+
+	slices.SortFunc(journal.Rows, func(el1, el2 entities.JournalRow) bool {
+		return el1.Title < el2.Title
+	})
+
 	return journal, nil
 }
 

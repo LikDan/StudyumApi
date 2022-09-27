@@ -198,7 +198,6 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 		bson.D{{"$sort", bson.M{"subjects.startDate": 1}}},
 		bson.D{{"$addFields", bson.M{"userType": "student", "subjects.studentID": "$_id"}}},
 		bson.D{{"$group", bson.M{"_id": "$_id", "title": bson.M{"$first": "$name"}, "userType": bson.M{"$first": "$userType"}, "lessons": bson.M{"$push": "$subjects"}}}},
-		bson.D{{"$sort", bson.M{"title": 1}}},
 		bson.D{{"$group", bson.M{"_id": nil, "rows": bson.M{"$push": "$$ROOT"}}}},
 		bson.D{{"$project", bson.M{"_id": 0}}},
 		bson.D{{"$lookup", bson.M{
