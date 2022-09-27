@@ -39,6 +39,7 @@ jobs:
             -e DB_URL='${{ secrets.DB_URL }}' \
             -e JWT_SECRET='${{ secrets.JWT_SECRET }}' \
             -e GOOGLE_SECRET='${{ secrets.GOOGLE_SECRET }}' \
+            -e ENCRYPTION_SECRET='${{ secrets.ENCRYPTION_SECRET }}' \
             -e GIN_MODE='release' \
             -e OAUTH2_CALLBACK='https://studyum.net' \
             --restart always \

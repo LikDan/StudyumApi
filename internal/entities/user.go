@@ -6,11 +6,11 @@ type User struct {
 	Id            primitive.ObjectID `json:"id" bson:"_id"`
 	Password      string             `json:"password" bson:"password"`
 	Email         string             `json:"email" bson:"email"`
-	FirebaseToken string             `json:"-" bson:"firebaseToken"`
 	VerifiedEmail bool               `json:"verifiedEmail" bson:"verifiedEmail"`
-	Login         string             `json:"login" bson:"login"`
-	Name          string             `json:"name" bson:"name"`
-	PictureUrl    string             `json:"picture" bson:"picture"`
+	FirebaseToken string             `json:"-" bson:"firebaseToken" encryption:""`
+	Login         string             `json:"login" bson:"login" encryption:""`
+	Name          string             `json:"name" bson:"name" encryption:""`
+	PictureUrl    string             `json:"picture" bson:"picture" encryption:""`
 	Type          string             `json:"type" bson:"type"`
 	TypeName      string             `json:"typeName" bson:"typeName"`
 	StudyPlaceId  primitive.ObjectID `json:"studyPlaceId" bson:"studyPlaceId"`

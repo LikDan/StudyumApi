@@ -16,6 +16,7 @@ import (
 	pHandler "studyum/internal/parser/handler"
 	pRepository "studyum/internal/parser/repository"
 	"studyum/internal/repositories"
+	"studyum/pkg/encryption"
 	fb "studyum/pkg/firebase"
 	"studyum/pkg/jwt"
 	"time"
@@ -53,12 +54,13 @@ func main() {
 	signUpCodesRepository := repositories.NewSignUpCodesRepository(repository)
 
 	scheduleValidator := validators.NewSchedule(validator.New())
+	encrypt := encryption.NewEncryption(os.Getenv("ENCRYPTION_SECRET"))
 
 	signUpCodesController := controllers.NewSignUpCodesController(signUpCodesRepository)
-	controller := controllers.NewController(jwtController, userRepository, generalRepository)
-	userController := controllers.NewUserController(jwtController, signUpCodesController, userRepository, parserHandler)
+	controller := controllers.NewController(jwtController, userRepository, generalRepository, encrypt)
+	userController := controllers.NewUserController(jwtController, signUpCodesController, userRepository, encrypt, parserHandler)
 	generalController := controllers.NewGeneralController(generalRepository)
-	journalController := controllers.NewJournalController(parserHandler, journalRepository)
+	journalController := controllers.NewJournalController(parserHandler, journalRepository, encrypt)
 	scheduleController := controllers.NewScheduleController(parserHandler, scheduleValidator, scheduleRepository, generalController)
 
 	jwtController.SetGetClaimsFunc(controller.GetClaims)
