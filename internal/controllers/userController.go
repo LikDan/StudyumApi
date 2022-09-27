@@ -78,7 +78,7 @@ func (u *userController) SignUpUser(ctx context.Context, data dto.UserSignUpDTO,
 	u.encrypt.Decrypt(&user)
 
 	loginData := dto.UserLoginDTO{
-		Email:    data.Email,
+		Login:    data.Login,
 		Password: data.Password,
 	}
 	return u.LoginUser(ctx, loginData, ip)
@@ -154,7 +154,7 @@ func (u *userController) SignUpUserWithCode(ctx context.Context, ip string, data
 	}
 
 	loginData := dto.UserLoginDTO{
-		Email:    data.Email,
+		Login:    data.Login,
 		Password: data.Password,
 	}
 
@@ -198,7 +198,7 @@ func (u *userController) UpdateUser(ctx context.Context, user entities.User, dat
 }
 
 func (u *userController) LoginUser(ctx context.Context, data dto.UserLoginDTO, ip string) (entities.User, jwt.TokenPair, error) {
-	user, err := u.repository.GetUserByEmail(ctx, data.Email)
+	user, err := u.repository.GetUserByLogin(ctx, data.Login)
 	if err != nil {
 		return entities.User{}, jwt.TokenPair{}, err
 	}
@@ -271,7 +271,7 @@ func (u *userController) CallbackOAuth2(ctx context.Context, configName string, 
 		return jwt.TokenPair{}, err
 	}
 
-	user, err := u.repository.GetUserByEmail(ctx, callbackUser.Email)
+	user, err := u.repository.GetUserByLogin(ctx, callbackUser.Email)
 	if err != nil {
 		if !errors.Is(mongo.ErrNoDocuments, err) {
 			return jwt.TokenPair{}, err

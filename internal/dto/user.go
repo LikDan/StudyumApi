@@ -3,7 +3,7 @@ package dto
 import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type UserLoginDTO struct {
-	Email    string `json:"email" binding:"email"`
+	Login    string `json:"login" binding:"required"`
 	Password string `json:"password" binding:"min=8"`
 }
 
