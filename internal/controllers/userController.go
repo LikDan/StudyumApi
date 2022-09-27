@@ -121,6 +121,8 @@ func (u *userController) SignUpUserWithCode(ctx context.Context, ip string, data
 		codeData = appCodeData
 	}
 
+	u.encrypt.Decrypt(&codeData)
+
 	password, err := hash.Hash(data.Password)
 	if err != nil {
 		return entities.User{}, jwt.TokenPair{}, err
