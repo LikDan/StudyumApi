@@ -53,7 +53,7 @@ func (c *controller) Auth(ctx context.Context, token string, permissions ...stri
 
 	for _, permission := range permissions {
 		ret := true
-		for _, existedPermission := range claims.Claims.Permissions {
+		for _, existedPermission := range user.Permissions {
 			if permission == existedPermission {
 				ret = false
 				break
