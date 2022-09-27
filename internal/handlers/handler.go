@@ -134,7 +134,8 @@ func (h *handler) Error(ctx *gin.Context, err error) {
 		errors.Is(err, j.ErrSignatureInvalid):
 		code = http.StatusUnauthorized
 		break
-	case errors.Is(err, controllers.NoPermission):
+	case errors.Is(err, controllers.NoPermission),
+		errors.Is(err, controllers.ForbiddenError):
 		code = http.StatusForbidden
 		break
 	default:

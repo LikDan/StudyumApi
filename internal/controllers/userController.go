@@ -84,10 +84,16 @@ func (u *userController) SignUpUser(ctx context.Context, data dto.UserSignUpDTO,
 
 func (u *userController) SignUpUserStage1(ctx context.Context, user entities.User, data dto.UserSignUpStage1DTO) (entities.User, error) {
 	switch data.Type {
-	case "group", "teacher":
+	case "group":
 		user.Type = data.Type
 		user.StudyPlaceId = data.StudyPlaceId
 		user.TypeName = data.TypeName
+		break
+	case "teacher":
+		user.Type = data.Type
+		user.StudyPlaceId = data.StudyPlaceId
+		user.TypeName = data.TypeName
+		user.Permissions = []string{"editJournal"}
 		break
 	default:
 		return entities.User{}, NotValidParams
