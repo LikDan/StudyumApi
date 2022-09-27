@@ -9,6 +9,7 @@ import (
 	"studyum/internal/entities"
 	parser "studyum/internal/parser/handler"
 	"studyum/internal/repositories"
+	"studyum/pkg/encryption"
 )
 
 var (
@@ -32,10 +33,12 @@ type journalController struct {
 	parser parser.Handler
 
 	repository repositories.JournalRepository
+
+	encrypt encryption.Encryption
 }
 
-func NewJournalController(parser parser.Handler, repository repositories.JournalRepository) JournalController {
-	return &journalController{parser: parser, repository: repository}
+func NewJournalController(parser parser.Handler, repository repositories.JournalRepository, encrypt encryption.Encryption) JournalController {
+	return &journalController{parser: parser, repository: repository, encrypt: encrypt}
 }
 
 func (j *journalController) GetJournalAvailableOptions(ctx context.Context, user entities.User) ([]entities.JournalAvailableOption, error) {
@@ -61,7 +64,13 @@ func (j *journalController) GetJournal(ctx context.Context, group string, subjec
 		return entities.Journal{}, NotValidParams
 	}
 
-	return j.repository.GetJournal(ctx, group, subject, user.TypeName, user.StudyPlaceId)
+	journal, err := j.repository.GetJournal(ctx, group, subject, user.TypeName, user.StudyPlaceId)
+	if err != nil {
+		return entities.Journal{}, err
+	}
+
+	j.encrypt.Decrypt(&journal)
+	return journal, nil
 }
 
 func (j *journalController) GetUserJournal(ctx context.Context, user entities.User) (entities.Journal, error) {

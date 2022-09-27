@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"studyum/internal/entities"
 	"studyum/internal/repositories"
+	"studyum/pkg/encryption"
 	"studyum/pkg/jwt"
 	"time"
 )
@@ -24,11 +25,12 @@ type controller struct {
 	userRepository    repositories.UserRepository
 	generalRepository repositories.GeneralRepository
 
-	jwt jwt.JWT[entities.JWTClaims]
+	jwt     jwt.JWT[entities.JWTClaims]
+	encrypt encryption.Encryption
 }
 
-func NewController(jwt jwt.JWT[entities.JWTClaims], userRepository repositories.UserRepository, generalRepository repositories.GeneralRepository) Controller {
-	return &controller{userRepository: userRepository, generalRepository: generalRepository, jwt: jwt}
+func NewController(jwt jwt.JWT[entities.JWTClaims], userRepository repositories.UserRepository, generalRepository repositories.GeneralRepository, encrypt encryption.Encryption) Controller {
+	return &controller{userRepository: userRepository, generalRepository: generalRepository, jwt: jwt, encrypt: encrypt}
 }
 
 func (c *controller) Auth(ctx context.Context, token string, permissions ...string) (entities.User, error) {
@@ -60,6 +62,7 @@ func (c *controller) Auth(ctx context.Context, token string, permissions ...stri
 		}
 	}
 
+	c.encrypt.Decrypt(&user)
 	return user, err
 }
 
@@ -105,6 +108,7 @@ func (c *controller) AuthViaApiToken(ctx context.Context, token string) (entitie
 		return entities.User{}, err
 	}
 
+	c.encrypt.Decrypt(&user)
 	return user, nil
 }
 
@@ -118,6 +122,7 @@ func (c *controller) GetClaims(ctx context.Context, refreshToken string) (error,
 		}
 	}
 
+	c.encrypt.Decrypt(&user)
 	claims := entities.JWTClaims{
 		ID:            user.Id,
 		Login:         user.Login,

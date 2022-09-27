@@ -5,8 +5,7 @@ go 1.18
 
 require (
 	firebase.google.com/go/v4 v4.7.0
-	github.com/emersion/go-sasl v0.0.0-20211008083017-0b9dcfb154ac
-	github.com/emersion/go-smtp v0.15.0
+	github.com/go-playground/assert/v2 v2.0.1
 	github.com/go-playground/validator/v10 v10.11.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/robfig/cron v1.2.0
@@ -17,7 +16,6 @@ require (
 )
 
 require (
-	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
@@ -36,7 +34,6 @@ require (
 	cloud.google.com/go v0.75.0 // indirect
 	cloud.google.com/go/firestore v1.5.0 // indirect
 	cloud.google.com/go/storage v1.10.0 // indirect
-	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
