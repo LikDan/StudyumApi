@@ -33,3 +33,10 @@ type UserSignUpStage1DTO struct {
 	Type         string             `json:"type" binding:"required"`
 	TypeName     string             `json:"typeName" binding:"required"`
 }
+
+type UserCreateCodeDTO struct {
+	Code     string `json:"code" binding:"required"`
+	Name     string `json:"name" binding:"required"`
+	Type     string `json:"type" binding:"required"`
+	TypeName string `json:"typeName" binding:"required"`
+}

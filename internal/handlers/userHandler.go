@@ -46,6 +46,8 @@ func NewUserHandler(authHandler Handler, controller controllers.UserController, 
 	group.POST("signup", h.SignUpUser)
 	group.PUT("signup/stage1", h.Auth(), h.SignUpUserStage1)
 
+	group.POST("code", h.Auth("admin"), h.CreateCode)
+
 	group.GET("auth/:oauth", h.OAuth2)
 	group.GET("oauth2/callback/:oauth", h.CallbackOAuth2)
 
@@ -241,4 +243,21 @@ func (u *userHandler) TerminateSession(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, ip)
+}
+
+func (u *userHandler) CreateCode(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	var data dto.UserCreateCodeDTO
+	if err := ctx.BindJSON(&data); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	code, err := u.controller.CreateCode(ctx, user, data)
+	if err != nil {
+		u.Error(ctx, err)
+	}
+
+	ctx.JSON(http.StatusOK, code)
 }
