@@ -330,5 +330,6 @@ func (u *userController) CreateCode(ctx context.Context, user entities.User, dat
 		return entities.SignUpCode{}, nil
 	}
 
+	u.encrypt.Decrypt(&code)
 	return code, nil
 }
