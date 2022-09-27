@@ -28,6 +28,8 @@ type UserController interface {
 	SignUpUserWithCode(ctx context.Context, ip string, data dto.UserSignUpWithCodeDTO) (entities.User, jwt.TokenPair, error)
 	SignOut(ctx context.Context, refreshToken string) error
 
+	CreateCode(ctx context.Context, user entities.User, data dto.UserCreateCodeDTO) (entities.SignUpCode, error)
+
 	RevokeToken(ctx context.Context, token string) error
 	TerminateSession(ctx context.Context, user entities.User, ip string) error
 
@@ -311,4 +313,22 @@ func (u *userController) CallbackOAuth2(ctx context.Context, configName string, 
 
 func (u *userController) PutFirebaseTokenByUserID(ctx context.Context, token primitive.ObjectID, firebaseToken string) error {
 	return u.repository.PutFirebaseTokenByUserID(ctx, token, firebaseToken)
+}
+
+func (u *userController) CreateCode(ctx context.Context, user entities.User, data dto.UserCreateCodeDTO) (entities.SignUpCode, error) {
+	code := entities.SignUpCode{
+		Id:           primitive.NewObjectID(),
+		Code:         data.Code,
+		Name:         data.Name,
+		StudyPlaceID: user.StudyPlaceId,
+		Type:         data.Type,
+		Typename:     data.TypeName,
+	}
+
+	u.encrypt.Encrypt(&code)
+	if err := u.repository.CreateCode(ctx, code); err != nil {
+		return entities.SignUpCode{}, nil
+	}
+
+	return code, nil
 }

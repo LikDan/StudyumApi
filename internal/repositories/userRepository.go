@@ -21,6 +21,8 @@ type UserRepository interface {
 	UpdateUser(ctx context.Context, user entities.User) error
 	UpdateUserByID(ctx context.Context, user entities.User) error
 
+	CreateCode(ctx context.Context, code entities.SignUpCode) error
+
 	SetRefreshToken(ctx context.Context, old string, session entities.Session) error
 	AddSessionByUserID(ctx context.Context, session entities.Session, id primitive.ObjectID, sessionsAmount int) error
 	RevokeToken(ctx context.Context, token string) error
@@ -120,5 +122,10 @@ func (u *userRepository) GetUserByEmail(ctx context.Context, email string) (enti
 
 func (u *userRepository) PutFirebaseTokenByUserID(ctx context.Context, id primitive.ObjectID, firebaseToken string) error {
 	_, err := u.usersCollection.UpdateByID(ctx, id, bson.M{"$set": bson.M{"firebaseToken": firebaseToken}})
+	return err
+}
+
+func (u *userRepository) CreateCode(ctx context.Context, code entities.SignUpCode) error {
+	_, err := u.signUpCodesCollection.InsertOne(ctx, code)
 	return err
 }
