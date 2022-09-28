@@ -20,6 +20,7 @@ type Encryption interface {
 	Decrypt(value interface{})
 
 	MapReflectField(value reflect.Value, mapFunc func(str string) string)
+	MapReflectSlice(encrypt bool, field reflect.Value, mapFunc func(str string) string)
 }
 
 type encryption struct {
@@ -67,10 +68,31 @@ func (e *encryption) DecryptString(s string) string {
 	return fmt.Sprintf("%s", ciphertext)
 }
 
+func (e *encryption) MapReflectSlice(encrypt bool, field reflect.Value, mapFunc func(str string) string) {
+	for j := 0; j < field.Len(); j++ {
+		switch field.Index(j).Kind() {
+		case reflect.String:
+			if !encrypt {
+				break
+			}
+
+			e.MapReflectField(field.Index(j), mapFunc)
+			break
+		case reflect.Struct:
+			e.MapReflectField(field.Index(j), mapFunc)
+			break
+		}
+	}
+}
+
 func (e *encryption) MapReflectField(value reflect.Value, mapFunc func(str string) string) {
 	if value.Kind() == reflect.String {
 		value.SetString(mapFunc(value.String()))
 		return
+	}
+
+	if value.Kind() == reflect.Array || value.Kind() == reflect.Slice {
+		e.MapReflectSlice(true, value, mapFunc)
 	}
 
 	if value.Kind() != reflect.Struct {
@@ -86,21 +108,8 @@ func (e *encryption) MapReflectField(value reflect.Value, mapFunc func(str strin
 			e.MapReflectField(field, mapFunc)
 			break
 		case reflect.Slice, reflect.Array:
-			for j := 0; j < field.Len(); j++ {
-				switch field.Index(j).Kind() {
-				case reflect.String:
-					_, ok := tField.Tag.Lookup("encryption")
-					if !ok {
-						break
-					}
-
-					e.MapReflectField(field.Index(j), mapFunc)
-					break
-				case reflect.Struct:
-					e.MapReflectField(field.Index(j), mapFunc)
-					break
-				}
-			}
+			_, ok := tField.Tag.Lookup("encryption")
+			e.MapReflectSlice(ok, field, mapFunc)
 			break
 		case reflect.String:
 			_, ok := tField.Tag.Lookup("encryption")

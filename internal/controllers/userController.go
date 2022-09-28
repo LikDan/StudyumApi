@@ -37,6 +37,10 @@ type UserController interface {
 	GetOAuth2ConfigByName(name string) *entities.OAuth2
 
 	PutFirebaseTokenByUserID(ctx context.Context, id primitive.ObjectID, firebaseToken string) error
+
+	GetAccept(ctx context.Context, user entities.User) ([]entities.AcceptUser, error)
+	Accept(ctx context.Context, user entities.User, acceptUserID primitive.ObjectID) error
+	Block(ctx context.Context, user entities.User, blockUserID primitive.ObjectID) error
 }
 
 type userController struct {
@@ -336,4 +340,22 @@ func (u *userController) CreateCode(ctx context.Context, user entities.User, dat
 
 	u.encrypt.Decrypt(&code)
 	return code, nil
+}
+
+func (u *userController) GetAccept(ctx context.Context, user entities.User) ([]entities.AcceptUser, error) {
+	users, err := u.repository.GetAccept(ctx, user.StudyPlaceId)
+	if err != nil {
+		return nil, err
+	}
+
+	u.encrypt.Decrypt(&users)
+	return users, nil
+}
+
+func (u *userController) Accept(ctx context.Context, user entities.User, acceptUserID primitive.ObjectID) error {
+	return u.repository.Accept(ctx, user.StudyPlaceId, acceptUserID)
+}
+
+func (u *userController) Block(ctx context.Context, user entities.User, blockUserID primitive.ObjectID) error {
+	return u.repository.Block(ctx, user.StudyPlaceId, blockUserID)
 }

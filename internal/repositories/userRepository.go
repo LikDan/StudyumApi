@@ -30,6 +30,10 @@ type UserRepository interface {
 	UpdateUserTokenByEmail(ctx context.Context, email, token string) error
 
 	PutFirebaseTokenByUserID(ctx context.Context, id primitive.ObjectID, firebaseToken string) error
+
+	GetAccept(ctx context.Context, studyPlaceID primitive.ObjectID) ([]entities.AcceptUser, error)
+	Accept(ctx context.Context, studyPlaceID primitive.ObjectID, userID primitive.ObjectID) error
+	Block(ctx context.Context, studyPlaceID primitive.ObjectID, userID primitive.ObjectID) error
 }
 
 type userRepository struct {
@@ -127,5 +131,25 @@ func (u *userRepository) PutFirebaseTokenByUserID(ctx context.Context, id primit
 
 func (u *userRepository) CreateCode(ctx context.Context, code entities.SignUpCode) error {
 	_, err := u.signUpCodesCollection.InsertOne(ctx, code)
+	return err
+}
+
+func (u *userRepository) GetAccept(ctx context.Context, studyPlaceID primitive.ObjectID) (users []entities.AcceptUser, err error) {
+	cursor, err := u.usersCollection.Find(ctx, bson.M{"studyPlaceID": studyPlaceID, "accepted": false})
+	if err != nil {
+		return
+	}
+
+	err = cursor.All(ctx, &users)
+	return
+}
+
+func (u *userRepository) Accept(ctx context.Context, studyPlaceID primitive.ObjectID, userID primitive.ObjectID) error {
+	_, err := u.usersCollection.UpdateOne(ctx, bson.M{"studyPlaceID": studyPlaceID, "_id": userID}, bson.M{"$set": bson.M{"accepted": true}})
+	return err
+}
+
+func (u *userRepository) Block(ctx context.Context, studyPlaceID primitive.ObjectID, userID primitive.ObjectID) error {
+	_, err := u.usersCollection.UpdateOne(ctx, bson.M{"studyPlaceID": studyPlaceID, "_id": userID}, bson.M{"$set": bson.M{"blocked": true}})
 	return err
 }

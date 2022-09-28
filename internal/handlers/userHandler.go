@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"studyum/internal/controllers"
 	"studyum/internal/dto"
@@ -25,6 +26,10 @@ type UserHandler interface {
 
 	RevokeToken(ctx *gin.Context)
 	TerminateSession(ctx *gin.Context)
+
+	GetAccept(ctx *gin.Context)
+	Accept(ctx *gin.Context)
+	Block(ctx *gin.Context)
 }
 
 type userHandler struct {
@@ -46,14 +51,17 @@ func NewUserHandler(authHandler Handler, controller controllers.UserController, 
 	group.POST("signup", h.SignUpUser)
 	group.PUT("signup/stage1", h.Auth(), h.SignUpUserStage1)
 
-	group.POST("code", h.Auth("admin"), h.CreateCode)
-
 	group.GET("auth/:oauth", h.OAuth2)
 	group.GET("oauth2/callback/:oauth", h.CallbackOAuth2)
 
 	group.DELETE("signout", h.Auth(), h.SignOutUser)
 	group.DELETE("revoke", h.Auth(), h.RevokeToken)
 	group.DELETE("terminate/:ip", h.Auth(), h.TerminateSession)
+
+	group.POST("code", h.Auth("manageUsers"), h.CreateCode)
+	group.GET("accept", h.Auth("manageUsers"), h.GetAccept)
+	group.POST("accept", h.Auth("manageUsers"), h.Accept)
+	group.POST("block", h.Auth("manageUsers"), h.Block)
 
 	group.PUT("firebase/token", h.Auth(), h.PutFirebaseToken)
 
@@ -261,4 +269,59 @@ func (u *userHandler) CreateCode(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, code)
+}
+
+func (u *userHandler) GetAccept(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	users, err := u.controller.GetAccept(ctx, user)
+	if err != nil {
+		u.Error(ctx, err)
+	}
+
+	ctx.JSON(http.StatusOK, users)
+}
+
+func (u *userHandler) Accept(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	var idHex string
+	if err := ctx.BindJSON(&idHex); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	id, err := primitive.ObjectIDFromHex(idHex)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err = u.controller.Accept(ctx, user, id); err != nil {
+		u.Error(ctx, err)
+	}
+
+	ctx.JSON(http.StatusOK, id)
+}
+
+func (u *userHandler) Block(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	var idHex string
+	if err := ctx.BindJSON(&idHex); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	id, err := primitive.ObjectIDFromHex(idHex)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err = u.controller.Block(ctx, user, id); err != nil {
+		u.Error(ctx, err)
+	}
+
+	ctx.JSON(http.StatusOK, id)
 }
