@@ -24,6 +24,7 @@ type UserSignUpWithCodeDTO struct {
 type EditUserDTO struct {
 	Login    string `json:"login" binding:"excludesall= ,required"`
 	Email    string `json:"email" binding:"email"`
+	Picture  string `json:"picture" binding:"excludesall= ,required"`
 	Password string `json:"password" binding:"min=8|eq="`
 }
 

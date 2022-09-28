@@ -75,13 +75,14 @@ func (u *userHandler) UpdateUser(ctx *gin.Context) {
 		return
 	}
 
-	pair, err := u.controller.UpdateUser(ctx, user, data)
+	user, pair, err := u.controller.UpdateUser(ctx, user, data)
 	if err != nil {
 		u.Error(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, pair)
+	u.SetTokenPairCookie(ctx, pair)
+	ctx.JSON(http.StatusOK, user)
 }
 
 func (u *userHandler) LoginUser(ctx *gin.Context) {

@@ -20,7 +20,7 @@ import (
 )
 
 type UserController interface {
-	UpdateUser(ctx context.Context, user entities.User, data dto.EditUserDTO) (jwt.TokenPair, error)
+	UpdateUser(ctx context.Context, user entities.User, data dto.EditUserDTO) (entities.User, jwt.TokenPair, error)
 
 	LoginUser(ctx context.Context, data dto.UserLoginDTO, ip string) (entities.User, jwt.TokenPair, error)
 	SignUpUser(ctx context.Context, data dto.UserSignUpDTO, ip string) (entities.User, jwt.TokenPair, error)
@@ -165,11 +165,11 @@ func (u *userController) SignOut(ctx context.Context, refreshToken string) error
 	return u.repository.DeleteSessionByRefreshToken(ctx, refreshToken)
 }
 
-func (u *userController) UpdateUser(ctx context.Context, user entities.User, data dto.EditUserDTO) (jwt.TokenPair, error) {
+func (u *userController) UpdateUser(ctx context.Context, user entities.User, data dto.EditUserDTO) (entities.User, jwt.TokenPair, error) {
 	if data.Password != "" && len(data.Password) > 8 {
 		password, err := hash.Hash(data.Password)
 		if err != nil {
-			return jwt.TokenPair{}, err
+			return entities.User{}, jwt.TokenPair{}, err
 		}
 
 		user.Password = password
@@ -177,10 +177,11 @@ func (u *userController) UpdateUser(ctx context.Context, user entities.User, dat
 
 	user.Login = data.Login
 	user.Email = data.Email
+	user.PictureUrl = data.Picture
 
 	u.encrypt.Encrypt(&user)
 	if err := u.repository.UpdateUserByID(ctx, user); err != nil {
-		return jwt.TokenPair{}, err
+		return entities.User{}, jwt.TokenPair{}, err
 	}
 
 	claims := entities.JWTClaims{
@@ -189,12 +190,14 @@ func (u *userController) UpdateUser(ctx context.Context, user entities.User, dat
 		Permissions:   user.Permissions,
 		FirebaseToken: user.FirebaseToken,
 	}
+
 	pair, err := u.jwt.GeneratePair(claims)
 	if err != nil {
-		return jwt.TokenPair{}, err
+		return entities.User{}, jwt.TokenPair{}, err
 	}
 
-	return pair, nil
+	u.encrypt.Decrypt(&user)
+	return user, pair, nil
 }
 
 func (u *userController) LoginUser(ctx context.Context, data dto.UserLoginDTO, ip string) (entities.User, jwt.TokenPair, error) {
