@@ -27,3 +27,10 @@ type OAuth2CallbackUser struct {
 	Name          string `json:"name" bson:"login"`
 	PictureUrl    string `json:"picture" bson:"picture"`
 }
+
+type AcceptUser struct {
+	Id       primitive.ObjectID `json:"id" bson:"_id"`
+	Name     string             `json:"name" bson:"name" encryption:""`
+	Type     string             `json:"type" bson:"type"`
+	Typename string             `json:"typename" bson:"typename"`
+}
