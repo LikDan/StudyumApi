@@ -139,15 +139,22 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
 			},
 			"as": "dates",
 		}},
+		bson.M{"$lookup": bson.M{
+			"from": "StudyPlaces",
+			"pipeline": bson.A{
+				bson.M{"$match": bson.M{"_id": studyPlaceId}},
+			},
+			"as": "studyPlace",
+		}},
 		bson.M{"$addFields": bson.M{
 			"info": bson.M{
-				"editable":     false,
-				"studyPlaceId": studyPlaceId,
-				"group":        group,
-				"type":         "Student",
+				"editable":   false,
+				"studyPlace": bson.M{"$first": "$studyPlace"},
+				"group":      group,
+				"type":       "Student",
 			},
 		}},
-		bson.M{"$project": bson.M{"_id": 0}},
+		bson.M{"$project": bson.M{"_id": 0, "studyPlace": 0}},
 	})
 	if err != nil {
 		return entities.Journal{}, err
@@ -156,9 +163,9 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
 	if !cursor.Next(ctx) {
 		return entities.Journal{
 			Info: entities.JournalInfo{
-				Editable:     false,
-				StudyPlaceId: studyPlaceId,
-				Group:        group,
+				Editable:   false,
+				StudyPlace: entities.StudyPlace{},
+				Group:      group,
 			},
 		}, nil
 	}
@@ -206,12 +213,19 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": typeName, "group": group, "studyPlaceId": studyPlaceId}}}, bson.D{{"$sort", bson.M{"startDate": 1}}}},
 			"as":       "dates",
 		}}},
+		bson.D{{"$lookup", bson.M{
+			"from": "StudyPlaces",
+			"pipeline": bson.A{
+				bson.M{"$match": bson.M{"_id": studyPlaceId}},
+			},
+			"as": "studyPlace",
+		}}},
 		bson.D{{"$addFields", bson.M{"info": bson.M{
-			"editable":     true,
-			"studyPlaceId": studyPlaceId,
-			"group":        group,
-			"teacher":      typeName,
-			"subject":      subject,
+			"editable":   true,
+			"studyPlace": bson.M{"$first": "$studyPlace"},
+			"group":      group,
+			"teacher":    typeName,
+			"subject":    subject,
 		}}}},
 	})
 	if err != nil {
@@ -221,11 +235,11 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 	if !cursor.Next(ctx) {
 		return entities.Journal{
 			Info: entities.JournalInfo{
-				Editable:     true,
-				StudyPlaceId: studyPlaceId,
-				Group:        group,
-				Teacher:      typeName,
-				Subject:      subject,
+				Editable:   true,
+				StudyPlace: entities.StudyPlace{},
+				Group:      group,
+				Teacher:    typeName,
+				Subject:    subject,
 			},
 		}, nil
 	}

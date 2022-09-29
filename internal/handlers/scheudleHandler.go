@@ -44,7 +44,7 @@ func NewScheduleHandler(authHandler Handler, controller controllers.ScheduleCont
 	group.GET("", h.Auth(), h.GetUserSchedule)
 
 	group.POST("", h.Auth("editSchedule"), h.AddLesson)
-	group.PUT("", h.Auth("editSchedule"), h.UpdateLesson)
+	group.PUT("", h.Auth("editJournal"), h.UpdateLesson)
 	group.DELETE(":id", h.Auth("editSchedule"), h.DeleteLesson)
 	group.DELETE("between/:startDate/:endDate", h.Auth("editSchedule"), h.RemoveLessonsBetweenDates)
 
