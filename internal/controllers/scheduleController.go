@@ -187,6 +187,7 @@ func (s *scheduleController) UpdateLesson(ctx context.Context, dto dto.UpdateLes
 		Group:          dto.Group,
 		Teacher:        dto.Teacher,
 		Room:           dto.Room,
+		Type:           dto.Type,
 		Title:          dto.Title,
 		Homework:       dto.Homework,
 		Description:    dto.Description,
