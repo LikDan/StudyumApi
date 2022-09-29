@@ -51,6 +51,19 @@ func (c *controller) Auth(ctx context.Context, token string, blockedOrNotAccepte
 
 	c.encrypt.Decrypt(&user)
 
+	isAdmin := false
+	for _, permission := range user.Permissions {
+		if permission != "admin" {
+			continue
+		}
+
+		isAdmin = true
+	}
+
+	if isAdmin {
+		return user, nil
+	}
+
 	for _, permission := range permissions {
 		ret := true
 		for _, existedPermission := range user.Permissions {
