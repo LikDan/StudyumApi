@@ -70,6 +70,7 @@ func (j *journalRepository) GetAvailableOptions(ctx context.Context, teacher str
 			"group":   bson.M{"$first": "$group"}},
 		},
 		bson.M{"$addFields": bson.M{"editable": editable}},
+		bson.M{"$sort": bson.M{"group": 1, "subject": 1, "teacher": 1}},
 	})
 	if err != nil {
 		return nil, err
