@@ -19,9 +19,11 @@ type ScheduleRepository interface {
 	AddLesson(ctx context.Context, lesson entities.Lesson) (primitive.ObjectID, error)
 	UpdateLesson(ctx context.Context, lesson entities.Lesson) error
 	FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId primitive.ObjectID) (entities.Lesson, error)
-	UpdateGeneralSchedule(ctx context.Context, lessons []entities.GeneralLesson, type_ string, typeName string) error
+	UpdateGeneralSchedule(ctx context.Context, lessons []entities.GeneralLesson) error
 	RemoveLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID) error
 	RemoveGroupLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID, group string) error
+
+	RemoveGeneralLessonsByType(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, name string) error
 
 	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace entities.StudyPlace)
 	GetGeneralLessons(ctx context.Context, studyPlaceId primitive.ObjectID, weekIndex, dayIndex int) ([]entities.GeneralLesson, error)
@@ -299,11 +301,7 @@ func (s *scheduleRepository) FindAndDeleteLesson(ctx context.Context, id primiti
 	return lesson, err
 }
 
-func (s *scheduleRepository) UpdateGeneralSchedule(ctx context.Context, lessons []entities.GeneralLesson, type_ string, typeName string) error {
-	if _, err := s.generalLessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": lessons[0].StudyPlaceId, "type": type_, "typeName": typeName}); err != nil {
-		return err
-	}
-
+func (s *scheduleRepository) UpdateGeneralSchedule(ctx context.Context, lessons []entities.GeneralLesson) error {
 	if _, err := s.generalLessonsCollection.InsertMany(ctx, slicetools.ToInterface(lessons)); err != nil {
 		return err
 	}
@@ -332,5 +330,10 @@ func (s *scheduleRepository) RemoveLessonBetweenDates(ctx context.Context, date1
 
 func (s *scheduleRepository) RemoveGroupLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID, group string) error {
 	_, err := s.lessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": id, "group": group, "startDate": bson.M{"$gte": date1, "$lt": date2}})
+	return err
+}
+
+func (s *scheduleRepository) RemoveGeneralLessonsByType(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typename string) error {
+	_, err := s.generalLessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": studyPlaceID, type_: typename})
 	return err
 }
