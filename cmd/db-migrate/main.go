@@ -31,7 +31,7 @@ func main() {
 		logrus.Fatalf("Can't connect to database, error: %s", err.Error())
 	}
 
-	dbFrom := clientFrom.Database("Schedule")
+	dbFrom := clientFrom.Database("Studyum")
 	dbTo := clientTo.Database("Studyum")
 
 	collections := []string{"GeneralLessons", "Lessons", "Marks", "SignUpCodes", "StudyPlaces", "Users", "ParseJournalUsers", "ParseScheduleTypes"}

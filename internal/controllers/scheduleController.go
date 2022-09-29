@@ -253,7 +253,11 @@ func (s *scheduleController) SaveCurrentScheduleAsGeneral(ctx context.Context, u
 		lessons[i] = gLesson
 	}
 
-	if err = s.repository.UpdateGeneralSchedule(ctx, lessons, type_, typeName); err != nil {
+	if err = s.repository.RemoveGeneralLessonsByType(ctx, user.StudyPlaceId, type_, typeName); err != nil {
+		return err
+	}
+
+	if err = s.repository.UpdateGeneralSchedule(ctx, lessons); err != nil {
 		return err
 	}
 
