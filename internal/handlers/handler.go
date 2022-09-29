@@ -15,6 +15,7 @@ import (
 type Handler interface {
 	User(permissions ...string) gin.HandlerFunc
 	Auth(permissions ...string) gin.HandlerFunc
+	AuthBlockedOrNotAccepted() gin.HandlerFunc
 
 	Error(ctx *gin.Context, err error)
 
@@ -29,13 +30,13 @@ func NewHandler(controller controllers.Controller) Handler {
 	return &handler{controller: controller}
 }
 
-func (h *handler) authViaAccessToken(ctx *gin.Context, permissions ...string) error {
+func (h *handler) authViaAccessToken(ctx *gin.Context, blockedOrNotAccepted bool, permissions ...string) error {
 	token, err := ctx.Cookie("access")
 	if err != nil {
 		return err
 	}
 
-	user, err := h.controller.Auth(ctx, token, permissions...)
+	user, err := h.controller.Auth(ctx, token, blockedOrNotAccepted, permissions...)
 	if err != nil {
 		return err
 	}
@@ -44,13 +45,13 @@ func (h *handler) authViaAccessToken(ctx *gin.Context, permissions ...string) er
 	return nil
 }
 
-func (h *handler) authViaRefreshToken(ctx *gin.Context, permissions ...string) error {
+func (h *handler) authViaRefreshToken(ctx *gin.Context, blockedOrNotAccepted bool, permissions ...string) error {
 	refreshToken, err := ctx.Cookie("refresh")
 	if err != nil {
 		return err
 	}
 
-	user, pair, err := h.controller.AuthJWTByRefreshToken(ctx, refreshToken, ctx.ClientIP(), permissions...)
+	user, pair, err := h.controller.AuthJWTByRefreshToken(ctx, refreshToken, ctx.ClientIP(), blockedOrNotAccepted, permissions...)
 	if err != nil {
 		return err
 	}
@@ -61,9 +62,9 @@ func (h *handler) authViaRefreshToken(ctx *gin.Context, permissions ...string) e
 	return nil
 }
 
-func (h *handler) auth(ctx *gin.Context, permissions ...string) error {
-	if err := h.authViaAccessToken(ctx, permissions...); err != nil {
-		if err = h.authViaRefreshToken(ctx, permissions...); err != nil {
+func (h *handler) auth(ctx *gin.Context, blockedOrNotAccepted bool, permissions ...string) error {
+	if err := h.authViaAccessToken(ctx, blockedOrNotAccepted, permissions...); err != nil {
+		if err = h.authViaRefreshToken(ctx, blockedOrNotAccepted, permissions...); err != nil {
 			return err
 		}
 	}
@@ -87,10 +88,18 @@ func (h *handler) authViaApiToken(ctx *gin.Context) bool {
 
 func (h *handler) Auth(permissions ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		if err := h.auth(ctx, permissions...); err != nil {
+		if err := h.auth(ctx, false, permissions...); err != nil {
 			if !h.authViaApiToken(ctx) {
 				h.Error(ctx, err)
 			}
+		}
+	}
+}
+
+func (h *handler) AuthBlockedOrNotAccepted() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		if err := h.auth(ctx, true); err != nil {
+			h.Error(ctx, err)
 		}
 	}
 }
@@ -102,7 +111,7 @@ func (h *handler) SetTokenPairCookie(ctx *gin.Context, pair jwt.TokenPair) {
 
 func (h *handler) User(permissions ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		_ = h.auth(ctx, permissions...)
+		_ = h.auth(ctx, false, permissions...)
 	}
 }
 

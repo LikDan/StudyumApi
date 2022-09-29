@@ -15,8 +15,8 @@ var NotAuthorizationError = errors.New("not authorized")
 var ForbiddenError = errors.New("forbidden")
 
 type Controller interface {
-	Auth(ctx context.Context, token string, permissions ...string) (entities.User, error)
-	AuthJWTByRefreshToken(ctx context.Context, token string, ip string, permissions ...string) (entities.User, jwt.TokenPair, error)
+	Auth(ctx context.Context, token string, blockedOrNotAccepted bool, permissions ...string) (entities.User, error)
+	AuthJWTByRefreshToken(ctx context.Context, token string, ip string, blockedOrNotAccepted bool, permissions ...string) (entities.User, jwt.TokenPair, error)
 	AuthViaApiToken(ctx context.Context, token string) (entities.User, error)
 
 	GetClaims(ctx context.Context, refreshToken string) (error, entities.JWTClaims)
@@ -34,7 +34,7 @@ func NewController(jwt jwt.JWT[entities.JWTClaims], userRepository repositories.
 	return &controller{userRepository: userRepository, generalRepository: generalRepository, jwt: jwt, encrypt: encrypt}
 }
 
-func (c *controller) Auth(ctx context.Context, token string, permissions ...string) (entities.User, error) {
+func (c *controller) Auth(ctx context.Context, token string, blockedOrNotAccepted bool, permissions ...string) (entities.User, error) {
 	claims, ok := c.jwt.Validate(token)
 	if !ok {
 		return entities.User{}, errors.Wrap(NotAuthorizationError, "not valid token")
@@ -65,11 +65,11 @@ func (c *controller) Auth(ctx context.Context, token string, permissions ...stri
 		}
 	}
 
-	if !user.Accepted {
+	if !user.Accepted && !blockedOrNotAccepted {
 		return entities.User{}, errors.Wrap(ForbiddenError, "not accepted")
 	}
 
-	if user.Blocked {
+	if user.Blocked && !blockedOrNotAccepted {
 		return entities.User{}, errors.Wrap(ForbiddenError, "blocked")
 	}
 
@@ -88,7 +88,7 @@ func (c *controller) UpdateJWTTokensViaNewSession(ctx context.Context, session e
 	return err, pair
 }
 
-func (c *controller) AuthJWTByRefreshToken(ctx context.Context, token string, ip string, permissions ...string) (entities.User, jwt.TokenPair, error) {
+func (c *controller) AuthJWTByRefreshToken(ctx context.Context, token string, ip string, blockedOrNotAccepted bool, permissions ...string) (entities.User, jwt.TokenPair, error) {
 	session := entities.Session{
 		RefreshToken: token,
 		IP:           ip,
@@ -99,7 +99,7 @@ func (c *controller) AuthJWTByRefreshToken(ctx context.Context, token string, ip
 		return entities.User{}, jwt.TokenPair{}, err
 	}
 
-	user, err := c.Auth(ctx, pair.Access, permissions...)
+	user, err := c.Auth(ctx, pair.Access, blockedOrNotAccepted, permissions...)
 	if err != nil {
 		return entities.User{}, jwt.TokenPair{}, err
 	}

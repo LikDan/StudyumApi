@@ -49,7 +49,7 @@ func NewUserHandler(authHandler Handler, controller controllers.UserController, 
 	group.PUT("login", h.LoginUser)
 	group.POST("signup/withToken", h.SignUpUserWithToken)
 	group.POST("signup", h.SignUpUser)
-	group.PUT("signup/stage1", h.Auth(), h.SignUpUserStage1)
+	group.PUT("signup/stage1", h.AuthBlockedOrNotAccepted(), h.SignUpUserStage1)
 
 	group.GET("auth/:oauth", h.OAuth2)
 	group.GET("oauth2/callback/:oauth", h.CallbackOAuth2)
