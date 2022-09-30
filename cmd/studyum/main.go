@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -24,6 +25,9 @@ import (
 
 func main() {
 	time.Local = time.FixedZone("GMT", 3*3600)
+
+	a := 1209600000000000
+	fmt.Println(a)
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(os.Getenv("DB_URL")))
 	if err != nil {

@@ -1,6 +1,9 @@
 package entities
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"time"
+)
 
 type StudyPlace struct {
 	Id                primitive.ObjectID `json:"id" bson:"_id"`
@@ -14,11 +17,12 @@ type StudyPlace struct {
 }
 
 type MarkType struct {
-	Mark       string `bson:"mark" json:"mark"`
-	Standalone bool   `bson:"standalone" json:"standalone"`
+	Mark        string        `bson:"mark" json:"mark"`
+	WorkOutTime time.Duration `bson:"workOutTime" json:"workOutTime"`
 }
 
 type LessonType struct {
-	Type  string     `bson:"type" json:"type"`
-	Marks []MarkType `bson:"marks" json:"marks"`
+	Type            string     `bson:"type" json:"type"`
+	Marks           []MarkType `bson:"marks" json:"marks"`
+	StandaloneMarks []MarkType `bson:"standaloneMarks" json:"standaloneMarks"`
 }
