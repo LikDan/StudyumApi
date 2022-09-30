@@ -118,7 +118,7 @@ func (u *userHandler) SignUpUser(ctx *gin.Context) {
 		return
 	}
 
-	user, pair, err := u.controller.SignUpUser(ctx, data, "")
+	user, pair, err := u.controller.SignUpUser(ctx, data, ctx.ClientIP())
 	if err != nil {
 		u.Error(ctx, err)
 		return

@@ -33,6 +33,7 @@ func NewJournalHandler(authHandler Handler, controller controllers.JournalContro
 
 	group.GET("/options", h.Auth(), h.GetJournalAvailableOptions)
 	group.GET("/:group/:subject/:teacher", h.Auth(), h.GetJournal)
+	group.GET("/absent/:group/:subject/:teacher", h.Auth(), h.GetAbsentJournal)
 	group.GET("", h.Auth(), h.GetUserJournal)
 
 	mark := group.Group("/mark", h.Auth("editJournal"))
@@ -65,6 +66,22 @@ func (j *journalHandler) GetJournal(ctx *gin.Context) {
 	teacher := ctx.Param("teacher")
 
 	journal, err := j.controller.GetJournal(ctx, group, subject, teacher, user)
+	if err != nil {
+		j.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, journal)
+}
+
+func (j *journalHandler) GetAbsentJournal(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	group := ctx.Param("group")
+	subject := ctx.Param("subject")
+	teacher := ctx.Param("teacher")
+
+	journal, err := j.controller.GetAbsentJournal(ctx, group, subject, teacher, user)
 	if err != nil {
 		j.Error(ctx, err)
 		return

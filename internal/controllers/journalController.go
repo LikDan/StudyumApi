@@ -21,6 +21,7 @@ type JournalController interface {
 	GetJournalAvailableOptions(ctx context.Context, user entities.User) ([]entities.JournalAvailableOption, error)
 
 	GetJournal(ctx context.Context, group string, subject string, teacher string, user entities.User) (entities.Journal, error)
+	GetAbsentJournal(ctx context.Context, group string, subject string, teacher string, user entities.User) (entities.Journal, error)
 	GetUserJournal(ctx context.Context, user entities.User) (entities.Journal, error)
 
 	AddMark(ctx context.Context, dto dto.AddMarkDTO, user entities.User) (entities.Mark, error)
@@ -65,6 +66,25 @@ func (j *journalController) GetJournal(ctx context.Context, group string, subjec
 	}
 
 	journal, err := j.repository.GetJournal(ctx, group, subject, user.TypeName, user.StudyPlaceId)
+	if err != nil {
+		return entities.Journal{}, err
+	}
+
+	j.encrypt.Decrypt(&journal)
+
+	slices.SortFunc(journal.Rows, func(el1, el2 entities.JournalRow) bool {
+		return el1.Title < el2.Title
+	})
+
+	return journal, nil
+}
+
+func (j *journalController) GetAbsentJournal(ctx context.Context, group string, subject string, teacher string, user entities.User) (entities.Journal, error) {
+	if group == "" || subject == "" || teacher == "" {
+		return entities.Journal{}, NotValidParams
+	}
+
+	journal, err := j.repository.GetAbsentJournal(ctx, group, subject, user.TypeName, user.StudyPlaceId)
 	if err != nil {
 		return entities.Journal{}, err
 	}

@@ -18,6 +18,7 @@ type JournalRepository interface {
 
 	GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId primitive.ObjectID) (entities.Journal, error)
 	GetJournal(ctx context.Context, group string, subject string, typeName string, studyPlaceId primitive.ObjectID) (entities.Journal, error)
+	GetAbsentJournal(ctx context.Context, group string, subject string, name string, id primitive.ObjectID) (entities.Journal, error)
 
 	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
 	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId primitive.ObjectID) ([]entities.Lesson, error)
@@ -202,6 +203,87 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 			"let":          bson.M{"studentID": "$_id"},
 			"pipeline":     mongo.Pipeline{bson.D{{"$match", bson.M{"$expr": bson.M{"$eq": bson.A{"$studentID", "$$studentID"}}}}}},
 			"as":           "subjects.marks",
+		}}},
+		bson.D{{"$sort", bson.M{"subjects.startDate": 1}}},
+		bson.D{{"$addFields", bson.M{"userType": "student", "subjects.studentID": "$_id"}}},
+		bson.D{{"$group", bson.M{"_id": "$_id", "title": bson.M{"$first": "$name"}, "userType": bson.M{"$first": "$userType"}, "lessons": bson.M{"$push": "$subjects"}}}},
+		bson.D{{"$group", bson.M{"_id": nil, "rows": bson.M{"$push": "$$ROOT"}}}},
+		bson.D{{"$project", bson.M{"_id": 0}}},
+		bson.D{{"$lookup", bson.M{
+			"from":     "Lessons",
+			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": typeName, "group": group, "studyPlaceId": studyPlaceId}}}, bson.D{{"$sort", bson.M{"startDate": 1}}}},
+			"as":       "dates",
+		}}},
+		bson.D{{"$lookup", bson.M{
+			"from": "StudyPlaces",
+			"pipeline": bson.A{
+				bson.M{"$match": bson.M{"_id": studyPlaceId}},
+			},
+			"as": "studyPlace",
+		}}},
+		bson.D{{"$addFields", bson.M{"info": bson.M{
+			"editable":   true,
+			"studyPlace": bson.M{"$first": "$studyPlace"},
+			"group":      group,
+			"teacher":    typeName,
+			"subject":    subject,
+		}}}},
+	})
+	if err != nil {
+		return entities.Journal{}, err
+	}
+
+	if !cursor.Next(ctx) {
+		return entities.Journal{
+			Info: entities.JournalInfo{
+				Editable:   true,
+				StudyPlace: entities.StudyPlace{},
+				Group:      group,
+				Teacher:    typeName,
+				Subject:    subject,
+			},
+		}, nil
+	}
+	var journal entities.Journal
+	if err = cursor.Decode(&journal); err != nil {
+		return entities.Journal{}, err
+	}
+
+	return journal, nil
+}
+
+func (j *journalRepository) GetAbsentJournal(ctx context.Context, group string, subject string, typeName string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
+	cursor, err := j.usersCollection.Aggregate(ctx, mongo.Pipeline{
+		bson.D{{"$group", bson.M{"_id": nil, "users": bson.M{"$push": "$$ROOT"}}}},
+		bson.D{{"$lookup", bson.M{
+			"from":     "SignUpCodes",
+			"pipeline": mongo.Pipeline{},
+			"as":       "codeUsers",
+		}}},
+		bson.D{{"$project", bson.M{"_id": nil, "users": bson.M{"$concatArrays": bson.A{"$users", "$codeUsers"}}}}},
+		bson.D{{"$unwind", "$users"}},
+		bson.D{{"$replaceRoot", bson.M{"newRoot": "$users"}}},
+		bson.D{{"$match", bson.M{"type": "group", "typename": group, "studyPlaceID": studyPlaceId}}},
+		bson.D{{"$lookup", bson.M{
+			"from":     "Lessons",
+			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": typeName, "group": group, "studyPlaceId": studyPlaceId}}}},
+			"as":       "subjects",
+		}}},
+		bson.D{{"$unwind", "$subjects"}},
+		bson.D{{"$lookup", bson.M{
+			"from":         "Absences",
+			"localField":   "subjects._id",
+			"foreignField": "lessonId",
+			"let":          bson.M{"studentID": "$_id"},
+			"pipeline": mongo.Pipeline{
+				bson.D{{"$match", bson.M{"$expr": bson.M{"$eq": bson.A{"$studentID", "$$studentID"}}}}},
+				bson.D{{"$addFields", bson.M{"mark": bson.M{"$convert": bson.M{
+					"input":  "$time",
+					"to":     "string",
+					"onNull": "x",
+				}}}}},
+			},
+			"as": "subjects.marks",
 		}}},
 		bson.D{{"$sort", bson.M{"subjects.startDate": 1}}},
 		bson.D{{"$addFields", bson.M{"userType": "student", "subjects.studentID": "$_id"}}},
