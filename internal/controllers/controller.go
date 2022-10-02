@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/mongo"
 	"studyum/internal/entities"
@@ -94,6 +95,8 @@ func (c *controller) UpdateJWTTokensViaNewSession(ctx context.Context, session e
 	if err != nil {
 		return err, jwt.TokenPair{}
 	}
+
+	fmt.Println("Updating refresh token ", session.RefreshToken, " to ", pair.Refresh)
 
 	old := session.RefreshToken
 	session.RefreshToken = pair.Refresh
