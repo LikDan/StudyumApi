@@ -253,6 +253,11 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 }
 
 func (j *journalRepository) GetAbsentJournal(ctx context.Context, group string, subject string, typeName string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
+	var studyPlace entities.StudyPlace
+	if err := j.studyPlacesCollection.FindOne(ctx, bson.M{"_id": studyPlaceId}).Decode(&studyPlace); err != nil {
+		return entities.Journal{}, err
+	}
+
 	cursor, err := j.usersCollection.Aggregate(ctx, mongo.Pipeline{
 		bson.D{{"$group", bson.M{"_id": nil, "users": bson.M{"$push": "$$ROOT"}}}},
 		bson.D{{"$lookup", bson.M{
@@ -280,7 +285,7 @@ func (j *journalRepository) GetAbsentJournal(ctx context.Context, group string, 
 				bson.D{{"$addFields", bson.M{"mark": bson.M{"$convert": bson.M{
 					"input":  "$time",
 					"to":     "string",
-					"onNull": "x",
+					"onNull": studyPlace.AbsentMark,
 				}}}}},
 			},
 			"as": "subjects.marks",
@@ -295,16 +300,9 @@ func (j *journalRepository) GetAbsentJournal(ctx context.Context, group string, 
 			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": typeName, "group": group, "studyPlaceId": studyPlaceId}}}, bson.D{{"$sort", bson.M{"startDate": 1}}}},
 			"as":       "dates",
 		}}},
-		bson.D{{"$lookup", bson.M{
-			"from": "StudyPlaces",
-			"pipeline": bson.A{
-				bson.M{"$match": bson.M{"_id": studyPlaceId}},
-			},
-			"as": "studyPlace",
-		}}},
 		bson.D{{"$addFields", bson.M{"info": bson.M{
 			"editable":   true,
-			"studyPlace": bson.M{"$first": "$studyPlace"},
+			"studyPlace": studyPlace,
 			"group":      group,
 			"teacher":    typeName,
 			"subject":    subject,
@@ -318,7 +316,7 @@ func (j *journalRepository) GetAbsentJournal(ctx context.Context, group string, 
 		return entities.Journal{
 			Info: entities.JournalInfo{
 				Editable:   true,
-				StudyPlace: entities.StudyPlace{},
+				StudyPlace: studyPlace,
 				Group:      group,
 				Teacher:    typeName,
 				Subject:    subject,
