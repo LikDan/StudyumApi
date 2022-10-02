@@ -43,6 +43,14 @@ func NewJournalHandler(authHandler Handler, controller controllers.JournalContro
 		mark.PUT("", h.UpdateMark)
 		mark.DELETE("", h.DeleteMark)
 	}
+
+	absences := group.Group("/absences", h.Auth("editJournal"))
+	{
+		absences.POST("", h.AddAbsence)
+		absences.PUT("", h.UpdateAbsence)
+		absences.DELETE(":id", h.DeleteAbsence)
+	}
+
 	return h
 }
 
@@ -166,4 +174,51 @@ func (j *journalHandler) DeleteMark(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, markId)
+}
+
+func (j *journalHandler) AddAbsence(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	var absencesDTO dto.AddAbsencesDTO
+	if err := ctx.BindJSON(&absencesDTO); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	absences, err := j.controller.AddAbsence(ctx, absencesDTO, user)
+	if err != nil {
+		j.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, absences)
+}
+
+func (j *journalHandler) UpdateAbsence(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	var absences dto.UpdateAbsencesDTO
+	if err := ctx.BindJSON(&absences); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := j.controller.UpdateAbsence(ctx, user, absences); err != nil {
+		j.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, absences)
+}
+
+func (j *journalHandler) DeleteAbsence(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	absencesID := ctx.Param("id")
+	if err := j.controller.DeleteAbsence(ctx, user, absencesID); err != nil {
+		j.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, absencesID)
 }

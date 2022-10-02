@@ -10,6 +10,7 @@ type Repository struct {
 	studyPlacesCollection    *mongo.Collection
 	usersCollection          *mongo.Collection
 	marksCollection          *mongo.Collection
+	absencesCollection       *mongo.Collection
 	signUpCodesCollection    *mongo.Collection
 }
 
@@ -22,6 +23,7 @@ func NewRepository(client *mongo.Client) *Repository {
 		studyPlacesCollection:    database.Collection("StudyPlaces"),
 		usersCollection:          database.Collection("Users"),
 		marksCollection:          database.Collection("Marks"),
+		absencesCollection:       database.Collection("Absences"),
 		signUpCodesCollection:    database.Collection("SignUpCodes"),
 	}
 }

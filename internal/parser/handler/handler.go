@@ -78,8 +78,8 @@ func (h *handler) AddMark(mark entities.Mark) {
 		Id:           mark.Id,
 		Mark:         mark.Mark,
 		StudentID:    mark.StudentID,
-		LessonId:     mark.LessonId,
-		StudyPlaceId: mark.StudyPlaceId,
+		LessonId:     mark.LessonID,
+		StudyPlaceId: mark.StudyPlaceID,
 	}
 	h.controller.AddMark(ctx, markDTO)
 }
@@ -91,8 +91,8 @@ func (h *handler) EditMark(mark entities.Mark) {
 		Id:           mark.Id,
 		Mark:         mark.Mark,
 		StudentID:    mark.StudentID,
-		LessonId:     mark.LessonId,
-		StudyPlaceId: mark.StudyPlaceId,
+		LessonId:     mark.LessonID,
+		StudyPlaceId: mark.StudyPlaceID,
 	}
 	h.controller.EditMark(ctx, markDTO)
 }
@@ -104,8 +104,8 @@ func (h *handler) DeleteMark(mark entities.Mark) {
 		Id:           mark.Id,
 		Mark:         mark.Mark,
 		StudentID:    mark.StudentID,
-		LessonId:     mark.LessonId,
-		StudyPlaceId: mark.StudyPlaceId,
+		LessonId:     mark.LessonID,
+		StudyPlaceId: mark.StudyPlaceID,
 	}
 	h.controller.DeleteMark(ctx, markDTO)
 }

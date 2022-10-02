@@ -22,6 +22,11 @@ type JournalRepository interface {
 
 	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
 	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId primitive.ObjectID) ([]entities.Lesson, error)
+
+	AddAbsence(ctx context.Context, absences entities.Absences) error
+	UpdateAbsence(ctx context.Context, absences entities.Absences) error
+	GetAbsenceByID(ctx context.Context, id primitive.ObjectID) (entities.Absences, error)
+	DeleteAbsenceByID(ctx context.Context, id primitive.ObjectID) error
 }
 
 type journalRepository struct {
@@ -42,7 +47,7 @@ func (j *journalRepository) AddMark(ctx context.Context, mark entities.Mark) (pr
 }
 
 func (j *journalRepository) UpdateMark(ctx context.Context, mark entities.Mark) error {
-	_, err := j.marksCollection.UpdateOne(ctx, bson.M{"_id": mark.Id, "lessonId": mark.LessonId}, bson.M{"$set": bson.M{"mark": mark.Mark}})
+	_, err := j.marksCollection.UpdateOne(ctx, bson.M{"_id": mark.Id, "lessonId": mark.LessonID}, bson.M{"$set": bson.M{"mark": mark.Mark}})
 	return err
 }
 
@@ -110,8 +115,8 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
 					"from": "Marks",
 					"let":  bson.M{"subjectId": "$_id"},
 					"pipeline": bson.A{
-						bson.M{"$match": bson.M{"studyPlaceId": studyPlaceId, "studentID": userId}},
-						bson.M{"$match": bson.M{"$expr": bson.M{"$eq": bson.A{"$lessonId", "$$subjectId"}}}},
+						bson.M{"$match": bson.M{"studyPlaceID": studyPlaceId, "studentID": userId}},
+						bson.M{"$match": bson.M{"$expr": bson.M{"$eq": bson.A{"$lessonID", "$$subjectId"}}}},
 					},
 					"as": "marks",
 				}},
@@ -199,7 +204,7 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 		bson.D{{"$lookup", bson.M{
 			"from":         "Marks",
 			"localField":   "subjects._id",
-			"foreignField": "lessonId",
+			"foreignField": "lessonID",
 			"let":          bson.M{"studentID": "$_id"},
 			"pipeline":     mongo.Pipeline{bson.D{{"$match", bson.M{"$expr": bson.M{"$eq": bson.A{"$studentID", "$$studentID"}}}}}},
 			"as":           "subjects.marks",
@@ -278,7 +283,7 @@ func (j *journalRepository) GetAbsentJournal(ctx context.Context, group string, 
 		bson.D{{"$lookup", bson.M{
 			"from":         "Absences",
 			"localField":   "subjects._id",
-			"foreignField": "lessonId",
+			"foreignField": "lessonID",
 			"let":          bson.M{"studentID": "$_id"},
 			"pipeline": mongo.Pipeline{
 				bson.D{{"$match", bson.M{"$expr": bson.M{"$eq": bson.A{"$studentID", "$$studentID"}}}}},
@@ -357,4 +362,24 @@ func (j *journalRepository) GetLessons(ctx context.Context, userId primitive.Obj
 	}
 
 	return marks, nil
+}
+
+func (j *journalRepository) AddAbsence(ctx context.Context, absences entities.Absences) error {
+	_, err := j.absencesCollection.InsertOne(ctx, absences)
+	return err
+}
+
+func (j *journalRepository) UpdateAbsence(ctx context.Context, absences entities.Absences) error {
+	_, err := j.absencesCollection.UpdateByID(ctx, absences.Id, bson.M{"$set": absences})
+	return err
+}
+
+func (j *journalRepository) GetAbsenceByID(ctx context.Context, id primitive.ObjectID) (absence entities.Absences, err error) {
+	err = j.absencesCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&absence)
+	return
+}
+
+func (j *journalRepository) DeleteAbsenceByID(ctx context.Context, id primitive.ObjectID) error {
+	_, err := j.absencesCollection.DeleteOne(ctx, bson.M{"_id": id})
+	return err
 }

@@ -92,12 +92,12 @@ func (u *userController) SignUpUserStage1(ctx context.Context, user entities.Use
 	switch data.Type {
 	case "group":
 		user.Type = data.Type
-		user.StudyPlaceId = data.StudyPlaceId
+		user.StudyPlaceID = data.StudyPlaceId
 		user.TypeName = data.TypeName
 		break
 	case "teacher":
 		user.Type = data.Type
-		user.StudyPlaceId = data.StudyPlaceId
+		user.StudyPlaceID = data.StudyPlaceId
 		user.TypeName = data.TypeName
 		user.Permissions = []string{"editJournal"}
 		break
@@ -141,7 +141,7 @@ func (u *userController) SignUpUserWithCode(ctx context.Context, ip string, data
 		PictureUrl:   "https://www.shareicon.net/data/128x128/2016/07/05/791214_man_512x512.png",
 		Type:         codeData.Type,
 		TypeName:     codeData.Typename,
-		StudyPlaceId: codeData.StudyPlaceID,
+		StudyPlaceID: codeData.StudyPlaceID,
 		Accepted:     true,
 	}
 
@@ -292,7 +292,7 @@ func (u *userController) CallbackOAuth2(ctx context.Context, configName string, 
 			PictureUrl:    callbackUser.PictureUrl,
 			Type:          "",
 			TypeName:      "",
-			StudyPlaceId:  primitive.NilObjectID,
+			StudyPlaceID:  primitive.NilObjectID,
 			Permissions:   nil,
 			Accepted:      false,
 			Blocked:       false,
@@ -328,7 +328,7 @@ func (u *userController) CreateCode(ctx context.Context, user entities.User, dat
 		Id:           primitive.NewObjectID(),
 		Code:         data.Code,
 		Name:         data.Name,
-		StudyPlaceID: user.StudyPlaceId,
+		StudyPlaceID: user.StudyPlaceID,
 		Type:         data.Type,
 		Typename:     data.TypeName,
 	}
@@ -343,7 +343,7 @@ func (u *userController) CreateCode(ctx context.Context, user entities.User, dat
 }
 
 func (u *userController) GetAccept(ctx context.Context, user entities.User) ([]entities.AcceptUser, error) {
-	users, err := u.repository.GetAccept(ctx, user.StudyPlaceId)
+	users, err := u.repository.GetAccept(ctx, user.StudyPlaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -353,9 +353,9 @@ func (u *userController) GetAccept(ctx context.Context, user entities.User) ([]e
 }
 
 func (u *userController) Accept(ctx context.Context, user entities.User, acceptUserID primitive.ObjectID) error {
-	return u.repository.Accept(ctx, user.StudyPlaceId, acceptUserID)
+	return u.repository.Accept(ctx, user.StudyPlaceID, acceptUserID)
 }
 
 func (u *userController) Block(ctx context.Context, user entities.User, blockUserID primitive.ObjectID) error {
-	return u.repository.Block(ctx, user.StudyPlaceId, blockUserID)
+	return u.repository.Block(ctx, user.StudyPlaceID, blockUserID)
 }

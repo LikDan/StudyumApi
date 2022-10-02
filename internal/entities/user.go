@@ -13,7 +13,7 @@ type User struct {
 	PictureUrl    string             `json:"picture" bson:"picture" encryption:""`
 	Type          string             `json:"type" bson:"type"`
 	TypeName      string             `json:"typeName" bson:"typename"`
-	StudyPlaceId  primitive.ObjectID `json:"studyPlaceId" bson:"studyPlaceID"`
+	StudyPlaceID  primitive.ObjectID `json:"studyPlaceId" bson:"studyPlaceID"`
 	Permissions   []string           `json:"permissions" bson:"permissions"`
 	Accepted      bool               `json:"accepted" bson:"accepted"`
 	Blocked       bool               `json:"blocked" bson:"blocked"`
