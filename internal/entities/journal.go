@@ -37,7 +37,16 @@ type Mark struct {
 	Id           primitive.ObjectID      `json:"id" bson:"_id"`
 	Mark         string                  `json:"mark" bson:"mark"`
 	StudentID    primitive.ObjectID      `json:"studentID" bson:"studentID"`
-	LessonId     primitive.ObjectID      `json:"lessonId" bson:"lessonId"`
-	StudyPlaceId primitive.ObjectID      `json:"studyPlaceId" bson:"studyPlaceId"`
+	LessonID     primitive.ObjectID      `json:"lessonID" bson:"lessonID"`
+	StudyPlaceID primitive.ObjectID      `json:"studyPlaceID" bson:"studyPlaceID"`
+	ParsedInfo   entities.ParsedInfoType `json:"-" bson:"parsedInfo"`
+}
+
+type Absences struct {
+	Id           primitive.ObjectID      `json:"id" bson:"_id"`
+	Time         *int                    `json:"time" bson:"time"`
+	StudentID    primitive.ObjectID      `json:"studentID" bson:"studentID"`
+	LessonID     primitive.ObjectID      `json:"lessonID" bson:"lessonID"`
+	StudyPlaceID primitive.ObjectID      `json:"studyPlaceID" bson:"studyPlaceID"`
 	ParsedInfo   entities.ParsedInfoType `json:"-" bson:"parsedInfo"`
 }

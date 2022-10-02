@@ -30,7 +30,7 @@ jobs:
             rm -r ${GITHUB_REPOSITORY#*/}
             git clone git@github.com:${{ github.repository }}.git
             cd ${GITHUB_REPOSITORY#*/}
-            docker rmi ${IMAGE_NAME}
+            docker rmi -f ${IMAGE_NAME}
             docker build -t ${IMAGE_NAME} .
             docker stop ${IMAGE_NAME}
             docker rm ${IMAGE_NAME}
