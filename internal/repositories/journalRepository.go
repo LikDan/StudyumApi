@@ -129,7 +129,40 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
 			"as": "subjects",
 		}},
 		bson.M{"$unwind": bson.M{"path": "$subjects", "preserveNullAndEmptyArrays": true}},
+		bson.M{"$lookup": bson.M{
+			"from": "StudyPlaces",
+			"pipeline": bson.A{
+				bson.M{"$match": bson.M{"_id": studyPlaceId}},
+			},
+			"as": "studyPlace",
+		}},
 		bson.M{"$addFields": bson.M{"lesson": bson.M{"$ifNull": bson.A{"$subjects.lessons", nil}}}},
+		bson.M{"$addFields": bson.M{
+			"lesson.journalCellColor": bson.M{"$function": bson.M{
+				"body": `function(studyPlace_, lesson) {
+	if (lesson == undefined || lesson.marks == undefined) return "";
+	let studyPlace = studyPlace_[0];
+    
+    color = ""
+    for (let mark of lesson.marks) {
+        let type = studyPlace.lessonTypes.find(v => v.type === lesson.type);
+		if (type === undefined) return "white";
+		
+		let markType = type.marks.find(m => m.mark === mark.mark);
+		if (markType === undefined || markType.workOutTime === undefined) return "white";
+        
+        let currentDate = new Date();
+        let lessonDate = lesson.startDate;
+        lessonDate.setSeconds(lessonDate.getSeconds() + 604800);
+        
+        color = lessonDate.getTime() > currentDate.getTime() ? "orange" : "red";
+    }
+    
+    return color;
+}`,
+				"args": bson.A{"$studyPlace", "$subjects"},
+				"lang": "js",
+			}}}},
 		bson.M{"$sort": bson.M{"date": 1}},
 		bson.M{"$group": bson.M{"_id": "$_id", "title": bson.M{"$first": "$_id"}, "lessons": bson.M{"$push": "$lesson"}}},
 		bson.M{"$sort": bson.M{"title": 1}},
@@ -144,13 +177,6 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
 				bson.M{"$sort": bson.M{"startDate": 1}},
 			},
 			"as": "dates",
-		}},
-		bson.M{"$lookup": bson.M{
-			"from": "StudyPlaces",
-			"pipeline": bson.A{
-				bson.M{"$match": bson.M{"_id": studyPlaceId}},
-			},
-			"as": "studyPlace",
 		}},
 		bson.M{"$addFields": bson.M{
 			"info": bson.M{
@@ -184,55 +210,84 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
 }
 
 func (j *journalRepository) GetJournal(ctx context.Context, group string, subject string, typeName string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
-	cursor, err := j.usersCollection.Aggregate(ctx, mongo.Pipeline{
-		bson.D{{"$group", bson.M{"_id": nil, "users": bson.M{"$push": "$$ROOT"}}}},
-		bson.D{{"$lookup", bson.M{
+	var cursor, err = j.usersCollection.Aggregate(ctx, bson.A{
+		bson.M{"$group": bson.M{"_id": nil, "users": bson.M{"$push": "$$ROOT"}}},
+		bson.M{"$lookup": bson.M{
 			"from":     "SignUpCodes",
 			"pipeline": mongo.Pipeline{},
 			"as":       "codeUsers",
-		}}},
-		bson.D{{"$project", bson.M{"_id": nil, "users": bson.M{"$concatArrays": bson.A{"$users", "$codeUsers"}}}}},
-		bson.D{{"$unwind", "$users"}},
-		bson.D{{"$replaceRoot", bson.M{"newRoot": "$users"}}},
-		bson.D{{"$match", bson.M{"type": "group", "typename": group, "studyPlaceID": studyPlaceId}}},
-		bson.D{{"$lookup", bson.M{
+		}},
+		bson.M{"$project": bson.M{"_id": nil, "users": bson.M{"$concatArrays": bson.A{"$users", "$codeUsers"}}}},
+		bson.M{"$unwind": "$users"},
+		bson.M{"$replaceRoot": bson.M{"newRoot": "$users"}},
+		bson.M{"$match": bson.M{"type": "group", "typename": group, "studyPlaceID": studyPlaceId}},
+		bson.M{"$lookup": bson.M{
 			"from":     "Lessons",
 			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": typeName, "group": group, "studyPlaceId": studyPlaceId}}}},
 			"as":       "subjects",
-		}}},
-		bson.D{{"$unwind", "$subjects"}},
-		bson.D{{"$lookup", bson.M{
-			"from":         "Marks",
-			"localField":   "subjects._id",
-			"foreignField": "lessonID",
-			"let":          bson.M{"studentID": "$_id"},
-			"pipeline":     mongo.Pipeline{bson.D{{"$match", bson.M{"$expr": bson.M{"$eq": bson.A{"$studentID", "$$studentID"}}}}}},
-			"as":           "subjects.marks",
-		}}},
-		bson.D{{"$sort", bson.M{"subjects.startDate": 1}}},
-		bson.D{{"$addFields", bson.M{"userType": "student", "subjects.studentID": "$_id"}}},
-		bson.D{{"$group", bson.M{"_id": "$_id", "title": bson.M{"$first": "$name"}, "userType": bson.M{"$first": "$userType"}, "lessons": bson.M{"$push": "$subjects"}}}},
-		bson.D{{"$group", bson.M{"_id": nil, "rows": bson.M{"$push": "$$ROOT"}}}},
-		bson.D{{"$project", bson.M{"_id": 0}}},
-		bson.D{{"$lookup", bson.M{
-			"from":     "Lessons",
-			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": typeName, "group": group, "studyPlaceId": studyPlaceId}}}, bson.D{{"$sort", bson.M{"startDate": 1}}}},
-			"as":       "dates",
-		}}},
-		bson.D{{"$lookup", bson.M{
+		}},
+		bson.M{"$unwind": "$subjects"},
+		bson.M{"$lookup": bson.M{
 			"from": "StudyPlaces",
 			"pipeline": bson.A{
 				bson.M{"$match": bson.M{"_id": studyPlaceId}},
 			},
 			"as": "studyPlace",
-		}}},
-		bson.D{{"$addFields", bson.M{"info": bson.M{
+		}},
+		bson.M{"$lookup": bson.M{
+			"from":         "Marks",
+			"localField":   "subjects._id",
+			"foreignField": "lessonID",
+			"let":          bson.M{"studentID": "$_id"},
+			"pipeline": bson.A{
+				bson.M{"$match": bson.M{"$expr": bson.M{"$eq": bson.A{"$studentID", "$$studentID"}}}},
+			},
+			"as": "subjects.marks",
+		}},
+		bson.M{"$addFields": bson.M{
+			"userType":           "student",
+			"subjects.studentID": "$_id",
+			"subjects.journalCellColor": bson.M{"$function": bson.M{
+				"body": `function(studyPlace_, lesson) {
+	let studyPlace = studyPlace_[0];
+    
+    color = ""
+    for (let mark of lesson.marks) {
+        let type = studyPlace.lessonTypes.find(v => v.type === lesson.type);
+		if (type === undefined) return "white";
+		
+		let markType = type.marks.find(m => m.mark === mark.mark);
+		if (markType === undefined || markType.workOutTime === undefined) return "white";
+        
+        let currentDate = new Date();
+        let lessonDate = lesson.startDate;
+        lessonDate.setSeconds(lessonDate.getSeconds() + 604800);
+        
+        color = lessonDate.getTime() > currentDate.getTime() ? "orange" : "red";
+    }
+    
+    return color;
+}`,
+				"args": bson.A{"$studyPlace", "$subjects"},
+				"lang": "js",
+			}},
+		}},
+		bson.M{"$sort": bson.M{"subjects.startDate": 1}},
+		bson.M{"$group": bson.M{"_id": "$_id", "title": bson.M{"$first": "$name"}, "userType": bson.M{"$first": "$userType"}, "lessons": bson.M{"$push": "$subjects"}, "studyPlace": bson.M{"$first": "$studyPlace"}}},
+		bson.M{"$group": bson.M{"_id": nil, "rows": bson.M{"$push": "$$ROOT"}, "studyPlace": bson.M{"$first": "$studyPlace"}}},
+		bson.M{"$project": bson.M{"_id": 0}},
+		bson.M{"$lookup": bson.M{
+			"from":     "Lessons",
+			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": typeName, "group": group, "studyPlaceId": studyPlaceId}}}, bson.D{{"$sort", bson.M{"startDate": 1}}}},
+			"as":       "dates",
+		}},
+		bson.M{"$addFields": bson.M{"info": bson.M{
 			"editable":   true,
 			"studyPlace": bson.M{"$first": "$studyPlace"},
 			"group":      group,
 			"teacher":    typeName,
 			"subject":    subject,
-		}}}},
+		}}},
 	})
 	if err != nil {
 		return entities.Journal{}, err
