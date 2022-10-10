@@ -82,8 +82,6 @@ func (s *scheduleRepository) GetSchedule(ctx context.Context, studyPlaceID primi
 										"$eq": bson.A{"$" + type_, typeName},
 									}, bson.M{
 										"$gte": bson.A{"$startDate", "$$env.startDate"},
-									}, bson.M{
-										"$lt": bson.A{"$endDate", "$$env.endDate"},
 									},
 								},
 							},
