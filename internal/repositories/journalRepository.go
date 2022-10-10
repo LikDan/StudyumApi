@@ -92,20 +92,20 @@ func (j *journalRepository) GetAvailableOptions(ctx context.Context, teacher str
 
 func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
 	cursor, err := j.lessonsCollection.Aggregate(ctx, bson.A{
-		bson.M{"$match": bson.M{"group": "95Т"}}, //TODO studyPlaceID
+		bson.M{"$match": bson.M{"group": group, "studyPlaceId": studyPlaceId}},
 		bson.M{
 			"$lookup": bson.M{
 				"from":         "Marks",
 				"localField":   "_id",
 				"foreignField": "lessonID",
-				"pipeline":     bson.A{}, //TODO studyPlaceID and userID
+				"pipeline":     bson.A{bson.M{"$match": bson.M{"studentID": userId, "studyPlaceID": studyPlaceId}}},
 				"as":           "marks",
 			},
 		},
 		bson.M{
 			"$lookup": bson.M{
 				"from":     "StudyPlaces",
-				"pipeline": bson.A{}, //TODO studyPlaceID
+				"pipeline": bson.A{bson.M{"$match": bson.M{"_id": studyPlaceId}}},
 				"as":       "studyPlace",
 			},
 		},
