@@ -11,6 +11,7 @@ type StudyPlace struct {
 	Name              string             `json:"name" bson:"name"`
 	PrimaryColorSet   []string           `json:"primaryColorSet" bson:"primaryColorSet"`
 	SecondaryColorSet []string           `json:"secondaryColorSet" bson:"secondaryColorSet"`
+	JournalColors     JournalColors      `json:"journalColors" bson:"journalColors"`
 	LessonTypes       []LessonType       `json:"lessonTypes" bson:"lessonTypes"`
 	Restricted        bool               `json:"restricted" bson:"restricted"`
 	AdminID           primitive.ObjectID `json:"adminID" bson:"adminID"`
@@ -26,4 +27,10 @@ type LessonType struct {
 	Type            string     `bson:"type" json:"type"`
 	Marks           []MarkType `bson:"marks" json:"marks"`
 	StandaloneMarks []MarkType `bson:"standaloneMarks" json:"standaloneMarks"`
+}
+
+type JournalColors struct {
+	General string `json:"general"`
+	Warning string `json:"warning"`
+	Danger  string `json:"danger"`
 }

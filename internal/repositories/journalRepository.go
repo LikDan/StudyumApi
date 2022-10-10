@@ -92,101 +92,160 @@ func (j *journalRepository) GetAvailableOptions(ctx context.Context, teacher str
 
 func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
 	cursor, err := j.lessonsCollection.Aggregate(ctx, bson.A{
-		bson.M{"$match": bson.M{"group": group, "studyPlaceId": studyPlaceId}},
-		bson.M{"$group": bson.M{"_id": "$subject"}},
-		bson.M{"$lookup": bson.M{
-			"from": "Lessons",
-			"pipeline": bson.A{
-				bson.M{"$match": bson.M{"group": group, "studyPlaceId": studyPlaceId}},
-				bson.M{"$group": bson.M{"_id": bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$startDate"}}}},
-				bson.M{"$sort": bson.M{"_id": 1}},
+		bson.M{"$match": bson.M{"group": "95Т"}}, //TODO studyPlaceID
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "Marks",
+				"localField":   "_id",
+				"foreignField": "lessonID",
+				"pipeline":     bson.A{}, //TODO studyPlaceID and userID
+				"as":           "marks",
 			},
-			"as": "date",
-		}},
-		bson.M{"$unwind": "$date"},
-		bson.M{"$addFields": bson.M{"date": "$date._id"}},
-		bson.M{"$lookup": bson.M{
-			"from": "Lessons",
-			"let":  bson.M{"date": "$date", "subject": "$_id"},
-			"pipeline": bson.A{
-				bson.M{"$match": bson.M{"group": group, "studyPlaceId": studyPlaceId}},
-				bson.M{"$addFields": bson.M{"date_str": bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$startDate"}}}},
-				bson.M{"$lookup": bson.M{
-					"from": "Marks",
-					"let":  bson.M{"subjectId": "$_id"},
-					"pipeline": bson.A{
-						bson.M{"$match": bson.M{"studyPlaceID": studyPlaceId, "studentID": userId}},
-						bson.M{"$match": bson.M{"$expr": bson.M{"$eq": bson.A{"$lessonID", "$$subjectId"}}}},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from":     "StudyPlaces",
+				"pipeline": bson.A{}, //TODO studyPlaceID
+				"as":       "studyPlace",
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"journalCellColor": bson.M{
+					"$function": bson.M{
+						// language=JavaScript
+						"body": `function (studyPlace, lesson) {
+                        if (lesson === undefined || lesson.marks === undefined) return "";
+
+                        let color = studyPlace.journalColors.general
+                        for (let mark of lesson.marks) {
+                            let type = studyPlace.lessonTypes.find(v => v.type === lesson.type);
+                            if (type === undefined) return studyPlace.journalColors.general;
+
+                            let markType = type.marks.find(m => m.mark === mark.mark);
+                            if (markType === undefined || markType.workOutTime === undefined) return studyPlace.journalColors.general;
+
+                            lesson.startDate.setSeconds(lesson.startDate.getSeconds() + 604800);
+
+                            color = lesson.startDate.getTime() > new Date().getTime() ? studyPlace.journalColors.warning : studyPlace.journalColors.danger;
+                        }
+
+                        return color;
+                    }`,
+						"args": bson.A{bson.M{"$first": "$studyPlace"}, "$$ROOT"},
+						"lang": "js",
 					},
-					"as": "marks",
-				}},
-				bson.M{"$unwind": bson.M{"path": "$marks", "preserveNullAndEmptyArrays": true}},
-				bson.M{"$group": bson.M{"_id": bson.M{"date": "$date_str", "subject": "$subject"}, "lessons": bson.M{"$first": "$$ROOT"}, "marks": bson.M{"$push": "$marks"}}},
-				bson.M{"$addFields": bson.M{"lessons.marks": "$marks"}},
-				bson.M{"$project": bson.M{"marks": 0}},
-				bson.M{"$match": bson.M{"$expr": bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$_id.date", "$$date"}}, bson.M{"$eq": bson.A{"$_id.subject", "$$subject"}}}}}},
+				},
 			},
-			"as": "subjects",
-		}},
-		bson.M{"$unwind": bson.M{"path": "$subjects", "preserveNullAndEmptyArrays": true}},
-		bson.M{"$lookup": bson.M{
-			"from": "StudyPlaces",
-			"pipeline": bson.A{
-				bson.M{"$match": bson.M{"_id": studyPlaceId}},
+		},
+		bson.M{
+			"$group": bson.M{
+				"_id":        nil,
+				"studyPlace": bson.M{"$first": bson.M{"$first": "$studyPlace"}},
+				"lessons":    bson.M{"$push": "$$ROOT"},
+				"dates":      bson.M{"$addToSet": bson.M{"$toDate": bson.M{"$dateToString": bson.M{"date": "$startDate", "format": "%m/%d/%Y"}}}},
 			},
-			"as": "studyPlace",
-		}},
-		bson.M{"$addFields": bson.M{"lesson": bson.M{"$ifNull": bson.A{"$subjects.lessons", nil}}}},
-		bson.M{"$addFields": bson.M{
-			"lesson.journalCellColor": bson.M{"$function": bson.M{
-				"body": `function(studyPlace_, lesson) {
-	if (lesson == undefined || lesson.marks == undefined) return "";
-	let studyPlace = studyPlace_[0];
-    
-    color = ""
-    for (let mark of lesson.marks) {
-        let type = studyPlace.lessonTypes.find(v => v.type === lesson.type);
-		if (type === undefined) return "white";
-		
-		let markType = type.marks.find(m => m.mark === mark.mark);
-		if (markType === undefined || markType.workOutTime === undefined) return "white";
-        
-        let currentDate = new Date();
-        let lessonDate = lesson.startDate;
-        lessonDate.setSeconds(lessonDate.getSeconds() + 604800);
-        
-        color = lessonDate.getTime() > currentDate.getTime() ? "orange" : "red";
-    }
-    
-    return color;
-}`,
-				"args": bson.A{"$studyPlace", "$subjects"},
-				"lang": "js",
-			}}}},
-		bson.M{"$sort": bson.M{"date": 1}},
-		bson.M{"$group": bson.M{"_id": "$_id", "title": bson.M{"$first": "$_id"}, "lessons": bson.M{"$push": "$lesson"}}},
-		bson.M{"$sort": bson.M{"title": 1}},
-		bson.M{"$group": bson.M{"_id": nil, "rows": bson.M{"$push": "$$ROOT"}}},
-		bson.M{"$lookup": bson.M{
-			"from": "Lessons",
-			"pipeline": bson.A{
-				bson.M{"$match": bson.M{"group": group, "studyPlaceId": studyPlaceId}},
-				bson.M{"$group": bson.M{"_id": bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$startDate"}}}},
-				bson.M{"$addFields": bson.M{"lesson": bson.M{"endDate": bson.M{"$toDate": "$_id"}}, "startDate": bson.M{"$toDate": "$_id"}}},
-				bson.M{"$project": bson.M{"_id": 0}},
-				bson.M{"$sort": bson.M{"startDate": 1}},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"dates": bson.M{
+					"$sortArray": bson.M{
+						"input":  "$dates",
+						"sortBy": 1,
+					},
+				},
 			},
-			"as": "dates",
-		}},
-		bson.M{"$addFields": bson.M{
-			"info": bson.M{
-				"editable":   false,
-				"studyPlace": bson.M{"$first": "$studyPlace"},
-				"group":      group,
-				"type":       "Student",
+		},
+		bson.M{
+			"$project": bson.M{
+				"lessons.studyPlace": 0,
 			},
-		}},
-		bson.M{"$project": bson.M{"_id": 0, "studyPlace": 0}},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"rows": bson.M{
+					"$function": bson.M{
+						// language=JavaScript
+						"body": `function (studyPlace, lessons, dates) {
+                        const groupBy = function (xs, key) {
+                            return xs.reduce(function (rv, x) {
+                                //TODO sort
+                                (rv[x[key]] = rv[x[key]] || []).push(x);
+                                return rv;
+                            }, {});
+                        };
+
+                        let groupedLessons = groupBy(lessons, 'subject')
+
+                        for (const [key, value] of Object.entries(groupedLessons)) {
+                            groupedLessons[key] = value.sort((a, b) => a.startDate - b.startDate)
+                        }
+
+                        let rows = []
+                        for (const [key, value] of Object.entries(groupedLessons)) {
+                            rows.unshift({title: key, lessons: []})
+
+                            let added = 0
+                            for (let i = 0; i < value.length; i++) {
+                                let startTime = new Date(value[i].startDate.toDateString()).getTime()
+                                if (i > 0 && new Date(value[i - 1].startDate.toDateString()).getTime() === startTime) {
+                                    let prevLesson = rows[0].lessons.at(-1)
+
+                                    if (value[i].journalCellColor != studyPlace.journalColors.general && prevLesson.journalCellColor == studyPlace.journalColors.general) {
+                                        prevLesson.journalCellColor = value[i].journalCellColor
+                                    }
+
+                                    prevLesson.marks = prevLesson.marks.concat(value[i].marks)
+                                    added--
+                                    continue
+                                }
+                                while (dates[i + added].getTime() !== startTime) {
+                                    rows[0].lessons.push(null)
+                                    added++
+                                }
+                                rows[0].lessons.push(value[i])
+                            }
+                            for (let i = added + value.length; i < dates.length; i++) {
+                                rows[0].lessons.push(null)
+                            }
+                        }
+
+                        return rows
+                    }`,
+						"args": bson.A{"$studyPlace", "$lessons", "$dates"},
+						"lang": "js",
+					},
+				},
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"info": bson.M{
+					"editable":   false,
+					"studyPlace": "$studyPlace",
+				},
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"dates": bson.M{
+					"$map": bson.M{
+						"input": "$dates",
+						"as":    "date",
+						"in": bson.M{
+							"startDate": "$$date",
+							"endDate":   "$$date",
+						},
+					},
+				},
+			},
+		},
+		bson.M{
+			"$project": bson.M{
+				"lessons":    0,
+				"studyPlace": 0,
+			},
+		},
 	})
 	if err != nil {
 		return entities.Journal{}, err
