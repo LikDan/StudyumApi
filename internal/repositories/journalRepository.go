@@ -210,7 +210,7 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
                             }
                         }
 
-                        return rows
+                        return rows.sort((a, b) => a.title > b.title)
                     }`,
 						"args": bson.A{"$studyPlace", "$lessons", "$dates"},
 						"lang": "js",
