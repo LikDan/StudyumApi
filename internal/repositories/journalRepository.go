@@ -307,27 +307,25 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 			"userType":           "student",
 			"subjects.studentID": "$_id",
 			"subjects.journalCellColor": bson.M{"$function": bson.M{
-				"body": `function(studyPlace_, lesson) {
-	let studyPlace = studyPlace_[0];
-    
-    color = ""
-    for (let mark of lesson.marks) {
-        let type = studyPlace.lessonTypes.find(v => v.type === lesson.type);
-		if (type === undefined) return "white";
-		
-		let markType = type.marks.find(m => m.mark === mark.mark);
-		if (markType === undefined || markType.workOutTime === undefined) return "white";
-        
-        let currentDate = new Date();
-        let lessonDate = lesson.startDate;
-        lessonDate.setSeconds(lessonDate.getSeconds() + 604800);
-        
-        color = lessonDate.getTime() > currentDate.getTime() ? "orange" : "red";
-    }
-    
-    return color;
+				"body": `function(studyPlace, lesson) {
+                        if (lesson === undefined || lesson.marks === undefined) return "";
+
+                        let color = studyPlace.journalColors.general
+                        for (let mark of lesson.marks) {
+                            let type = studyPlace.lessonTypes.find(v => v.type === lesson.type);
+                            if (type === undefined) return studyPlace.journalColors.general;
+
+                            let markType = type.marks.find(m => m.mark === mark.mark);
+                            if (markType === undefined || markType.workOutTime === undefined) return studyPlace.journalColors.general;
+
+                            lesson.startDate.setSeconds(lesson.startDate.getSeconds() + 604800);
+
+                            color = lesson.startDate.getTime() > new Date().getTime() ? studyPlace.journalColors.warning : studyPlace.journalColors.danger;
+                        }
+
+                        return color;
 }`,
-				"args": bson.A{"$studyPlace", "$subjects"},
+				"args": bson.A{bson.M{"$first": "$studyPlace"}, "$subjects"},
 				"lang": "js",
 			}},
 		}},
