@@ -3,7 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -61,6 +61,10 @@ func (u *userController) SignUpUser(ctx context.Context, data dto.UserSignUpDTO,
 	password, err := hash.Hash(data.Password)
 	if err != nil {
 		return entities.User{}, jwt.TokenPair{}, err
+	}
+
+	if exUser, _ := u.repository.GetUserByLogin(ctx, data.Login); exUser.Login != "" {
+		return entities.User{}, jwt.TokenPair{}, errors.Wrap(NotValidParams, "existing login")
 	}
 
 	user := entities.User{
