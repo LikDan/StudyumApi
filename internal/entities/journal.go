@@ -20,10 +20,9 @@ type JournalInfo struct {
 }
 
 type JournalRow struct {
-	Id       string    `json:"id" bson:"_id"`
-	Title    string    `json:"title" bson:"title" encryption:""`
-	UserType string    `json:"userType" bson:"userType"`
-	Lessons  []*Lesson `json:"lessons" bson:"lessons"`
+	Id      string    `json:"id" bson:"_id"`
+	Title   string    `json:"title" bson:"title"`
+	Lessons []*Lesson `json:"lessons" bson:"lessons"`
 }
 
 type JournalAvailableOption struct {

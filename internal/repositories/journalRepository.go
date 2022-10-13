@@ -270,44 +270,110 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
 
 func (j *journalRepository) GetJournal(ctx context.Context, group string, subject string, typeName string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
 	var cursor, err = j.usersCollection.Aggregate(ctx, bson.A{
-		bson.M{"$group": bson.M{"_id": nil, "users": bson.M{"$push": "$$ROOT"}}},
-		bson.M{"$lookup": bson.M{
-			"from":     "SignUpCodes",
-			"pipeline": mongo.Pipeline{},
-			"as":       "codeUsers",
-		}},
-		bson.M{"$project": bson.M{"_id": nil, "users": bson.M{"$concatArrays": bson.A{"$users", "$codeUsers"}}}},
-		bson.M{"$unwind": "$users"},
-		bson.M{"$replaceRoot": bson.M{"newRoot": "$users"}},
-		bson.M{"$match": bson.M{"type": "group", "typename": group, "studyPlaceID": studyPlaceId}},
-		bson.M{"$lookup": bson.M{
-			"from":     "Lessons",
-			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": typeName, "group": group, "studyPlaceId": studyPlaceId}}}},
-			"as":       "subjects",
-		}},
-		bson.M{"$unwind": "$subjects"},
-		bson.M{"$lookup": bson.M{
-			"from": "StudyPlaces",
-			"pipeline": bson.A{
-				bson.M{"$match": bson.M{"_id": studyPlaceId}},
+		bson.M{
+			"$group": bson.M{"_id": nil, "users": bson.M{"$push": "$$ROOT"}},
+		},
+		bson.M{
+			"$project": bson.M{
+				"users._id":          1,
+				"users.name":         1,
+				"users.type":         1,
+				"users.typename":     1,
+				"users.studyPlaceID": 1,
 			},
-			"as": "studyPlace",
-		}},
-		bson.M{"$lookup": bson.M{
-			"from":         "Marks",
-			"localField":   "subjects._id",
-			"foreignField": "lessonID",
-			"let":          bson.M{"studentID": "$_id"},
-			"pipeline": bson.A{
-				bson.M{"$match": bson.M{"$expr": bson.M{"$eq": bson.A{"$studentID", "$$studentID"}}}},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from": "SignUpCodes",
+				"pipeline": bson.A{
+					bson.M{
+						"$project": bson.M{
+							"name":         1,
+							"type":         1,
+							"typename":     1,
+							"studyPlaceID": 1,
+						},
+					},
+				},
+				"as": "codeUsers",
 			},
-			"as": "subjects.marks",
-		}},
-		bson.M{"$addFields": bson.M{
-			"userType":           "student",
-			"subjects.studentID": "$_id",
-			"subjects.journalCellColor": bson.M{"$function": bson.M{
-				"body": `function(studyPlace, lesson) {
+		},
+		bson.M{
+			"$project": bson.M{
+				"users": bson.M{
+					"$filter": bson.M{
+						"input": bson.M{"$concatArrays": bson.A{"$codeUsers", "$users"}},
+						"as":    "user",
+						"cond":  bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$$user.type", "group"}}, bson.M{"$eq": bson.A{"$$user.typename", group}}, bson.M{"$eq": bson.A{"$$user.studyPlaceID", studyPlaceId}}}},
+					},
+				},
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from": "Lessons",
+				"let":  bson.M{"userID": "$_id"},
+				"pipeline": bson.A{
+					bson.M{
+						"$match": bson.M{
+							"subject":      subject,
+							"group":        group,
+							"studyPlaceId": studyPlaceId,
+						},
+					},
+				},
+				"as": "lessons",
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from": "StudyPlaces",
+				"pipeline": bson.A{
+					bson.M{"$match": bson.M{
+						"_id": studyPlaceId,
+					}},
+				},
+				"as": "studyPlace",
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"lessons": bson.M{
+					"$sortArray": bson.M{
+						"input":  "$lessons",
+						"sortBy": bson.M{"startDate": 1},
+					},
+				},
+			},
+		},
+		bson.M{
+			"$unwind": "$users",
+		},
+		bson.M{
+			"$unwind": "$lessons",
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "Marks",
+				"localField":   "lessons._id",
+				"foreignField": "lessonID",
+				"let":          bson.M{"userID": "$users._id"},
+				"pipeline": bson.A{
+					bson.M{
+						"$match": bson.M{
+							"$expr": bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$studentID", "$$userID"}}, bson.M{"$eq": bson.A{"$studyPlaceID", studyPlaceId}}}},
+						},
+					},
+				},
+				"as": "lessons.marks",
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"lessons.journalCellColor": bson.M{
+					"$function": bson.M{
+						// language=JavaScript
+						"body": `function (studyPlace, lesson) {
                         if (lesson === undefined || lesson.marks === undefined) return "";
 
                         let color = studyPlace.journalColors.general
@@ -324,28 +390,64 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
                         }
 
                         return color;
-}`,
-				"args": bson.A{bson.M{"$first": "$studyPlace"}, "$subjects"},
-				"lang": "js",
-			}},
-		}},
-		bson.M{"$sort": bson.M{"subjects.startDate": 1}},
-		bson.M{"$group": bson.M{"_id": "$_id", "title": bson.M{"$first": "$name"}, "userType": bson.M{"$first": "$userType"}, "lessons": bson.M{"$push": "$subjects"}, "studyPlace": bson.M{"$first": "$studyPlace"}}},
-		bson.M{"$group": bson.M{"_id": nil, "rows": bson.M{"$push": "$$ROOT"}, "studyPlace": bson.M{"$first": "$studyPlace"}}},
-		bson.M{"$project": bson.M{"_id": 0}},
-		bson.M{"$lookup": bson.M{
-			"from":     "Lessons",
-			"pipeline": mongo.Pipeline{bson.D{{"$match", bson.M{"subject": subject, "teacher": typeName, "group": group, "studyPlaceId": studyPlaceId}}}, bson.D{{"$sort", bson.M{"startDate": 1}}}},
-			"as":       "dates",
-		}},
-		bson.M{"$addFields": bson.M{"info": bson.M{
-			"editable":   true,
-			"studyPlace": bson.M{"$first": "$studyPlace"},
-			"group":      group,
-			"teacher":    typeName,
-			"subject":    subject,
-		}}},
+                    }`,
+						"args": bson.A{bson.M{"$first": "$studyPlace"}, "$lessons"},
+						"lang": "js",
+					},
+				},
+			},
+		},
+		bson.M{
+			"$group": bson.M{
+				"_id": bson.M{
+					"_id":   "$users._id",
+					"title": "$users.name",
+				},
+				"lessons":    bson.M{"$push": "$lessons"},
+				"studyPlace": bson.M{"$first": bson.M{"$first": "$studyPlace"}},
+			},
+		},
+		bson.M{
+			"$project": bson.M{
+				"row": bson.M{
+					"_id":     "$_id._id",
+					"title":   "$_id.title",
+					"lessons": "$lessons",
+				},
+				"studyPlace": "$studyPlace",
+			},
+		},
+		bson.M{
+			"$group": bson.M{
+				"_id":        nil,
+				"dates":      bson.M{"$first": "$row.lessons"},
+				"rows":       bson.M{"$push": "$row"},
+				"studyPlace": bson.M{"$first": "$studyPlace"},
+			},
+		},
+		bson.M{
+			"$project": bson.M{
+				"dates.marks":            0,
+				"dates.journalCellColor": 0,
+				"dates.studyPlace":       0,
+				"rows.studyPlace":        0,
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"info": bson.M{
+					"editable":   true,
+					"studyPlace": "$studyPlace",
+				},
+			},
+		},
+		bson.M{
+			"$project": bson.M{
+				"studyPlace": 0,
+			},
+		},
 	})
+
 	if err != nil {
 		return entities.Journal{}, err
 	}
