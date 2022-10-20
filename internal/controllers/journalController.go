@@ -144,7 +144,7 @@ func (j *journalController) AddMark(ctx context.Context, dto dto.AddMarkDTO, use
 		return entities.Mark{}, NoPermission
 	}
 
-	id, err := j.repository.AddMark(ctx, mark)
+	id, err := j.repository.AddMark(ctx, mark, lesson.Id)
 	if err != nil {
 		return entities.Mark{}, err
 	}
@@ -177,7 +177,7 @@ func (j *journalController) UpdateMark(ctx context.Context, user entities.User, 
 		return NoPermission
 	}
 
-	if err = j.repository.UpdateMark(ctx, mark); err != nil {
+	if err = j.repository.UpdateMark(ctx, mark, lesson.Id); err != nil {
 		return err
 	}
 
@@ -210,7 +210,7 @@ func (j *journalController) DeleteMark(ctx context.Context, user entities.User, 
 		return NoPermission
 	}
 
-	if err = j.repository.DeleteMarkByID(ctx, markId); err != nil {
+	if err = j.repository.DeleteMarkByID(ctx, markId, lesson.Id); err != nil {
 		return err
 	}
 

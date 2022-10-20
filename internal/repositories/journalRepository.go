@@ -9,10 +9,10 @@ import (
 )
 
 type JournalRepository interface {
-	AddMark(ctx context.Context, mark entities.Mark) (primitive.ObjectID, error)
-	UpdateMark(ctx context.Context, mark entities.Mark) error
+	AddMark(ctx context.Context, mark entities.Mark, id primitive.ObjectID) (primitive.ObjectID, error)
+	UpdateMark(ctx context.Context, mark entities.Mark, id primitive.ObjectID) error
 	GetMarkById(ctx context.Context, id primitive.ObjectID) (entities.Mark, error)
-	DeleteMarkByID(ctx context.Context, id primitive.ObjectID) error
+	DeleteMarkByID(ctx context.Context, id primitive.ObjectID, objectID primitive.ObjectID) error
 
 	GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]entities.JournalAvailableOption, error)
 
@@ -37,18 +37,29 @@ func NewJournalRepository(repository *Repository) JournalRepository {
 	return &journalRepository{Repository: repository}
 }
 
-func (j *journalRepository) AddMark(ctx context.Context, mark entities.Mark) (primitive.ObjectID, error) {
+func (j *journalRepository) AddMark(ctx context.Context, mark entities.Mark, lessonID primitive.ObjectID) (primitive.ObjectID, error) {
 	mark.Id = primitive.NewObjectID()
 	if _, err := j.marksCollection.InsertOne(ctx, mark); err != nil {
+		return primitive.NilObjectID, err
+	}
+
+	if _, err := j.lessonsCollection.UpdateOne(ctx, bson.M{"_id": lessonID}, bson.A{bson.M{"$set": bson.M{"marks": bson.M{"$ifNull": bson.A{bson.M{"$concatArrays": bson.A{"$marks", bson.A{mark}}}, bson.A{mark}}}}}}); err != nil {
 		return primitive.NilObjectID, err
 	}
 
 	return mark.Id, nil
 }
 
-func (j *journalRepository) UpdateMark(ctx context.Context, mark entities.Mark) error {
-	_, err := j.marksCollection.UpdateOne(ctx, bson.M{"_id": mark.Id, "lessonId": mark.LessonID}, bson.M{"$set": bson.M{"mark": mark.Mark}})
-	return err
+func (j *journalRepository) UpdateMark(ctx context.Context, mark entities.Mark, lessonID primitive.ObjectID) error {
+	if _, err := j.marksCollection.UpdateOne(ctx, bson.M{"_id": mark.Id, "lessonId": mark.LessonID}, bson.M{"$set": bson.M{"mark": mark.Mark}}); err != nil {
+		return err
+	}
+
+	if _, err := j.lessonsCollection.UpdateOne(ctx, bson.M{"_id": lessonID, "marks._id": mark.Id}, bson.M{"$set": bson.M{"marks.$": mark}}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (j *journalRepository) GetMarkById(ctx context.Context, id primitive.ObjectID) (entities.Mark, error) {
@@ -57,9 +68,16 @@ func (j *journalRepository) GetMarkById(ctx context.Context, id primitive.Object
 	return mark, err
 }
 
-func (j *journalRepository) DeleteMarkByID(ctx context.Context, id primitive.ObjectID) error {
-	_, err := j.marksCollection.DeleteOne(ctx, bson.M{"_id": id})
-	return err
+func (j *journalRepository) DeleteMarkByID(ctx context.Context, id primitive.ObjectID, lessonID primitive.ObjectID) error {
+	if _, err := j.marksCollection.DeleteOne(ctx, bson.M{"_id": id}); err != nil {
+		return err
+	}
+
+	if _, err := j.lessonsCollection.UpdateByID(ctx, lessonID, bson.M{"$pull": bson.M{"marks": bson.M{"_id": id}}}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (j *journalRepository) GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]entities.JournalAvailableOption, error) {
