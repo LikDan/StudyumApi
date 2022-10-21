@@ -1,6 +1,6 @@
 let studyPlaceID = new ObjectId("631261e11b8b855cc75cec35")
 let type = "group"
-let typename = "Т-095"
+let typename = "95Т"
 let startWeekDate = new Date(2022, 9, 5)
 
 db.StudyPlaces.aggregate(
@@ -46,6 +46,11 @@ db.StudyPlaces.aggregate(
                             ]
                         }
                     }
+                },
+                {
+                  $project: {
+                      marks: 0
+                  }
                 },
                 {
                     $addFields: {

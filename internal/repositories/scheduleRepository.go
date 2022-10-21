@@ -88,6 +88,11 @@ func (s *scheduleRepository) GetSchedule(ctx context.Context, studyPlaceID primi
 						},
 					},
 					bson.M{
+						"$project": bson.M{
+							"marks": 0,
+						},
+					},
+					bson.M{
 						"$addFields": bson.M{
 							"isGeneral": false,
 						},
