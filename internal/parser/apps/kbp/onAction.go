@@ -3,6 +3,7 @@ package kbp
 import (
 	"context"
 	"github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/internal/parser/appDTO"
 	"studyum/internal/parser/entities"
 )
@@ -17,8 +18,8 @@ func (a *app) OnMarkEdit(_ context.Context, mark entities.Mark, lesson entities.
 	return nil
 }
 
-func (a *app) OnMarkDelete(_ context.Context, mark entities.Mark, lesson entities.Lesson) {
-	logrus.Infof("delete mark %v, with lesson %v", mark, lesson)
+func (a *app) OnMarkDelete(_ context.Context, id primitive.ObjectID) {
+	logrus.Infof("delete mark with id %v", id)
 }
 
 func (a *app) OnLessonAdd(_ context.Context, lesson entities.Lesson) appDTO.ParsedInfoTypeDTO {

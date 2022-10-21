@@ -24,7 +24,7 @@ type App interface {
 
 	OnMarkAdd(ctx context.Context, mark entities.Mark, lesson entities.Lesson) appDTO.ParsedInfoTypeDTO
 	OnMarkEdit(ctx context.Context, mark entities.Mark, lesson entities.Lesson) appDTO.ParsedInfoTypeDTO
-	OnMarkDelete(ctx context.Context, mark entities.Mark, lesson entities.Lesson)
+	OnMarkDelete(ctx context.Context, id primitive.ObjectID)
 
 	OnLessonAdd(ctx context.Context, lesson entities.Lesson) appDTO.ParsedInfoTypeDTO
 	OnLessonEdit(ctx context.Context, lesson entities.Lesson) appDTO.ParsedInfoTypeDTO

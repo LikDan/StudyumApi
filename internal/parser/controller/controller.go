@@ -29,7 +29,7 @@ type Controller interface {
 
 	AddMark(ctx context.Context, markDTO dto.MarkDTO)
 	EditMark(ctx context.Context, markDTO dto.MarkDTO)
-	DeleteMark(ctx context.Context, markDTO dto.MarkDTO)
+	DeleteMark(ctx context.Context, markDTO primitive.ObjectID, id primitive.ObjectID)
 
 	AddLesson(ctx context.Context, lessonDTO dto.LessonDTO)
 	EditLesson(ctx context.Context, lessonDTO dto.LessonDTO)
@@ -288,26 +288,13 @@ func (c *controller) EditMark(ctx context.Context, markDTO dto.MarkDTO) {
 	_ = c.repository.UpdateMarkParsedInfoByID(ctx, mark.Id, entities.ParsedInfoType(info))
 }
 
-func (c *controller) DeleteMark(ctx context.Context, markDTO dto.MarkDTO) {
-	app, err := c.GetAppByStudyPlaceId(markDTO.StudyPlaceId)
+func (c *controller) DeleteMark(ctx context.Context, id primitive.ObjectID, studyPlaceID primitive.ObjectID) {
+	app, err := c.GetAppByStudyPlaceId(studyPlaceID)
 	if err != nil {
 		return
 	}
 
-	mark := entities.Mark{
-		Id:           markDTO.Id,
-		Mark:         markDTO.Mark,
-		StudentID:    markDTO.StudentID,
-		LessonId:     markDTO.LessonId,
-		StudyPlaceId: markDTO.StudyPlaceId,
-	}
-
-	lesson, err := c.repository.GetLessonByID(ctx, markDTO.LessonId)
-	if err != nil {
-		return
-	}
-
-	app.OnMarkDelete(ctx, mark, lesson)
+	app.OnMarkDelete(ctx, id)
 }
 
 func (c *controller) AddLesson(ctx context.Context, lessonDTO dto.LessonDTO) {

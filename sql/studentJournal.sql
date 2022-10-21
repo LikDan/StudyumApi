@@ -1,12 +1,14 @@
 db.Lessons.aggregate([
     {$match: {group: "95Т"}}, //TODO studyPlaceID
     {
-        $lookup: {
-            "from": "Marks",
-            "localField": "_id",
-            "foreignField": "lessonID",
-            "pipeline": [], //TODO studyPlaceID and userID
-            "as": "marks",
+        "$addFields": {
+            "marks": {
+                "$filter": {
+                    "input": "$marks",
+                    "as": "mark",
+                    "cond": {"$eq": ["$$mark.studentID", new ObjectId("633322073d379e063d8ee8a4")]},
+                }
+            }
         }
     },
     {
@@ -22,7 +24,7 @@ db.Lessons.aggregate([
                 $function: {
                     // language=JavaScript
                     body: `function (studyPlace, lesson) {
-                        if (lesson === undefined || lesson.marks === undefined) return "";
+                        if (!lesson?.marks) return "";
 
                         let color = studyPlace.journalColors.general
                         for (let mark of lesson.marks) {
@@ -102,7 +104,7 @@ db.Lessons.aggregate([
                                         prevLesson.journalCellColor = value[i].journalCellColor
                                     }
 
-                                    prevLesson.marks = prevLesson.marks.concat(value[i].marks)
+                                    prevLesson.marks = prevLesson.marks?.concat(value[i].marks ?? [])
                                     added--
                                     continue
                                 }
@@ -156,5 +158,3 @@ db.Lessons.aggregate([
     },
 ])
 
-
-db.StudyPlaces.updateOne({}, {$set: {lessonTypes: [{"type": "Лекция", "marks": [{"mark": "1", "workOutTime": 604800}, {"mark": "2", "workOutTime": 604800}, {"mark": "3"}, {"mark": "4"}, {"mark": "5"}, {"mark": "6"}, {"mark": "7"}, {"mark": "8"}, {"mark": "9"}, {"mark": "10"}]}, {"type": "Практика", "marks": [{"mark": "1", "workOutTime": 604800}, {"mark": "2", "workOutTime": 604800}, {"mark": "3"}, {"mark": "4"}, {"mark": "5"}, {"mark": "6"}, {"mark": "7"}, {"mark": "8"}, {"mark": "9"}, {"mark": "10"}]}, {"type": "Лабораторная", "marks": [{"mark": "1", "workOutTime": 604800}, {"mark": "2", "workOutTime": 604800}, {"mark": "3"}, {"mark": "4"}, {"mark": "5"}, {"mark": "6"}, {"mark": "7"}, {"mark": "8"}, {"mark": "9"}, {"mark": "10"}], "standaloneMarks": [{"mark": "зч", "workOutTime": 604800}]}]}})

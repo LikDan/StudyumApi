@@ -17,7 +17,7 @@ type Handler interface {
 
 	AddMark(mark entities.Mark)
 	EditMark(mark entities.Mark)
-	DeleteMark(mark entities.Mark)
+	DeleteMark(mark primitive.ObjectID, studyPlaceID primitive.ObjectID)
 
 	AddLesson(lesson entities.Lesson)
 	EditLesson(lesson entities.Lesson)
@@ -97,17 +97,10 @@ func (h *handler) EditMark(mark entities.Mark) {
 	h.controller.EditMark(ctx, markDTO)
 }
 
-func (h *handler) DeleteMark(mark entities.Mark) {
+func (h *handler) DeleteMark(id primitive.ObjectID, studyPlaceID primitive.ObjectID) {
 	ctx := context.Background()
 
-	markDTO := dto.MarkDTO{
-		Id:           mark.Id,
-		Mark:         mark.Mark,
-		StudentID:    mark.StudentID,
-		LessonId:     mark.LessonID,
-		StudyPlaceId: mark.StudyPlaceID,
-	}
-	h.controller.DeleteMark(ctx, markDTO)
+	h.controller.DeleteMark(ctx, id, studyPlaceID)
 }
 
 func (h *handler) AddLesson(lesson entities.Lesson) {

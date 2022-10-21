@@ -196,25 +196,11 @@ func (j *journalController) DeleteMark(ctx context.Context, user entities.User, 
 		return errors.Wrap(NotValidParams, "markId")
 	}
 
-	mark, err := j.repository.GetMarkById(ctx, markId)
-	if err != nil {
+	if err = j.repository.DeleteMarkByID(ctx, markId, user.TypeName); err != nil {
 		return err
 	}
 
-	lesson, err := j.repository.GetLessonByID(ctx, mark.LessonID)
-	if err != nil {
-		return err
-	}
-
-	if lesson.Teacher != user.TypeName {
-		return NoPermission
-	}
-
-	if err = j.repository.DeleteMarkByID(ctx, markId, lesson.Id); err != nil {
-		return err
-	}
-
-	go j.parser.DeleteMark(mark)
+	go j.parser.DeleteMark(markId, user.StudyPlaceID)
 	return nil
 }
 

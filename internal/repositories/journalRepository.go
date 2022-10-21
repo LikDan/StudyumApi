@@ -11,8 +11,7 @@ import (
 type JournalRepository interface {
 	AddMark(ctx context.Context, mark entities.Mark, id primitive.ObjectID) (primitive.ObjectID, error)
 	UpdateMark(ctx context.Context, mark entities.Mark, id primitive.ObjectID) error
-	GetMarkById(ctx context.Context, id primitive.ObjectID) (entities.Mark, error)
-	DeleteMarkByID(ctx context.Context, id primitive.ObjectID, objectID primitive.ObjectID) error
+	DeleteMarkByID(ctx context.Context, id primitive.ObjectID, teacher string) error
 
 	GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]entities.JournalAvailableOption, error)
 
@@ -39,10 +38,6 @@ func NewJournalRepository(repository *Repository) JournalRepository {
 
 func (j *journalRepository) AddMark(ctx context.Context, mark entities.Mark, lessonID primitive.ObjectID) (primitive.ObjectID, error) {
 	mark.Id = primitive.NewObjectID()
-	if _, err := j.marksCollection.InsertOne(ctx, mark); err != nil {
-		return primitive.NilObjectID, err
-	}
-
 	if _, err := j.lessonsCollection.UpdateOne(ctx, bson.M{"_id": lessonID}, bson.A{bson.M{"$set": bson.M{"marks": bson.M{"$ifNull": bson.A{bson.M{"$concatArrays": bson.A{"$marks", bson.A{mark}}}, bson.A{mark}}}}}}); err != nil {
 		return primitive.NilObjectID, err
 	}
@@ -51,10 +46,6 @@ func (j *journalRepository) AddMark(ctx context.Context, mark entities.Mark, les
 }
 
 func (j *journalRepository) UpdateMark(ctx context.Context, mark entities.Mark, lessonID primitive.ObjectID) error {
-	if _, err := j.marksCollection.UpdateOne(ctx, bson.M{"_id": mark.Id, "lessonId": mark.LessonID}, bson.M{"$set": bson.M{"mark": mark.Mark}}); err != nil {
-		return err
-	}
-
 	if _, err := j.lessonsCollection.UpdateOne(ctx, bson.M{"_id": lessonID, "marks._id": mark.Id}, bson.M{"$set": bson.M{"marks.$": mark}}); err != nil {
 		return err
 	}
@@ -62,18 +53,8 @@ func (j *journalRepository) UpdateMark(ctx context.Context, mark entities.Mark, 
 	return nil
 }
 
-func (j *journalRepository) GetMarkById(ctx context.Context, id primitive.ObjectID) (entities.Mark, error) {
-	var mark entities.Mark
-	err := j.marksCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&mark)
-	return mark, err
-}
-
-func (j *journalRepository) DeleteMarkByID(ctx context.Context, id primitive.ObjectID, lessonID primitive.ObjectID) error {
-	if _, err := j.marksCollection.DeleteOne(ctx, bson.M{"_id": id}); err != nil {
-		return err
-	}
-
-	if _, err := j.lessonsCollection.UpdateByID(ctx, lessonID, bson.M{"$pull": bson.M{"marks": bson.M{"_id": id}}}); err != nil {
+func (j *journalRepository) DeleteMarkByID(ctx context.Context, id primitive.ObjectID, teacher string) error {
+	if _, err := j.lessonsCollection.UpdateOne(ctx, bson.M{"teacher": teacher, "marks._id": id}, bson.M{"$pull": bson.M{"marks": bson.M{"_id": id}}}); err != nil {
 		return err
 	}
 
@@ -108,32 +89,9 @@ func (j *journalRepository) GetAvailableOptions(ctx context.Context, teacher str
 	return options, nil
 }
 
-func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
-	cursor, err := j.lessonsCollection.Aggregate(ctx, bson.A{
-		bson.M{"$match": bson.M{"group": group, "studyPlaceId": studyPlaceId}},
-		bson.M{
-			"$lookup": bson.M{
-				"from":         "Marks",
-				"localField":   "_id",
-				"foreignField": "lessonID",
-				"pipeline":     bson.A{bson.M{"$match": bson.M{"studentID": userId, "studyPlaceID": studyPlaceId}}},
-				"as":           "marks",
-			},
-		},
-		bson.M{
-			"$lookup": bson.M{
-				"from":     "StudyPlaces",
-				"pipeline": bson.A{bson.M{"$match": bson.M{"_id": studyPlaceId}}},
-				"as":       "studyPlace",
-			},
-		},
-		bson.M{
-			"$addFields": bson.M{
-				"journalCellColor": bson.M{
-					"$function": bson.M{
-						// language=JavaScript
-						"body": `function (studyPlace, lesson) {
-                        if (lesson === undefined || lesson.marks === undefined) return "";
+func (j *journalRepository) getCellColor() string {
+	return `function (studyPlace, lesson) {
+                        if (!lesson?.marks) return "";
 
                         let color = studyPlace.journalColors.general
                         for (let mark of lesson.marks) {
@@ -149,7 +107,30 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
                         }
 
                         return color;
-                    }`,
+                    }`
+}
+
+func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
+	cursor, err := j.lessonsCollection.Aggregate(ctx, bson.A{
+		bson.M{"$match": bson.M{"group": group, "studyPlaceId": studyPlaceId}},
+		bson.M{"$addFields": bson.M{
+			"marks": bson.M{"$filter": bson.M{
+				"input": "$marks",
+				"as":    "mark",
+				"cond":  bson.M{"$eq": bson.A{"$$mark.studentID", userId}},
+			}}}},
+		bson.M{
+			"$lookup": bson.M{
+				"from":     "StudyPlaces",
+				"pipeline": bson.A{bson.M{"$match": bson.M{"_id": studyPlaceId}}},
+				"as":       "studyPlace",
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"journalCellColor": bson.M{
+					"$function": bson.M{
+						"body": j.getCellColor(),
 						"args": bson.A{bson.M{"$first": "$studyPlace"}, "$$ROOT"},
 						"lang": "js",
 					},
@@ -213,7 +194,7 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
                                         prevLesson.journalCellColor = value[i].journalCellColor
                                     }
 
-                                    prevLesson.marks = prevLesson.marks.concat(value[i].marks)
+                                    prevLesson.marks = prevLesson.marks?.concat(value[i].marks ?? [])
                                     added--
                                     continue
                                 }
@@ -371,44 +352,24 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 			"$unwind": "$lessons",
 		},
 		bson.M{
-			"$lookup": bson.M{
-				"from":         "Marks",
-				"localField":   "lessons._id",
-				"foreignField": "lessonID",
-				"let":          bson.M{"userID": "$users._id"},
-				"pipeline": bson.A{
-					bson.M{
-						"$match": bson.M{
-							"$expr": bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$studentID", "$$userID"}}, bson.M{"$eq": bson.A{"$studyPlaceID", studyPlaceId}}}},
-						},
+			"$addFields": bson.M{
+				"lessons.marks": bson.M{
+					"$function": bson.M{
+						// language=JavaScript
+						"body": `function (lesson, userID) {
+                        	return lesson?.marks?.filter(m => m.studentID.equals(userID)) ?? [];
+                    	}`,
+						"args": bson.A{"$lessons", "$users._id"},
+						"lang": "js",
 					},
 				},
-				"as": "lessons.marks",
 			},
 		},
 		bson.M{
 			"$addFields": bson.M{
 				"lessons.journalCellColor": bson.M{
 					"$function": bson.M{
-						// language=JavaScript
-						"body": `function (studyPlace, lesson) {
-                        if (lesson === undefined || lesson.marks === undefined) return "";
-
-                        let color = studyPlace.journalColors.general
-                        for (let mark of lesson.marks) {
-                            let type = studyPlace.lessonTypes.find(v => v.type === lesson.type);
-                            if (type === undefined) return studyPlace.journalColors.general;
-
-                            let markType = type.marks.find(m => m.mark === mark.mark);
-                            if (markType === undefined || markType.workOutTime === undefined) return studyPlace.journalColors.general;
-
-                            let date = new Date(lesson.startDate);
-							date.setSeconds(lesson.startDate.getSeconds() + markType.workOutTime);
-                            color = date.getTime() > new Date().getTime() ? studyPlace.journalColors.warning : studyPlace.journalColors.danger;
-                        }
-
-                        return color;
-                    }`,
+						"body": j.getCellColor(),
 						"args": bson.A{bson.M{"$first": "$studyPlace"}, "$lessons"},
 						"lang": "js",
 					},
