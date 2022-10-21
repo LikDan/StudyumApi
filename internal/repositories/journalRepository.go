@@ -143,9 +143,9 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
                             let markType = type.marks.find(m => m.mark === mark.mark);
                             if (markType === undefined || markType.workOutTime === undefined) return studyPlace.journalColors.general;
 
-                            lesson.startDate.setSeconds(lesson.startDate.getSeconds() + markType.workOutTime);
-
-                            color = lesson.startDate.getTime() > new Date().getTime() ? studyPlace.journalColors.warning : studyPlace.journalColors.danger;
+                            let date = new Date(lesson.startDate);
+							date.setSeconds(lesson.startDate.getSeconds() + markType.workOutTime);
+                            color = date.getTime() > new Date().getTime() ? studyPlace.journalColors.warning : studyPlace.journalColors.danger;
                         }
 
                         return color;
@@ -402,9 +402,9 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
                             let markType = type.marks.find(m => m.mark === mark.mark);
                             if (markType === undefined || markType.workOutTime === undefined) return studyPlace.journalColors.general;
 
-                            lesson.startDate.setSeconds(lesson.startDate.getSeconds() + markType.workOutTime);
-
-                            color = lesson.startDate.getTime() > new Date().getTime() ? studyPlace.journalColors.warning : studyPlace.journalColors.danger;
+                            let date = new Date(lesson.startDate);
+							date.setSeconds(lesson.startDate.getSeconds() + markType.workOutTime);
+                            color = date.getTime() > new Date().getTime() ? studyPlace.journalColors.warning : studyPlace.journalColors.danger;
                         }
 
                         return color;
