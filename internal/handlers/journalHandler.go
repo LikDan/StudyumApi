@@ -15,9 +15,12 @@ type JournalHandler interface {
 	GetUserJournal(ctx *gin.Context)
 
 	AddMark(ctx *gin.Context)
-	GetMark(ctx *gin.Context)
 	UpdateMark(ctx *gin.Context)
 	DeleteMark(ctx *gin.Context)
+
+	AddAbsence(ctx *gin.Context)
+	UpdateAbsence(ctx *gin.Context)
+	DeleteAbsence(ctx *gin.Context)
 }
 
 type journalHandler struct {
@@ -33,13 +36,11 @@ func NewJournalHandler(authHandler Handler, controller controllers.JournalContro
 
 	group.GET("/options", h.Auth(), h.GetJournalAvailableOptions)
 	group.GET("/:group/:subject/:teacher", h.Auth(), h.GetJournal)
-	group.GET("/absent/:group/:subject/:teacher", h.Auth(), h.GetAbsentJournal)
 	group.GET("", h.Auth(), h.GetUserJournal)
 
 	mark := group.Group("/mark", h.Auth("editJournal"))
 	{
 		mark.POST("", h.AddMark)
-		mark.GET("", h.GetMark)
 		mark.PUT("", h.UpdateMark)
 		mark.DELETE("", h.DeleteMark)
 	}
@@ -74,22 +75,6 @@ func (j *journalHandler) GetJournal(ctx *gin.Context) {
 	teacher := ctx.Param("teacher")
 
 	journal, err := j.controller.GetJournal(ctx, group, subject, teacher, user)
-	if err != nil {
-		j.Error(ctx, err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, journal)
-}
-
-func (j *journalHandler) GetAbsentJournal(ctx *gin.Context) {
-	user := utils.GetUserViaCtx(ctx)
-
-	group := ctx.Param("group")
-	subject := ctx.Param("subject")
-	teacher := ctx.Param("teacher")
-
-	journal, err := j.controller.GetAbsentJournal(ctx, group, subject, teacher, user)
 	if err != nil {
 		j.Error(ctx, err)
 		return

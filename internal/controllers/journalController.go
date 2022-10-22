@@ -21,7 +21,6 @@ type JournalController interface {
 	GetJournalAvailableOptions(ctx context.Context, user entities.User) ([]entities.JournalAvailableOption, error)
 
 	GetJournal(ctx context.Context, group string, subject string, teacher string, user entities.User) (entities.Journal, error)
-	GetAbsentJournal(ctx context.Context, group string, subject string, teacher string, user entities.User) (entities.Journal, error)
 	GetUserJournal(ctx context.Context, user entities.User) (entities.Journal, error)
 
 	AddMark(ctx context.Context, dto dto.AddMarkDTO, user entities.User) (entities.Mark, error)
@@ -85,27 +84,6 @@ func (j *journalController) GetJournal(ctx context.Context, group string, subjec
 	return journal, nil
 }
 
-func (j *journalController) GetAbsentJournal(ctx context.Context, group string, subject string, teacher string, user entities.User) (entities.Journal, error) {
-	if group == "" || subject == "" || teacher == "" {
-		return entities.Journal{}, NotValidParams
-	}
-
-	journal, err := j.repository.GetAbsentJournal(ctx, group, subject, user.TypeName, user.StudyPlaceID)
-	if err != nil {
-		return entities.Journal{}, err
-	}
-
-	for i := range journal.Rows {
-		journal.Rows[i].Title = j.encrypt.DecryptString(journal.Rows[i].Title)
-	}
-
-	slices.SortFunc(journal.Rows, func(el1, el2 entities.JournalRow) bool {
-		return el1.Title < el2.Title
-	})
-
-	return journal, nil
-}
-
 func (j *journalController) GetUserJournal(ctx context.Context, user entities.User) (entities.Journal, error) {
 	return j.repository.GetStudentJournal(ctx, user.Id, user.TypeName, user.StudyPlaceID)
 }
@@ -135,16 +113,7 @@ func (j *journalController) AddMark(ctx context.Context, dto dto.AddMarkDTO, use
 		StudyPlaceID: user.StudyPlaceID,
 	}
 
-	lesson, err := j.repository.GetLessonByID(ctx, mark.LessonID)
-	if err != nil {
-		return entities.Mark{}, err
-	}
-
-	if lesson.Teacher != user.TypeName {
-		return entities.Mark{}, NoPermission
-	}
-
-	id, err := j.repository.AddMark(ctx, mark, lesson.Id)
+	id, err := j.repository.AddMark(ctx, mark, user.TypeName)
 	if err != nil {
 		return entities.Mark{}, err
 	}
@@ -168,16 +137,7 @@ func (j *journalController) UpdateMark(ctx context.Context, user entities.User, 
 		LessonID:  dto.LessonId,
 	}
 
-	lesson, err := j.repository.GetLessonByID(ctx, mark.LessonID)
-	if err != nil {
-		return err
-	}
-
-	if lesson.Teacher != user.TypeName {
-		return NoPermission
-	}
-
-	if err = j.repository.UpdateMark(ctx, mark, lesson.Id); err != nil {
+	if err := j.repository.UpdateMark(ctx, mark, user.TypeName); err != nil {
 		return err
 	}
 
@@ -187,10 +147,6 @@ func (j *journalController) UpdateMark(ctx context.Context, user entities.User, 
 }
 
 func (j *journalController) DeleteMark(ctx context.Context, user entities.User, markIdHex string) error {
-	if markIdHex == "" {
-		return NotValidParams
-	}
-
 	markId, err := primitive.ObjectIDFromHex(markIdHex)
 	if err != nil {
 		return errors.Wrap(NotValidParams, "markId")
@@ -210,25 +166,18 @@ func (j *journalController) AddAbsence(ctx context.Context, dto dto.AddAbsencesD
 	}
 
 	absences := entities.Absence{
-		Id:           primitive.NewObjectID(),
 		Time:         dto.Time,
 		StudentID:    dto.StudentID,
 		LessonID:     dto.LessonID,
 		StudyPlaceID: user.StudyPlaceID,
 	}
 
-	lesson, err := j.repository.GetLessonByID(ctx, absences.LessonID)
+	id, err := j.repository.AddAbsence(ctx, absences, user.TypeName)
 	if err != nil {
 		return entities.Absence{}, err
 	}
 
-	if lesson.Teacher != user.TypeName {
-		return entities.Absence{}, NoPermission
-	}
-
-	if _, err = j.repository.AddAbsence(ctx, absences, absences.LessonID); err != nil {
-		return entities.Absence{}, err
-	}
+	absences.Id = id
 
 	return absences, nil
 }
@@ -246,16 +195,7 @@ func (j *journalController) UpdateAbsence(ctx context.Context, user entities.Use
 		StudyPlaceID: user.StudyPlaceID,
 	}
 
-	lesson, err := j.repository.GetLessonByID(ctx, absences.LessonID)
-	if err != nil {
-		return err
-	}
-
-	if lesson.Teacher != user.TypeName {
-		return NoPermission
-	}
-
-	if err = j.repository.UpdateAbsence(ctx, absences, absences.LessonID); err != nil {
+	if err := j.repository.UpdateAbsence(ctx, absences, user.TypeName); err != nil {
 		return err
 	}
 
@@ -263,16 +203,12 @@ func (j *journalController) UpdateAbsence(ctx context.Context, user entities.Use
 }
 
 func (j *journalController) DeleteAbsence(ctx context.Context, user entities.User, idHex string) error {
-	if idHex == "" {
-		return NotValidParams
-	}
-
-	markId, err := primitive.ObjectIDFromHex(idHex)
+	absenceID, err := primitive.ObjectIDFromHex(idHex)
 	if err != nil {
 		return errors.Wrap(NotValidParams, "markId")
 	}
 
-	if err = j.repository.DeleteMarkByID(ctx, markId, user.TypeName); err != nil {
+	if err = j.repository.DeleteAbsenceByID(ctx, absenceID, user.TypeName); err != nil {
 		return err
 	}
 
