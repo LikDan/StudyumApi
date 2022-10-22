@@ -42,7 +42,7 @@ func NewJournalHandler(authHandler Handler, controller controllers.JournalContro
 	{
 		mark.POST("", h.AddMark)
 		mark.PUT("", h.UpdateMark)
-		mark.DELETE("", h.DeleteMark)
+		mark.DELETE(":id", h.DeleteMark)
 	}
 
 	absences := group.Group("/absences", h.Auth("editJournal"))
@@ -150,7 +150,7 @@ func (j *journalHandler) UpdateMark(ctx *gin.Context) {
 func (j *journalHandler) DeleteMark(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
-	markId := ctx.Query("id")
+	markId := ctx.Param("id")
 
 	err := j.controller.DeleteMark(ctx, user, markId)
 	if err != nil {

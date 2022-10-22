@@ -15,7 +15,7 @@ type StudyPlace struct {
 	LessonTypes       []LessonType       `json:"lessonTypes" bson:"lessonTypes"`
 	Restricted        bool               `json:"restricted" bson:"restricted"`
 	AdminID           primitive.ObjectID `json:"adminID" bson:"adminID"`
-	AbsentMark        string             `json:"absentMark" bson:"absentMark"`
+	AbsenceMark       string             `json:"absenceMark" bson:"absenceMark"`
 }
 
 type MarkType struct {

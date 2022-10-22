@@ -90,8 +90,8 @@ func (s *scheduleRepository) GetSchedule(ctx context.Context, studyPlaceID primi
 					bson.M{
 						"$project": bson.M{
 							//TODO user marks
-							"marks":   0,
-							"absents": 0,
+							"marks":    0,
+							"absences": 0,
 						},
 					},
 					bson.M{
