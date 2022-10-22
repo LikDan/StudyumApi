@@ -41,7 +41,7 @@ type Mark struct {
 	ParsedInfo   entities.ParsedInfoType `json:"-" bson:"parsedInfo"`
 }
 
-type Absences struct {
+type Absence struct {
 	Id           primitive.ObjectID      `json:"id" bson:"_id"`
 	Time         *int                    `json:"time" bson:"time"`
 	StudentID    primitive.ObjectID      `json:"studentID" bson:"studentID"`
