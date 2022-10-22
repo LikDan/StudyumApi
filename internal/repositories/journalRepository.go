@@ -88,11 +88,9 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
 	cursor, err := j.lessonsCollection.Aggregate(ctx, bson.A{
 		bson.M{"$match": bson.M{"group": group, "studyPlaceId": studyPlaceId}},
 		bson.M{"$addFields": bson.M{
-			"marks": bson.M{"$filter": bson.M{
-				"input": "$marks",
-				"as":    "mark",
-				"cond":  bson.M{"$eq": bson.A{"$$mark.studentID", userId}},
-			}}}},
+			"marks":    hMongo.Filter("marks", hMongo.AEq("$$marks.studentID", userId)),
+			"absences": hMongo.Filter("absences", hMongo.AEq("$$absences.studentID", userId)),
+		}},
 		bson.M{
 			"$lookup": bson.M{
 				"from":     "StudyPlaces",
@@ -327,16 +325,8 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 		},
 		bson.M{
 			"$addFields": bson.M{
-				"lessons.marks": bson.M{
-					"$function": bson.M{
-						// language=JavaScript
-						"body": `function (lesson, userID) {
-                        	return lesson?.marks?.filter(m => m.studentID.equals(userID)) ?? [];
-                    	}`,
-						"args": bson.A{"$lessons", "$users._id"},
-						"lang": "js",
-					},
-				},
+				"lessons.marks":    hMongo.Filter("lessons.marks", hMongo.AEq("$$marks.studentID", "$users._id")),
+				"lessons.absences": hMongo.Filter("lessons.absences", hMongo.AEq("$$absences.studentID", "$users._id")),
 			},
 		},
 		bson.M{
