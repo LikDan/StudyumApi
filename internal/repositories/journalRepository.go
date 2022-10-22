@@ -22,10 +22,9 @@ type JournalRepository interface {
 	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
 	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId primitive.ObjectID) ([]entities.Lesson, error)
 
-	AddAbsence(ctx context.Context, absences entities.Absences) error
-	UpdateAbsence(ctx context.Context, absences entities.Absences) error
-	GetAbsenceByID(ctx context.Context, id primitive.ObjectID) (entities.Absences, error)
-	DeleteAbsenceByID(ctx context.Context, id primitive.ObjectID) error
+	AddAbsence(ctx context.Context, absence entities.Absence, lessonID primitive.ObjectID) (primitive.ObjectID, error)
+	UpdateAbsence(ctx context.Context, absence entities.Absence, lessonID primitive.ObjectID) error
+	DeleteAbsenceByID(ctx context.Context, id primitive.ObjectID, teacher string) error
 }
 
 type journalRepository struct {
@@ -474,7 +473,7 @@ func (j *journalRepository) GetAbsentJournal(ctx context.Context, group string, 
 		}}},
 		bson.D{{"$unwind", "$subjects"}},
 		bson.D{{"$lookup", bson.M{
-			"from":         "Absences",
+			"from":         "Absence",
 			"localField":   "subjects._id",
 			"foreignField": "lessonID",
 			"let":          bson.M{"studentID": "$_id"},
@@ -557,22 +556,27 @@ func (j *journalRepository) GetLessons(ctx context.Context, userId primitive.Obj
 	return marks, nil
 }
 
-func (j *journalRepository) AddAbsence(ctx context.Context, absences entities.Absences) error {
-	_, err := j.absencesCollection.InsertOne(ctx, absences)
-	return err
+func (j *journalRepository) AddAbsence(ctx context.Context, absence entities.Absence, lessonID primitive.ObjectID) (primitive.ObjectID, error) {
+	absence.Id = primitive.NewObjectID()
+	if _, err := j.lessonsCollection.UpdateOne(ctx, bson.M{"_id": lessonID}, bson.A{bson.M{"$set": bson.M{"absences": bson.M{"$ifNull": bson.A{bson.M{"$concatArrays": bson.A{"$absences", bson.A{absence}}}, bson.A{absence}}}}}}); err != nil {
+		return primitive.NilObjectID, err
+	}
+
+	return absence.Id, nil
 }
 
-func (j *journalRepository) UpdateAbsence(ctx context.Context, absences entities.Absences) error {
-	_, err := j.absencesCollection.UpdateByID(ctx, absences.Id, bson.M{"$set": absences})
-	return err
+func (j *journalRepository) UpdateAbsence(ctx context.Context, absence entities.Absence, lessonID primitive.ObjectID) error {
+	if _, err := j.lessonsCollection.UpdateOne(ctx, bson.M{"_id": lessonID, "absences._id": absence.Id}, bson.M{"$set": bson.M{"absences.$": absence}}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (j *journalRepository) GetAbsenceByID(ctx context.Context, id primitive.ObjectID) (absence entities.Absences, err error) {
-	err = j.absencesCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&absence)
-	return
-}
+func (j *journalRepository) DeleteAbsenceByID(ctx context.Context, id primitive.ObjectID, teacher string) error {
+	if _, err := j.lessonsCollection.UpdateOne(ctx, bson.M{"teacher": teacher, "absences._id": id}, bson.M{"$pull": bson.M{"absences": bson.M{"_id": id}}}); err != nil {
+		return err
+	}
 
-func (j *journalRepository) DeleteAbsenceByID(ctx context.Context, id primitive.ObjectID) error {
-	_, err := j.absencesCollection.DeleteOne(ctx, bson.M{"_id": id})
-	return err
+	return nil
 }
