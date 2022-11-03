@@ -154,7 +154,7 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
 
                         let rows = []
                         for (const [key, value] of Object.entries(groupedLessons)) {
-                            rows.unshift({title: key, lessons: []})
+                            rows.unshift({title: key, lessons: [], info: {}})
 
                             let added = 0
                             for (let i = 0; i < value.length; i++) {
@@ -179,6 +179,25 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
                             for (let i = added + value.length; i < dates.length; i++) {
                                 rows[0].lessons.push(null)
                             }
+
+                            let marks = rows[0].lessons.flatMap(l => l?.marks ?? []).map(m => Number.parseInt(m.mark)).filter(m => m)
+                            rows[0].marksSum = marks.reduce((sum, a) => sum + a, 0)
+                            rows[0] .numericMarksAmount = marks.length
+
+                            let color = studyPlace.journalColors.general
+                            for (let lesson of rows[0].lessons) {
+                                if (lesson == null) continue
+
+                                if (lesson.journalCellColor == studyPlace.journalColors.warning)
+                                    color = studyPlace.journalColors.warning
+
+                                if (lesson.journalCellColor == studyPlace.journalColors.danger){
+                                    color = studyPlace.journalColors.danger
+                                    break
+                                }
+                            }
+
+                            rows[0].color = color
                         }
 
                         return rows.sort((a, b) => a.title > b.title)
