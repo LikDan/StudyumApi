@@ -91,11 +91,11 @@ db.Users.aggregate([
         }
     },
     {
-      "$addFields": {
-          "lessons.journalCellColor": {
-              "$function": {
-                  // language=JavaScript
-                  "body": `function (studyPlace, lesson) {
+        "$addFields": {
+            "lessons.journalCellColor": {
+                "$function": {
+                    // language=JavaScript
+                    "body": `function (studyPlace, lesson) {
                         if (lesson === undefined || lesson.marks === undefined) return "";
 
                         let color = studyPlace.journalColors.general
@@ -113,11 +113,11 @@ db.Users.aggregate([
 
                         return color;
                     }`,
-                  "args": [{"$first": "$studyPlace"}, "$lessons"],
-                  "lang": "js",
-              },
-          },
-      }
+                    "args": [{"$first": "$studyPlace"}, "$lessons"],
+                    "lang": "js",
+                },
+            },
+        }
     },
     {
         "$group": {
@@ -130,10 +130,46 @@ db.Users.aggregate([
         }
     },
     {
+      "$addFields": {
+          "info": {
+              "$function": {
+                  "body": `function (studyPlace, lessons) {
+							let info = {}
+
+							let marks = lessons.flatMap(l => l?.marks ?? []).map(m => Number.parseInt(m.mark)).filter(m => m)
+                            info.numericMarksSum = marks.reduce((sum, a) => sum + a, 0)
+                            info.numericMarksAmount = marks.length
+
+                            let color = studyPlace.journalColors.general
+                            for (let lesson of lessons) {
+                                if (lesson == null) continue
+
+                                if (lesson.journalCellColor == studyPlace.journalColors.warning)
+                                    color = studyPlace.journalColors.warning
+
+                                if (lesson.journalCellColor == studyPlace.journalColors.danger){
+                                    color = studyPlace.journalColors.danger
+                                    break
+                                }
+                            }
+
+                            info.color = color
+							return info
+                        }`,
+                  "args": ["$studyPlace", "$lessons"],
+                  "lang": "js",
+              }
+          }
+      }
+    },
+    {
         "$project": {
             "row": {
                 "_id": "$_id._id",
                 "title": "$_id.title",
+                "numericMarksSum": "$info.numericMarksSum",
+                "numericMarksAmount": "$info.numericMarksAmount",
+                "color": "$info.color",
                 "lessons": "$lessons"
             },
             "studyPlace": "$studyPlace",

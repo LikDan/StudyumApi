@@ -119,7 +119,7 @@ db.Lessons.aggregate([
                             }
 
                             let marks = rows[0].lessons.flatMap(l => l?.marks ?? []).map(m => Number.parseInt(m.mark)).filter(m => m)
-                            rows[0].marksSum = marks.reduce((sum, a) => sum + a, 0)
+                            rows[0].numericMarksSum = marks.reduce((sum, a) => sum + a, 0)
                             rows[0].numericMarksAmount = marks.length
 
                             let color = studyPlace.journalColors.general

@@ -20,12 +20,12 @@ type JournalInfo struct {
 }
 
 type JournalRow struct {
-	Id          string    `json:"id" bson:"_id"`
-	Title       string    `json:"title" bson:"title"`
-	Lessons     []*Lesson `json:"lessons" bson:"lessons"`
-	MarksSum    int       `json:"marksSum" bson:"marksSum"`
-	MarksLength int       `json:"numericMarksAmount" bson:"numericMarksAmount"`
-	Color       string    `json:"color" bson:"color"`
+	Id                 string    `json:"id" bson:"_id"`
+	Title              string    `json:"title" bson:"title"`
+	Lessons            []*Lesson `json:"lessons" bson:"lessons"`
+	NumericMarksSum    int       `json:"numericMarksSum" bson:"numericMarksSum"`
+	NumericMarksLength int       `json:"numericMarksAmount" bson:"numericMarksAmount"`
+	Color              string    `json:"color" bson:"color"`
 }
 
 type JournalAvailableOption struct {

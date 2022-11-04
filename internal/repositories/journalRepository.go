@@ -181,8 +181,8 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
                             }
 
                             let marks = rows[0].lessons.flatMap(l => l?.marks ?? []).map(m => Number.parseInt(m.mark)).filter(m => m)
-                            rows[0].marksSum = marks.reduce((sum, a) => sum + a, 0)
-                            rows[0] .numericMarksAmount = marks.length
+                            rows[0].numericMarksSum = marks.reduce((sum, a) => sum + a, 0)
+                            rows[0].numericMarksAmount = marks.length
 
                             let color = studyPlace.journalColors.general
                             for (let lesson of rows[0].lessons) {
@@ -370,11 +370,47 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 			},
 		},
 		bson.M{
+			"$addFields": bson.M{
+				"info": bson.M{
+					"$function": bson.M{
+						"body": `function (studyPlace, lessons) {
+							let info = {}
+
+							let marks = lessons.flatMap(l => l?.marks ?? []).map(m => Number.parseInt(m.mark)).filter(m => m)
+                            info.numericMarksSum = marks.reduce((sum, a) => sum + a, 0)
+                            info.numericMarksAmount = marks.length
+
+                            let color = studyPlace.journalColors.general
+                            for (let lesson of lessons) {
+                                if (lesson == null) continue
+
+                                if (lesson.journalCellColor == studyPlace.journalColors.warning)
+                                    color = studyPlace.journalColors.warning
+
+                                if (lesson.journalCellColor == studyPlace.journalColors.danger){
+                                    color = studyPlace.journalColors.danger
+                                    break
+                                }
+                            }
+
+                            info.color = color
+							return info
+                        }`,
+						"args": bson.A{"$studyPlace", "$lessons"},
+						"lang": "js",
+					},
+				},
+			},
+		},
+		bson.M{
 			"$project": bson.M{
 				"row": bson.M{
-					"_id":     "$_id._id",
-					"title":   "$_id.title",
-					"lessons": "$lessons",
+					"_id":                "$_id._id",
+					"title":              "$_id.title",
+					"numericMarksSum":    "$info.numericMarksSum",
+					"numericMarksAmount": "$info.numericMarksAmount",
+					"color":              "$info.color",
+					"lessons":            "$lessons",
 				},
 				"studyPlace": "$studyPlace",
 			},
