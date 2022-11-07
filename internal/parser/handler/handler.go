@@ -5,6 +5,9 @@ import (
 	"github.com/robfig/cron"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"os"
 	"studyum/internal/entities"
 	"studyum/internal/parser/apps"
 	"studyum/internal/parser/controller"
@@ -41,7 +44,16 @@ func NewParserHandler(controller controller.Controller) Handler {
 			date = time.Now()
 		}
 
-		app.Init(date)
+		client, err := mongo.NewClient(options.Client().ApplyURI(os.Getenv("DB_URL")))
+		if err != nil {
+			logrus.Fatal(err)
+		}
+
+		if err = client.Connect(ctx); err != nil {
+			logrus.Fatalf("Can't connect to database, error: %s", err.Error())
+		}
+
+		app.Init(date, client)
 
 		types := app.ScheduleTypesUpdate()
 		if err = h.controller.InsertScheduleTypes(ctx, types); err != nil {

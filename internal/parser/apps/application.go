@@ -3,13 +3,14 @@ package apps
 import (
 	"context"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"studyum/internal/parser/appDTO"
 	"studyum/internal/parser/entities"
 	"time"
 )
 
 type App interface {
-	Init(time time.Time)
+	Init(time time.Time, client *mongo.Client)
 
 	GetName() string
 	StudyPlaceId() primitive.ObjectID
@@ -22,7 +23,7 @@ type App interface {
 
 	JournalUpdate(user entities.JournalUser) []appDTO.MarkDTO
 
-	OnMarkAdd(ctx context.Context, mark entities.Mark, lesson entities.Lesson) appDTO.ParsedInfoTypeDTO
+	OnMarkAdd(ctx context.Context, mark entities.Mark, lesson entities.Lesson, student entities.User) appDTO.ParsedInfoTypeDTO
 	OnMarkEdit(ctx context.Context, mark entities.Mark, lesson entities.Lesson) appDTO.ParsedInfoTypeDTO
 	OnMarkDelete(ctx context.Context, id primitive.ObjectID)
 

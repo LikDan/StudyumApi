@@ -12,6 +12,7 @@ import (
 	"studyum/internal/parser/entities"
 	"studyum/internal/parser/repository"
 	"studyum/pkg/datetime"
+	"studyum/pkg/encryption"
 	"studyum/pkg/firebase"
 	"studyum/pkg/slicetools"
 	"time"
@@ -41,15 +42,17 @@ type Controller interface {
 type controller struct {
 	repository repository.Repository
 
-	firebase firebase.Firebase
+	firebase   firebase.Firebase
+	encryption encryption.Encryption
 
 	apps []apps.App
 }
 
-func NewParserController(repository repository.Repository, firebase firebase.Firebase) Controller {
+func NewParserController(repository repository.Repository, encryption encryption.Encryption, firebase firebase.Firebase) Controller {
 	return &controller{
 		repository: repository,
 		firebase:   firebase,
+		encryption: encryption,
 		apps:       []apps.App{kbp.NewApp()},
 	}
 }
@@ -261,7 +264,14 @@ func (c *controller) AddMark(ctx context.Context, markDTO dto.MarkDTO) {
 		return
 	}
 
-	info := app.OnMarkAdd(ctx, mark, lesson)
+	err, user := c.repository.GetUserById(ctx, mark.StudentID)
+	if err != nil {
+		return
+	}
+
+	c.encryption.Decrypt(&user)
+	info := app.OnMarkAdd(ctx, mark, lesson, user)
+
 	_ = c.repository.UpdateMarkParsedInfoByID(ctx, mark.Id, entities.ParsedInfoType(info))
 }
 

@@ -2,8 +2,11 @@ package kbp
 
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"studyum/internal/parser/appDTO"
 	"studyum/internal/parser/apps"
+	"studyum/internal/parser/apps/kbp/controller"
+	"studyum/internal/parser/apps/kbp/repository"
 	"studyum/internal/parser/entities"
 	"studyum/pkg/datetime"
 	"time"
@@ -19,6 +22,8 @@ type app struct {
 	DefaultColor string
 	AddedColor   string
 	RemovedColor string
+
+	controller *controller.Controller
 }
 
 func NewApp() apps.App {
@@ -52,7 +57,7 @@ func NewApp() apps.App {
 	}
 }
 
-func (a *app) Init(date time.Time) {
+func (a *app) Init(date time.Time, client *mongo.Client) {
 	states := make([]entities.ScheduleStateInfo, 14)
 
 	dateCursor := datetime.Date().AddDate(0, 0, int(datetime.Date().Weekday()))
@@ -73,6 +78,9 @@ func (a *app) Init(date time.Time) {
 	}
 
 	a.States = states
+
+	repo := repository.NewRepository(client)
+	a.controller = controller.NewController(repo)
 }
 
 func (a *app) GetName() string              { return "kbp" }

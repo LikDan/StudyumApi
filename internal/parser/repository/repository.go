@@ -39,6 +39,7 @@ type repository struct {
 	lessonsCollection        *mongo.Collection
 	marksCollection          *mongo.Collection
 	usersCollection          *mongo.Collection
+	signUpCodesCollection    *mongo.Collection
 
 	parseJournalUserCollection   *mongo.Collection
 	parseScheduleTypesCollection *mongo.Collection
@@ -52,6 +53,7 @@ func NewParserRepository(client *mongo.Client) Repository {
 		lessonsCollection:        database.Collection("Lessons"),
 		marksCollection:          database.Collection("Marks"),
 		usersCollection:          database.Collection("Users"),
+		signUpCodesCollection:    database.Collection("SignUpCodes"),
 
 		parseJournalUserCollection:   database.Collection("ParseJournalUsers"),
 		parseScheduleTypesCollection: database.Collection("ParseScheduleTypes"),
@@ -193,5 +195,10 @@ func (p *repository) UpdateLessonParsedInfoByID(ctx context.Context, id primitiv
 
 func (p *repository) GetUserById(ctx context.Context, id primitive.ObjectID) (err error, user entities.User) {
 	err = p.usersCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
+	if err != nil {
+		if p.signUpCodesCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&user) == nil {
+			err = nil
+		}
+	}
 	return
 }

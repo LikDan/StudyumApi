@@ -53,7 +53,7 @@ type User struct {
 	FirebaseToken string             `json:"-" bson:"firebaseToken"`
 	VerifiedEmail bool               `json:"verifiedEmail" bson:"verifiedEmail"`
 	Login         string             `json:"login" bson:"login"`
-	Name          string             `json:"name" bson:"name"`
+	Name          string             `json:"name" bson:"name" encryption:""`
 	PictureUrl    string             `json:"picture" bson:"picture"`
 	Type          string             `json:"type" bson:"type"`
 	TypeName      string             `json:"typeName" bson:"typeName"`

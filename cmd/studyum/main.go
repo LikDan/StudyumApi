@@ -37,9 +37,10 @@ func main() {
 
 	firebaseCredentials := []byte(os.Getenv("FIREBASE_CREDENTIALS"))
 	firebase := fb.NewFirebase(firebaseCredentials)
+	encrypt := encryption.NewEncryption(os.Getenv("ENCRYPTION_SECRET"))
 
 	parserRepository := pRepository.NewParserRepository(client)
-	parserController := pController.NewParserController(parserRepository, firebase)
+	parserController := pController.NewParserController(parserRepository, encrypt, firebase)
 	parserHandler := pHandler.NewParserHandler(parserController)
 
 	secret := os.Getenv("JWT_SECRET")
@@ -54,7 +55,6 @@ func main() {
 	signUpCodesRepository := repositories.NewSignUpCodesRepository(repository)
 
 	scheduleValidator := validators.NewSchedule(validator.New())
-	encrypt := encryption.NewEncryption(os.Getenv("ENCRYPTION_SECRET"))
 
 	signUpCodesController := controllers.NewSignUpCodesController(signUpCodesRepository)
 	controller := controllers.NewController(jwtController, userRepository, generalRepository, encrypt)

@@ -8,7 +8,8 @@ import (
 	"studyum/internal/parser/entities"
 )
 
-func (a *app) OnMarkAdd(_ context.Context, mark entities.Mark, lesson entities.Lesson) appDTO.ParsedInfoTypeDTO {
+func (a *app) OnMarkAdd(ctx context.Context, mark entities.Mark, lesson entities.Lesson, student entities.User) appDTO.ParsedInfoTypeDTO {
+	a.controller.AddMark(ctx, mark, lesson, student)
 	logrus.Infof("set mark %v, with lesson %v", mark, lesson)
 	return nil
 }
