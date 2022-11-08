@@ -21,6 +21,7 @@ func (r *JournalHTTP) AddMark(ctx context.Context, cookie string, studentID, pai
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	request.Header.Add("Cookie", cookie)
 
+	return nil
 	_, err := http.DefaultClient.Do(request)
 	return err
 }
