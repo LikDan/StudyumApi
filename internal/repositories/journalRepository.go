@@ -65,22 +65,26 @@ func (j *journalRepository) GetAvailableOptions(ctx context.Context, teacher str
 
 func (j *journalRepository) getCellColor() string {
 	return `function (studyPlace, lesson) {
-                        if (!lesson?.marks) return "";
+                        if (!lesson) return "";
 
                         let color = studyPlace.journalColors.general
-                        for (let mark of lesson.marks) {
-                            let type = studyPlace.lessonTypes.find(v => v.type === lesson.type);
-                            if (type === undefined) return studyPlace.journalColors.general;
+						let type = studyPlace.lessonTypes.find(v => v.type === lesson.type);
+						if (type === undefined) return studyPlace.journalColors.general;
 
+                        for (let mark of lesson.marks ?? []) {
                             let markType = type.marks.find(m => m.mark === mark.mark);
-                            if (markType === undefined || markType.workOutTime === undefined) return studyPlace.journalColors.general;
+                            if (markType === undefined || markType.workOutTime === undefined || markType.workOutTime === 0) return studyPlace.journalColors.general;
 
                             let date = new Date(lesson.startDate);
 							date.setSeconds(lesson.startDate.getSeconds() + markType.workOutTime);
                             color = date.getTime() > new Date().getTime() ? studyPlace.journalColors.warning : studyPlace.journalColors.danger;
                         }
 
-                        return color;
+						if (!lesson.absences || lesson.absences.length === 0 || type.absenceWorkOutTime === undefined || type.absenceWorkOutTime === 0) return color
+
+						let date = new Date(lesson.startDate);
+						date.setSeconds(lesson.startDate.getSeconds() + type.absenceWorkOutTime);
+                        return date.getTime() > new Date().getTime() ? studyPlace.journalColors.warning : studyPlace.journalColors.danger;
                     }`
 }
 

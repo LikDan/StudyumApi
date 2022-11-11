@@ -24,9 +24,10 @@ type MarkType struct {
 }
 
 type LessonType struct {
-	Type            string     `bson:"type" json:"type"`
-	Marks           []MarkType `bson:"marks" json:"marks"`
-	StandaloneMarks []MarkType `bson:"standaloneMarks" json:"standaloneMarks"`
+	Type               string        `bson:"type" json:"type"`
+	AbsenceWorkOutTime time.Duration `bson:"absenceWorkOutTime" json:"absenceWorkOutTime"`
+	Marks              []MarkType    `bson:"marks" json:"marks"`
+	StandaloneMarks    []MarkType    `bson:"standaloneMarks" json:"standaloneMarks"`
 }
 
 type JournalColors struct {
