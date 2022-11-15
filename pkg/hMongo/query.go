@@ -26,3 +26,24 @@ func Filter(input string, cond bson.M) bson.M {
 		},
 	}
 }
+
+func Map(input string, in bson.D) bson.M {
+	return bson.M{
+		"$map": bson.M{
+			"input": "$" + input,
+			"as":    SubstrAfter(input, "."),
+			"in":    in,
+		},
+	}
+}
+
+func Func(body string, args ...string) bson.E {
+	return bson.E{
+		Key: "$function",
+		Value: bson.M{
+			"body": body,
+			"args": args,
+			"lang": "js",
+		},
+	}
+}

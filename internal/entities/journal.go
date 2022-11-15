@@ -20,12 +20,15 @@ type JournalInfo struct {
 }
 
 type JournalRow struct {
-	Id                 string    `json:"id" bson:"_id"`
-	Title              string    `json:"title" bson:"title"`
-	Lessons            []*Lesson `json:"lessons" bson:"lessons"`
-	NumericMarksSum    int       `json:"numericMarksSum" bson:"numericMarksSum"`
-	NumericMarksLength int       `json:"numericMarksAmount" bson:"numericMarksAmount"`
-	Color              string    `json:"color" bson:"color"`
+	Id                 string       `json:"id" bson:"_id"`
+	Title              string       `json:"title" bson:"title"`
+	Lessons            []*Lesson    `json:"lessons" bson:"lessons"`
+	NumericMarksSum    int          `json:"numericMarksSum" bson:"numericMarksSum"`
+	NumericMarksLength int          `json:"numericMarksAmount" bson:"numericMarksAmount"`
+	AbsencesAmount     int          `json:"absencesAmount" bson:"absencesAmount"`
+	AbsencesTime       int          `json:"absencesTime" bson:"absencesTime"`
+	MarksAmount        []MarkAmount `json:"marksAmount" bson:"marksAmount"`
+	Color              string       `json:"color" bson:"color"`
 }
 
 type JournalAvailableOption struct {
@@ -51,4 +54,9 @@ type Absence struct {
 	LessonID     primitive.ObjectID      `json:"lessonID" bson:"lessonID"`
 	StudyPlaceID primitive.ObjectID      `json:"studyPlaceID" bson:"studyPlaceID"`
 	ParsedInfo   entities.ParsedInfoType `json:"-" bson:"parsedInfo"`
+}
+
+type MarkAmount struct {
+	Mark   string `json:"mark" bson:"mark"`
+	Amount int    `json:"amount" bson:"amount"`
 }

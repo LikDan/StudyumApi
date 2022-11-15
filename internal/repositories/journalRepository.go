@@ -88,6 +88,51 @@ func (j *journalRepository) getCellColor() string {
                     }`
 }
 
+func (j *journalRepository) getRowInfo() string {
+	return `function(studyPlace, row) {
+		let marks = row.lessons.flatMap(l => l?.marks ?? [])
+
+		let markList = studyPlace.lessonTypes
+				.flatMap(t => t.marks.concat(t.standaloneMarks ?? [])).map(m => m.mark)
+				.filter((v, i, a) => a.indexOf(v) === i)
+						
+		let marksAmount = {}
+		for (let m of markList) {
+		  marksAmount[m] = {
+              mark: m,
+              amount: 0
+		  }
+		}
+        for (let mark of marks) marksAmount[mark.mark].amount++
+        row.marksAmount = Object.values(marksAmount)
+
+        marks = marks.map(m => Number.parseInt(m.mark)).filter(m => m)
+        
+        row.numericMarksSum = marks.reduce((sum, a) => sum + a, 0)
+		row.numericMarksAmount = marks.length
+
+		let absences = row.lessons.flatMap(l => l?.absences ?? []).map(a => a.time)
+		row.absencesAmount = absences.filter(v => !v).length
+        row.absencesTime = absences.filter(v => v).reduce((sum, a) => sum + a, 0)
+		
+		let color = studyPlace.journalColors.general
+		for (let lesson of row.lessons) {
+		  if (lesson == null) continue
+		
+		  if (lesson.journalCellColor == studyPlace.journalColors.warning)
+			  color = studyPlace.journalColors.warning
+		
+		  if (lesson.journalCellColor == studyPlace.journalColors.danger){
+			  color = studyPlace.journalColors.danger
+			  break
+		  }
+		}
+
+		row.color = color
+		return row
+	}`
+}
+
 func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
 	cursor, err := j.lessonsCollection.Aggregate(ctx, bson.A{
 		bson.M{"$match": bson.M{"group": group, "studyPlaceId": studyPlaceId}},
@@ -170,7 +215,8 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
                                         prevLesson.journalCellColor = value[i].journalCellColor
                                     }
 
-                                    prevLesson.marks = prevLesson.marks?.concat(value[i].marks ?? [])
+                                    prevLesson.marks = prevLesson.marks?.concat(value[i].marks ?? []) ?? value[i].marks
+                                    prevLesson.absences = prevLesson.absences?.concat(value[i].absences ?? []) ?? value[i].absences
                                     added--
                                     continue
                                 }
@@ -180,28 +226,10 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
                                 }
                                 rows[0].lessons.push(value[i])
                             }
+
                             for (let i = added + value.length; i < dates.length; i++) {
                                 rows[0].lessons.push(null)
                             }
-
-                            let marks = rows[0].lessons.flatMap(l => l?.marks ?? []).map(m => Number.parseInt(m.mark)).filter(m => m)
-                            rows[0].numericMarksSum = marks.reduce((sum, a) => sum + a, 0)
-                            rows[0].numericMarksAmount = marks.length
-
-                            let color = studyPlace.journalColors.general
-                            for (let lesson of rows[0].lessons) {
-                                if (lesson == null) continue
-
-                                if (lesson.journalCellColor == studyPlace.journalColors.warning)
-                                    color = studyPlace.journalColors.warning
-
-                                if (lesson.journalCellColor == studyPlace.journalColors.danger){
-                                    color = studyPlace.journalColors.danger
-                                    break
-                                }
-                            }
-
-                            rows[0].color = color
                         }
 
                         return rows.sort((a, b) => a.title > b.title)
@@ -212,6 +240,13 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
 				},
 			},
 		},
+		bson.M{
+			"$addFields": bson.M{
+				"rows": hMongo.Map("rows", bson.D{
+					hMongo.Func(j.getRowInfo(), "$studyPlace", "$$rows"),
+				}),
+			},
+		}, //TODO add to sql
 		bson.M{
 			"$addFields": bson.M{
 				"info": bson.M{
@@ -374,49 +409,18 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 			},
 		},
 		bson.M{
-			"$addFields": bson.M{
-				"info": bson.M{
-					"$function": bson.M{
-						"body": `function (studyPlace, lessons) {
-							let info = {}
-
-							let marks = lessons.flatMap(l => l?.marks ?? []).map(m => Number.parseInt(m.mark)).filter(m => m)
-                            info.numericMarksSum = marks.reduce((sum, a) => sum + a, 0)
-                            info.numericMarksAmount = marks.length
-
-                            let color = studyPlace.journalColors.general
-                            for (let lesson of lessons) {
-                                if (lesson == null) continue
-
-                                if (lesson.journalCellColor == studyPlace.journalColors.warning)
-                                    color = studyPlace.journalColors.warning
-
-                                if (lesson.journalCellColor == studyPlace.journalColors.danger){
-                                    color = studyPlace.journalColors.danger
-                                    break
-                                }
-                            }
-
-                            info.color = color
-							return info
-                        }`,
-						"args": bson.A{"$studyPlace", "$lessons"},
-						"lang": "js",
-					},
+			"$project": bson.M{
+				"row": bson.M{
+					"_id":     "$_id._id",
+					"title":   "$_id.title",
+					"lessons": "$lessons",
 				},
+				"studyPlace": "$studyPlace",
 			},
 		},
 		bson.M{
-			"$project": bson.M{
-				"row": bson.M{
-					"_id":                "$_id._id",
-					"title":              "$_id.title",
-					"numericMarksSum":    "$info.numericMarksSum",
-					"numericMarksAmount": "$info.numericMarksAmount",
-					"color":              "$info.color",
-					"lessons":            "$lessons",
-				},
-				"studyPlace": "$studyPlace",
+			"$addFields": bson.D{
+				{"row", bson.D{hMongo.Func(j.getRowInfo(), "$studyPlace", "$row")}},
 			},
 		},
 		bson.M{
