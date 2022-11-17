@@ -298,7 +298,7 @@ func (s *scheduleRepository) AddLesson(ctx context.Context, lesson entities.Less
 func (s *scheduleRepository) UpdateLesson(ctx context.Context, lesson entities.Lesson) error {
 	_, err := s.lessonsCollection.UpdateOne(ctx, bson.M{"_id": lesson.Id, "studyPlaceId": lesson.StudyPlaceId}, bson.M{"$set": bson.M{
 		"primaryColor":   lesson.PrimaryColor,
-		"secondaryColor": lesson.PrimaryColor,
+		"secondaryColor": lesson.SecondaryColor,
 		"type":           lesson.Type,
 		"endDate":        lesson.EndDate,
 		"startDate":      lesson.StartDate,

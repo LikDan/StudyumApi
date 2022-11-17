@@ -302,7 +302,7 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
 	return journal, nil
 }
 
-func (j *journalRepository) GetJournal(ctx context.Context, group string, subject string, typeName string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
+func (j *journalRepository) GetJournal(ctx context.Context, group string, subject string, teacher string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
 	var cursor, err = j.usersCollection.Aggregate(ctx, bson.A{
 		bson.M{
 			"$group": bson.M{"_id": nil, "users": bson.M{"$push": "$$ROOT"}},
@@ -450,7 +450,7 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 					"editable":   true,
 					"studyPlace": "$studyPlace",
 					"group":      group,
-					"teacher":    typeName,
+					"teacher":    teacher,
 					"subject":    subject,
 					"time":       time.Now(),
 				},
@@ -473,7 +473,7 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 				Editable:   true,
 				StudyPlace: entities.StudyPlace{},
 				Group:      group,
-				Teacher:    typeName,
+				Teacher:    teacher,
 				Subject:    subject,
 			},
 		}, nil

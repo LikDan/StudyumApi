@@ -27,6 +27,7 @@ type LessonType struct {
 	Type               string        `bson:"type" json:"type"`
 	AbsenceWorkOutTime time.Duration `bson:"absenceWorkOutTime" json:"absenceWorkOutTime"`
 	Marks              []MarkType    `bson:"marks" json:"marks"`
+	AssignedColor      string        `bson:"assignedColor" json:"assignedColor"`
 	StandaloneMarks    []MarkType    `bson:"standaloneMarks" json:"standaloneMarks"`
 }
 
