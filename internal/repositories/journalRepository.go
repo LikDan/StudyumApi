@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"studyum/internal/entities"
 	"studyum/pkg/hMongo"
+	"time"
 )
 
 type JournalRepository interface {
@@ -252,6 +253,10 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
 				"info": bson.M{
 					"editable":   false,
 					"studyPlace": "$studyPlace",
+					"group":      group,
+					"teacher":    "",
+					"subject":    "",
+					"time":       time.Now(),
 				},
 			},
 		},
@@ -444,6 +449,10 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 				"info": bson.M{
 					"editable":   true,
 					"studyPlace": "$studyPlace",
+					"group":      group,
+					"teacher":    typeName,
+					"subject":    subject,
+					"time":       time.Now(),
 				},
 			},
 		},
