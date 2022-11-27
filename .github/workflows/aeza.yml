@@ -67,6 +67,8 @@ jobs:
         with:
           image: my-app
           tags: latest ${{ github.sha }}
+          containerfiles: |
+            ./Dockerfile
 
       - name: Push To quay.io
         id: push-to-quay
