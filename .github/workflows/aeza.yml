@@ -1,49 +1,82 @@
-name: CI-CD
+#name: CI-CD
+#
+#on:
+#  push:
+#    branches: [ master ]
+#
+#  workflow_dispatch:
+#
+#env:
+#  IMAGE_NAME: "studyum-api"
+#
+#jobs:
+#  deploy:
+#    name: Deploy
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#      - name: Connect and build and run on Aeza
+#        uses: appleboy/ssh-action@v0.1.3
+#
+#        with:
+#          host: ${{ secrets.HOST }}
+#          username: ${{ secrets.USERNAME }}
+#          key: ${{ secrets.SSHKEY }}
+#          passphrase: ${{ secrets.PASSPHRASE }}
+#
+#          envs: GITHUB_REPOSITORY, IMAGE_NAME
+#
+#          script: |
+#            rm -r ${GITHUB_REPOSITORY#*/}
+#            git clone git@github.com:${{ github.repository }}.git
+#            cd ${GITHUB_REPOSITORY#*/}
+#            docker rmi -f ${IMAGE_NAME}
+#            docker build -t ${IMAGE_NAME} .
+#            docker stop ${IMAGE_NAME}
+#            docker rm ${IMAGE_NAME}
+#            docker run \
+#            -d -p 274:8080 \
+#            -e DB_URL='${{ secrets.DB_URL }}' \
+#            -e JWT_SECRET='${{ secrets.JWT_SECRET }}' \
+#            -e GOOGLE_SECRET='${{ secrets.GOOGLE_SECRET }}' \
+#            -e ENCRYPTION_SECRET='${{ secrets.ENCRYPTION_SECRET }}' \
+#            -e GIN_MODE='release' \
+#            -e OAUTH2_CALLBACK='https://studyum.net' \
+#            --restart always \
+#            --name ${IMAGE_NAME} \
+#            ${IMAGE_NAME}
+#            docker rmi $(docker images -f "dangling=true" -q)
+#
 
-on:
-  push:
-    branches: [ master ]
 
-  workflow_dispatch:
 
-env:
-  IMAGE_NAME: "studyum-api"
+name: Build and Push Image
+on: [ push ]
 
 jobs:
-  deploy:
-    name: Deploy
-    runs-on: ubuntu-latest
+  build:
+    name: Build and push image
+    runs-on: ubuntu-20.04
 
     steps:
-      - name: Connect and build and run on Aeza
-        uses: appleboy/ssh-action@v0.1.3
+      - uses: actions/checkout@v2
 
+      - name: Build Image
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSHKEY }}
-          passphrase: ${{ secrets.PASSPHRASE }}
+          image: my-app
+          tags: latest ${{ github.sha }}
 
-          envs: GITHUB_REPOSITORY, IMAGE_NAME
+      - name: Push To quay.io
+        id: push-to-quay
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build-image.outputs.image }}
+          tags: ${{ steps.build-image.outputs.tags }}
+          registry: docker.studyum.net
+          username: likdan
+          password: ${{ secrets.REGISTRY_PASSWORD }}
 
-          script: |
-            rm -r ${GITHUB_REPOSITORY#*/}
-            git clone git@github.com:${{ github.repository }}.git
-            cd ${GITHUB_REPOSITORY#*/}
-            docker rmi -f ${IMAGE_NAME}
-            docker build -t ${IMAGE_NAME} .
-            docker stop ${IMAGE_NAME}
-            docker rm ${IMAGE_NAME}
-            docker run \
-            -d -p 274:8080 \
-            -e DB_URL='${{ secrets.DB_URL }}' \
-            -e JWT_SECRET='${{ secrets.JWT_SECRET }}' \
-            -e GOOGLE_SECRET='${{ secrets.GOOGLE_SECRET }}' \
-            -e ENCRYPTION_SECRET='${{ secrets.ENCRYPTION_SECRET }}' \
-            -e GIN_MODE='release' \
-            -e OAUTH2_CALLBACK='https://studyum.net' \
-            --restart always \
-            --name ${IMAGE_NAME} \
-            ${IMAGE_NAME}
-            docker rmi $(docker images -f "dangling=true" -q)
-
+      - name: Print image url
+        run: echo "Image pushed to ${{ steps.push-to-quay.outputs.registry-paths }}"
