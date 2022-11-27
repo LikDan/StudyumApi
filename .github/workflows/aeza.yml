@@ -65,13 +65,13 @@ jobs:
         id: build-image
         uses: redhat-actions/buildah-build@v2
         with:
-          image: my-app
+          image: api
           tags: latest ${{ github.sha }}
           containerfiles: |
             ./Dockerfile
 
-      - name: Push To quay.io
-        id: push-to-quay
+      - name: Push To docker.studyum
+        id: push
         uses: redhat-actions/push-to-registry@v2
         with:
           image: ${{ steps.build-image.outputs.image }}
@@ -80,5 +80,21 @@ jobs:
           username: likdan
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      - name: Print image url
-        run: echo "Image pushed to ${{ steps.push-to-quay.outputs.registry-paths }}"
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Connect and build and run on Aeza
+        uses: appleboy/ssh-action@v0.1.3
+
+        with:
+          host: api.studyum.net
+          username: root
+          key: ${{ secrets.SSHKEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+
+          envs: GITHUB_REPOSITORY, IMAGE_NAME
+          script: |
+            cd api
+            docker-compose up -d --build
