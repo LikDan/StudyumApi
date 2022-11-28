@@ -140,7 +140,8 @@ func (h *handler) Error(ctx *gin.Context, err error) {
 		code = http.StatusBadRequest
 		break
 	case errors.Is(err, controllers.NotAuthorizationError),
-		errors.Is(err, j.ErrSignatureInvalid):
+		errors.Is(err, j.ErrSignatureInvalid),
+		errors.Is(err, http.ErrNoCookie):
 		code = http.StatusUnauthorized
 		break
 	case errors.Is(err, controllers.NoPermission),

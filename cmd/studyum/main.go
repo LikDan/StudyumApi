@@ -39,6 +39,10 @@ func main() {
 	firebase := fb.NewFirebase(firebaseCredentials)
 	encrypt := encryption.NewEncryption(os.Getenv("ENCRYPTION_SECRET"))
 
+	if encrypt == nil {
+		logrus.Fatal("Encryption is nil")
+	}
+
 	parserRepository := pRepository.NewParserRepository(client)
 	parserController := pController.NewParserController(parserRepository, encrypt, firebase)
 	parserHandler := pHandler.NewParserHandler(parserController)
