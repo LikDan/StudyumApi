@@ -46,4 +46,4 @@ jobs:
           envs: GITHUB_REPOSITORY, IMAGE_NAME
           script: |
             cd api
-            docker-compose up -d --build
+            docker compose up -d --pull="always"
