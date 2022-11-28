@@ -37,6 +37,7 @@ func main() {
 
 	firebaseCredentials := []byte(os.Getenv("FIREBASE_CREDENTIALS"))
 	firebase := fb.NewFirebase(firebaseCredentials)
+	logrus.Info(os.Getenv("ENCRYPTION_SECRET"))
 	encrypt := encryption.NewEncryption(os.Getenv("ENCRYPTION_SECRET"))
 
 	if encrypt == nil {
