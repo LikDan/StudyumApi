@@ -30,7 +30,6 @@ type encryption struct {
 
 func NewEncryption(secret string) Encryption {
 	cipher_, err := aes.NewCipher([]byte(secret))
-	logrus.Info(cipher_)
 	if err != nil {
 		logrus.Fatal(err.Error())
 	}
