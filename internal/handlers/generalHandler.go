@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"net/http"
 	"strconv"
@@ -10,7 +11,10 @@ import (
 
 type GeneralHandler interface {
 	Uptime(ctx *gin.Context)
+
 	GetStudyPlaces(ctx *gin.Context)
+	GetStudyPlaceByID(ctx *gin.Context)
+
 	Request(ctx *gin.Context)
 }
 
@@ -26,6 +30,8 @@ func NewGeneralHandler(handler Handler, controller controllers.GeneralController
 	h := &generalHandler{Handler: handler, controller: controller, Group: group}
 
 	group.GET("/studyPlaces", h.GetStudyPlaces)
+	group.GET("/studyPlaces/:id", h.GetStudyPlaceByID)
+
 	group.GET("/uptime", h.Uptime)
 	group.GET("/request", h.Request)
 
@@ -40,8 +46,7 @@ func (g *generalHandler) GetStudyPlaces(ctx *gin.Context) {
 	isRestricted := ctx.Query("restricted")
 	restricted, err := strconv.ParseBool(isRestricted)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err.Error())
-		return
+		restricted = false
 	}
 
 	err, studyPlaces := g.controller.GetStudyPlaces(ctx, restricted)
@@ -51,6 +56,29 @@ func (g *generalHandler) GetStudyPlaces(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, studyPlaces)
+}
+
+func (g *generalHandler) GetStudyPlaceByID(ctx *gin.Context) {
+	isRestricted := ctx.Query("restricted")
+	restricted, err := strconv.ParseBool(isRestricted)
+	if err != nil {
+		restricted = false
+	}
+
+	idHex := ctx.Param("id")
+	id, err := primitive.ObjectIDFromHex(idHex)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err, studyPlace := g.controller.GetStudyPlaceByID(ctx, id, restricted)
+	if err != nil {
+		g.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, studyPlace)
 }
 
 func (g *generalHandler) Request(ctx *gin.Context) {
