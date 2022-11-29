@@ -24,7 +24,7 @@ type AddLessonDTO struct {
 	EndDate        time.Time `json:"endDate"`
 	StartDate      time.Time `json:"startDate"`
 	Type           string    `json:"type" binding:"required"`
-	Subject        string    `json:"subject" binding:"required"`
+	Subject        string    `json:"subject"`
 	Group          string    `json:"group" binding:"required"`
 	Teacher        string    `json:"teacher" binding:"required"`
 	Room           string    `json:"room" binding:"required"`
