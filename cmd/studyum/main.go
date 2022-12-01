@@ -35,9 +35,12 @@ func main() {
 		logrus.Fatalf("Can't connect to database, error: %s", err.Error())
 	}
 
+	defer func() {
+		logrus.Warning("Studyum is stopping at", time.Now().Format("2006-01-02 15:04"))
+	}()
+
 	firebaseCredentials := []byte(os.Getenv("FIREBASE_CREDENTIALS"))
 	firebase := fb.NewFirebase(firebaseCredentials)
-	logrus.Info(os.Getenv("ENCRYPTION_SECRET"))
 	encrypt := encryption.NewEncryption(os.Getenv("ENCRYPTION_SECRET"))
 
 	parserRepository := pRepository.NewParserRepository(client)
