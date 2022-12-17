@@ -14,10 +14,12 @@ type JournalHandler interface {
 	GetJournal(ctx *gin.Context)
 	GetUserJournal(ctx *gin.Context)
 
+	AddMarks(ctx *gin.Context)
 	AddMark(ctx *gin.Context)
 	UpdateMark(ctx *gin.Context)
 	DeleteMark(ctx *gin.Context)
 
+	AddAbsences(ctx *gin.Context)
 	AddAbsence(ctx *gin.Context)
 	UpdateAbsence(ctx *gin.Context)
 	DeleteAbsence(ctx *gin.Context)
@@ -40,6 +42,7 @@ func NewJournalHandler(authHandler Handler, controller controllers.JournalContro
 
 	mark := group.Group("/mark", h.Auth("editJournal"))
 	{
+		mark.POST("list", h.AddMarks)
 		mark.POST("", h.AddMark)
 		mark.PUT("", h.UpdateMark)
 		mark.DELETE(":id", h.DeleteMark)
@@ -47,6 +50,7 @@ func NewJournalHandler(authHandler Handler, controller controllers.JournalContro
 
 	absences := group.Group("/absences", h.Auth("editJournal"))
 	{
+		absences.POST("list", h.AddAbsences)
 		absences.POST("", h.AddAbsence)
 		absences.PUT("", h.UpdateAbsence)
 		absences.DELETE(":id", h.DeleteAbsence)
@@ -93,6 +97,24 @@ func (j *journalHandler) GetUserJournal(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, journal)
+}
+
+func (j *journalHandler) AddMarks(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	var marks []dto.AddMarkDTO
+	if err := ctx.BindJSON(&marks); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	lesson, err := j.controller.AddMarks(ctx, marks, user)
+	if err != nil {
+		j.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, lesson)
 }
 
 func (j *journalHandler) AddMark(ctx *gin.Context) {
@@ -159,6 +181,24 @@ func (j *journalHandler) DeleteMark(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, markId)
+}
+
+func (j *journalHandler) AddAbsences(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	var absencesDTO []dto.AddAbsencesDTO
+	if err := ctx.BindJSON(&absencesDTO); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	absences, err := j.controller.AddAbsences(ctx, absencesDTO, user)
+	if err != nil {
+		j.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, absences)
 }
 
 func (j *journalHandler) AddAbsence(ctx *gin.Context) {

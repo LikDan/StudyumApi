@@ -23,11 +23,13 @@ type JournalController interface {
 	GetJournal(ctx context.Context, group string, subject string, teacher string, user entities.User) (entities.Journal, error)
 	GetUserJournal(ctx context.Context, user entities.User) (entities.Journal, error)
 
+	AddMarks(ctx context.Context, marks []dto.AddMarkDTO, user entities.User) ([]entities.Mark, error)
 	AddMark(ctx context.Context, dto dto.AddMarkDTO, user entities.User) (entities.Mark, error)
 	GetMark(ctx context.Context, group string, subject string, userIdHex string, user entities.User) ([]entities.Lesson, error)
 	UpdateMark(ctx context.Context, user entities.User, dto dto.UpdateMarkDTO) error
 	DeleteMark(ctx context.Context, user entities.User, markIdHex string) error
 
+	AddAbsences(ctx context.Context, dto []dto.AddAbsencesDTO, user entities.User) ([]entities.Absence, error)
 	AddAbsence(ctx context.Context, absencesDTO dto.AddAbsencesDTO, user entities.User) (entities.Absence, error)
 	UpdateAbsence(ctx context.Context, user entities.User, absences dto.UpdateAbsencesDTO) error
 	DeleteAbsence(ctx context.Context, user entities.User, id string) error
@@ -86,6 +88,34 @@ func (j *journalController) GetJournal(ctx context.Context, group string, subjec
 
 func (j *journalController) GetUserJournal(ctx context.Context, user entities.User) (entities.Journal, error) {
 	return j.repository.GetStudentJournal(ctx, user.Id, user.TypeName, user.StudyPlaceID)
+}
+
+func (j *journalController) AddMarks(ctx context.Context, dto []dto.AddMarkDTO, user entities.User) ([]entities.Mark, error) {
+	marks := make([]entities.Mark, len(dto))
+	for i, markDTO := range dto {
+		if markDTO.Mark == "" || markDTO.StudentID.IsZero() || markDTO.LessonId.IsZero() {
+			return nil, NotValidParams
+		}
+
+		mark := entities.Mark{
+			Id:           primitive.NewObjectID(),
+			Mark:         markDTO.Mark,
+			StudentID:    markDTO.StudentID,
+			LessonID:     markDTO.LessonId,
+			StudyPlaceID: user.StudyPlaceID,
+		}
+
+		id, err := j.repository.AddMark(ctx, mark, user.TypeName)
+		if err != nil {
+			return nil, err
+		}
+		mark.Id = id
+		go j.parser.AddMark(mark)
+
+		marks[i] = mark
+	}
+
+	return marks, nil
 }
 
 func (j *journalController) GetMark(ctx context.Context, group string, subject string, userIdHex string, user entities.User) ([]entities.Lesson, error) {
@@ -158,6 +188,34 @@ func (j *journalController) DeleteMark(ctx context.Context, user entities.User, 
 
 	go j.parser.DeleteMark(markId, user.StudyPlaceID)
 	return nil
+}
+
+func (j *journalController) AddAbsences(ctx context.Context, dto []dto.AddAbsencesDTO, user entities.User) ([]entities.Absence, error) {
+	absences := make([]entities.Absence, len(dto))
+	for i, markDTO := range dto {
+		if markDTO.StudentID.IsZero() || markDTO.LessonID.IsZero() {
+			return nil, NotValidParams
+		}
+
+		absence := entities.Absence{
+			Id:           primitive.NewObjectID(),
+			Time:         markDTO.Time,
+			StudentID:    markDTO.StudentID,
+			LessonID:     markDTO.LessonID,
+			StudyPlaceID: user.StudyPlaceID,
+		}
+
+		id, err := j.repository.AddAbsence(ctx, absence, user.TypeName)
+		if err != nil {
+			return nil, err
+		}
+		absence.Id = id
+		//TODO notify parser
+
+		absences[i] = absence
+	}
+
+	return absences, nil
 }
 
 func (j *journalController) AddAbsence(ctx context.Context, dto dto.AddAbsencesDTO, user entities.User) (entities.Absence, error) {

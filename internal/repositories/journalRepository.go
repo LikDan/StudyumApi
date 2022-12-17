@@ -11,6 +11,7 @@ import (
 )
 
 type JournalRepository interface {
+	AddMarks(ctx context.Context, marks []entities.Mark, teacher string) error
 	AddMark(ctx context.Context, mark entities.Mark, teacher string) (primitive.ObjectID, error)
 	UpdateMark(ctx context.Context, mark entities.Mark, teacher string) error
 	DeleteMarkByID(ctx context.Context, id primitive.ObjectID, teacher string) error
@@ -23,6 +24,7 @@ type JournalRepository interface {
 	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
 	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId primitive.ObjectID) ([]entities.Lesson, error)
 
+	AddAbsences(ctx context.Context, absences []entities.Absence, teacher string) error
 	AddAbsence(ctx context.Context, absence entities.Absence, teacher string) (primitive.ObjectID, error)
 	UpdateAbsence(ctx context.Context, absence entities.Absence, teacher string) error
 	DeleteAbsenceByID(ctx context.Context, id primitive.ObjectID, teacher string) error
@@ -514,6 +516,14 @@ func (j *journalRepository) GetLessons(ctx context.Context, userId primitive.Obj
 	return marks, nil
 }
 
+func (j *journalRepository) AddMarks(ctx context.Context, marks []entities.Mark, teacher string) error {
+	if _, err := j.lessonsCollection.UpdateOne(ctx, bson.M{"_id": marks[0].LessonID, "teacher": teacher}, hMongo.PushArray("marks", marks)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (j *journalRepository) AddMark(ctx context.Context, mark entities.Mark, teacher string) (primitive.ObjectID, error) {
 	mark.Id = primitive.NewObjectID()
 	if _, err := j.lessonsCollection.UpdateOne(ctx, bson.M{"_id": mark.LessonID, "teacher": teacher}, hMongo.Push("marks", mark)); err != nil {
@@ -533,6 +543,14 @@ func (j *journalRepository) UpdateMark(ctx context.Context, mark entities.Mark, 
 
 func (j *journalRepository) DeleteMarkByID(ctx context.Context, id primitive.ObjectID, teacher string) error {
 	if _, err := j.lessonsCollection.UpdateOne(ctx, bson.M{"teacher": teacher, "marks._id": id}, bson.M{"$pull": bson.M{"marks": bson.M{"_id": id}}}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (j *journalRepository) AddAbsences(ctx context.Context, absences []entities.Absence, teacher string) error {
+	if _, err := j.lessonsCollection.UpdateOne(ctx, bson.M{"_id": absences[0].LessonID, "teacher": teacher}, hMongo.PushArray("absences", absences)); err != nil {
 		return err
 	}
 

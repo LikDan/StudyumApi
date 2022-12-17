@@ -6,7 +6,11 @@ import (
 )
 
 func Push(name string, el interface{}) bson.A {
-	return bson.A{bson.M{"$set": bson.M{name: bson.M{"$ifNull": bson.A{bson.M{"$concatArrays": bson.A{"$" + name, bson.A{el}}}, bson.A{el}}}}}}
+	return PushArray(name, bson.A{el})
+}
+
+func PushArray(name string, el interface{}) bson.A {
+	return bson.A{bson.M{"$set": bson.M{name: bson.M{"$ifNull": bson.A{bson.M{"$concatArrays": bson.A{"$" + name, el}}, el}}}}}
 }
 
 func AEq(el1 interface{}, el2 interface{}) bson.M {
