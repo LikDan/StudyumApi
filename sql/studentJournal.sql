@@ -147,6 +147,67 @@ db.Lessons.aggregate([
         }
     },
     {
+        "$addFields": {
+            "rows": {
+                "$map": {
+                    "input": "$" + "rows",
+                    "as": "rows",
+                    "in": {
+                        "$function": {
+                            // language=JavaScript
+                            body:  `function(studyPlace, row) {
+                                let marks = row.lessons.flatMap(l => l?.marks ?? [])
+
+                                let markList = studyPlace.lessonTypes
+                                        .flatMap(t => t.marks.concat(t.standaloneMarks ?? [])).map(m => m.mark)
+                                        .filter((v, i, a) => a.indexOf(v) === i)
+
+                                row.marks = marks
+
+                                let marksAmount = {}
+                                for (let m of markList) {
+                                  marksAmount[m] = {
+                                      mark: m,
+                                      amount: 0
+                                  }
+                                }
+                                for (let mark of marks) marksAmount[mark.mark].amount++
+                                row.marksAmount = Object.values(marksAmount)
+
+                                marks = marks.map(m => Number.parseInt(m.mark)).filter(m => m)
+
+                                row.numericMarksSum = marks.reduce((sum, a) => sum + a, 0)
+                                row.numericMarksAmount = marks.length
+
+                                let absences = row.lessons.flatMap(l => l?.absences ?? []).map(a => a.time)
+                                row.absencesAmount = absences.filter(v => !v).length
+                                row.absencesTime = absences.filter(v => v).reduce((sum, a) => sum + a, 0)
+
+                                let color = studyPlace.journalColors.general
+                                for (let lesson of row.lessons) {
+                                  if (lesson == null) continue
+
+                                  if (lesson.journalCellColor == studyPlace.journalColors.warning)
+                                      color = studyPlace.journalColors.warning
+
+                                  if (lesson.journalCellColor == studyPlace.journalColors.danger){
+                                      color = studyPlace.journalColors.danger
+                                      break
+                                  }
+                                }
+
+                                row.color = color
+                                return row
+                            }`,
+                            "args": ["$studyPlace", "$$rows"],
+                            "lang": "js",
+                        }
+                    },
+                },
+            }
+        },
+    },
+    {
         $addFields: {
             "info": {
                 "editable": false,

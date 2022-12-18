@@ -354,6 +354,7 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 						"$match": bson.M{
 							"subject":      subject,
 							"group":        group,
+							"teacher":      teacher,
 							"studyPlaceId": studyPlaceId,
 						},
 					},
