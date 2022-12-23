@@ -306,7 +306,7 @@ func (s *scheduleController) SaveGeneralScheduleAsCurrent(ctx context.Context, u
 			StudyPlaceId:   user.StudyPlaceID,
 			PrimaryColor:   generalLesson.PrimaryColor,
 			SecondaryColor: generalLesson.SecondaryColor,
-			Type:           "General",
+			Type:           generalLesson.Type,
 			StartDate:      startDate,
 			EndDate:        endDate,
 			Subject:        generalLesson.Subject,

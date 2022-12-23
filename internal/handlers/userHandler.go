@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
+	"path/filepath"
 	"studyum/internal/controllers"
 	"studyum/internal/dto"
 	"studyum/internal/utils"
@@ -12,6 +13,8 @@ import (
 type UserHandler interface {
 	GetUser(ctx *gin.Context)
 	UpdateUser(ctx *gin.Context)
+
+	PutPicture(ctx *gin.Context)
 
 	LoginUser(ctx *gin.Context)
 	SignUpUser(ctx *gin.Context)
@@ -65,6 +68,8 @@ func NewUserHandler(authHandler Handler, controller controllers.UserController, 
 
 	group.PUT("firebase/token", h.Auth(), h.PutFirebaseToken)
 
+	group.POST("files/profile", h.PutPicture)
+
 	return h
 }
 
@@ -72,6 +77,18 @@ func (u *userHandler) GetUser(ctx *gin.Context) {
 	user := utils.GetUserViaCtx(ctx)
 
 	ctx.JSON(http.StatusOK, user)
+}
+
+func (u *userHandler) PutPicture(c *gin.Context) {
+	file, err := c.FormFile("file")
+	if err != nil {
+		return
+	}
+
+	filename := filepath.Base(file.Filename)
+	if err := c.SaveUploadedFile(file, filename); err != nil {
+		return
+	}
 }
 
 func (u *userHandler) UpdateUser(ctx *gin.Context) {

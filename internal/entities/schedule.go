@@ -44,6 +44,7 @@ type GeneralLesson struct {
 	Group          string                  `json:"group" bson:"group"`
 	Teacher        string                  `json:"teacher" bson:"teacher"`
 	Room           string                  `json:"room" bson:"room"`
+	Type           string                  `json:"type" bson:"type"`
 	DayIndex       int                     `json:"dayIndex" bson:"dayIndex"`
 	WeekIndex      int                     `json:"weekIndex" bson:"weekIndex"`
 	ParsedInfo     entities.ParsedInfoType `json:"-" bson:"parsedInfo"`

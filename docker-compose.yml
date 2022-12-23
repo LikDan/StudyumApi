@@ -4,6 +4,7 @@ services:
   api:
     image: docker.studyum.net/api
     restart: always
+    # noinspection ComposeUnknownKeys
     pull_policy: always
     env_file:
       - .env
