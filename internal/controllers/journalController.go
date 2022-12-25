@@ -62,6 +62,10 @@ func (j *journalController) GetJournalAvailableOptions(ctx context.Context, user
 		return nil, err
 	}
 
+	if tuitionOptions, err := j.repository.GetAvailableTuitionOptions(ctx, user.TuitionGroup, false); err == nil {
+		options = append(options, tuitionOptions...)
+	}
+
 	return options, nil
 }
 
@@ -70,7 +74,29 @@ func (j *journalController) GetJournal(ctx context.Context, group string, subjec
 		return entities.Journal{}, NotValidParams
 	}
 
-	journal, err := j.repository.GetJournal(ctx, group, subject, user.TypeName, user.StudyPlaceID)
+	options, err := j.GetJournalAvailableOptions(ctx, user)
+	if err != nil {
+		return entities.Journal{}, err
+	}
+
+	var option *entities.JournalAvailableOption
+	for _, opt := range options {
+		if opt.Group == group && opt.Teacher == teacher && opt.Subject == subject {
+			var temp = opt
+			option = &temp
+		}
+		if opt.Group == group && opt.Teacher == teacher && opt.Subject == subject && opt.Editable {
+			var temp = opt
+			option = &temp
+			break
+		}
+	}
+
+	if option == nil {
+		return entities.Journal{}, NoPermission
+	}
+
+	journal, err := j.repository.GetJournal(ctx, *option, user.StudyPlaceID)
 	if err != nil {
 		return entities.Journal{}, err
 	}

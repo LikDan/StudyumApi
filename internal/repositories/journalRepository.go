@@ -17,9 +17,10 @@ type JournalRepository interface {
 	DeleteMarkByID(ctx context.Context, id primitive.ObjectID, teacher string) error
 
 	GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]entities.JournalAvailableOption, error)
+	GetAvailableTuitionOptions(ctx context.Context, name string, editable bool) ([]entities.JournalAvailableOption, error)
 
 	GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId primitive.ObjectID) (entities.Journal, error)
-	GetJournal(ctx context.Context, group string, subject string, typeName string, studyPlaceId primitive.ObjectID) (entities.Journal, error)
+	GetJournal(ctx context.Context, option entities.JournalAvailableOption, studyPlaceId primitive.ObjectID) (entities.Journal, error)
 
 	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
 	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId primitive.ObjectID) ([]entities.Lesson, error)
@@ -41,6 +42,34 @@ func NewJournalRepository(repository *Repository) JournalRepository {
 func (j *journalRepository) GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]entities.JournalAvailableOption, error) {
 	aggregate, err := j.lessonsCollection.Aggregate(ctx, bson.A{
 		bson.M{"$match": bson.M{"teacher": teacher}},
+		bson.M{"$group": bson.M{
+			"_id": bson.M{
+				"teacher": "$teacher",
+				"subject": "$subject",
+				"group":   "$group",
+			},
+			"teacher": bson.M{"$first": "$teacher"},
+			"subject": bson.M{"$first": "$subject"},
+			"group":   bson.M{"$first": "$group"}},
+		},
+		bson.M{"$addFields": bson.M{"editable": editable}},
+		bson.M{"$sort": bson.M{"group": 1, "subject": 1, "teacher": 1}},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var options []entities.JournalAvailableOption
+	if err = aggregate.All(ctx, &options); err != nil {
+		return nil, err
+	}
+
+	return options, nil
+}
+
+func (j *journalRepository) GetAvailableTuitionOptions(ctx context.Context, group string, editable bool) ([]entities.JournalAvailableOption, error) {
+	aggregate, err := j.lessonsCollection.Aggregate(ctx, bson.A{
+		bson.M{"$match": bson.M{"group": group}},
 		bson.M{"$group": bson.M{
 			"_id": bson.M{
 				"teacher": "$teacher",
@@ -304,7 +333,7 @@ func (j *journalRepository) GetStudentJournal(ctx context.Context, userId primit
 	return journal, nil
 }
 
-func (j *journalRepository) GetJournal(ctx context.Context, group string, subject string, teacher string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
+func (j *journalRepository) GetJournal(ctx context.Context, option entities.JournalAvailableOption, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
 	var cursor, err = j.usersCollection.Aggregate(ctx, bson.A{
 		bson.M{
 			"$group": bson.M{"_id": nil, "users": bson.M{"$push": "$$ROOT"}},
@@ -340,7 +369,7 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 					"$filter": bson.M{
 						"input": bson.M{"$concatArrays": bson.A{"$codeUsers", "$users"}},
 						"as":    "user",
-						"cond":  bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$$user.type", "group"}}, bson.M{"$eq": bson.A{"$$user.typename", group}}, bson.M{"$eq": bson.A{"$$user.studyPlaceID", studyPlaceId}}}},
+						"cond":  bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$$user.type", "group"}}, bson.M{"$eq": bson.A{"$$user.typename", option.Group}}, bson.M{"$eq": bson.A{"$$user.studyPlaceID", studyPlaceId}}}},
 					},
 				},
 			},
@@ -352,9 +381,9 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 				"pipeline": bson.A{
 					bson.M{
 						"$match": bson.M{
-							"subject":      subject,
-							"group":        group,
-							"teacher":      teacher,
+							"subject":      option.Subject,
+							"group":        option.Group,
+							"teacher":      option.Teacher,
 							"studyPlaceId": studyPlaceId,
 						},
 					},
@@ -450,11 +479,11 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 		bson.M{
 			"$addFields": bson.M{
 				"info": bson.M{
-					"editable":   true,
+					"editable":   option.Editable,
 					"studyPlace": "$studyPlace",
-					"group":      group,
-					"teacher":    teacher,
-					"subject":    subject,
+					"subject":    option.Subject,
+					"group":      option.Group,
+					"teacher":    option.Teacher,
 					"time":       time.Now(),
 				},
 			},
@@ -473,11 +502,11 @@ func (j *journalRepository) GetJournal(ctx context.Context, group string, subjec
 	if !cursor.Next(ctx) {
 		return entities.Journal{
 			Info: entities.JournalInfo{
-				Editable:   true,
+				Editable:   option.Editable,
 				StudyPlace: entities.StudyPlace{},
-				Group:      group,
-				Teacher:    teacher,
-				Subject:    subject,
+				Group:      option.Subject,
+				Teacher:    option.Group,
+				Subject:    option.Teacher,
 			},
 		}, nil
 	}
