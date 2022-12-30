@@ -32,7 +32,7 @@ func main() {
 	}
 
 	dbFrom := clientFrom.Database("Studyum")
-	dbTo := clientTo.Database("Studyum")
+	dbTo := clientTo.Database("Studyum-2022-12-29")
 
 	collections := []string{"GeneralLessons", "Lessons", "Marks", "SignUpCodes", "StudyPlaces", "Users", "ParseJournalUsers", "ParseScheduleTypes"}
 	for _, name := range collections {

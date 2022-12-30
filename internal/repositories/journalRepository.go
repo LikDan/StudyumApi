@@ -29,6 +29,9 @@ type JournalRepository interface {
 	AddAbsence(ctx context.Context, absence entities.Absence, teacher string) (primitive.ObjectID, error)
 	UpdateAbsence(ctx context.Context, absence entities.Absence, teacher string) error
 	DeleteAbsenceByID(ctx context.Context, id primitive.ObjectID, teacher string) error
+
+	Generate(ctx context.Context, group string, lessonType string, mark string, from, to *time.Time, studyPlaceId primitive.ObjectID) (entities.GeneratedTable, error)
+	GenerateAbsences(ctx context.Context, group string, from, to *time.Time, id primitive.ObjectID) (entities.GeneratedTable, error)
 }
 
 type journalRepository struct {
@@ -37,6 +40,359 @@ type journalRepository struct {
 
 func NewJournalRepository(repository *Repository) JournalRepository {
 	return &journalRepository{Repository: repository}
+}
+
+func (j *journalRepository) Generate(ctx context.Context, group string, lessonType string, mark string, from, to *time.Time, studyPlaceId primitive.ObjectID) (entities.GeneratedTable, error) {
+	var lessonMatcher = bson.M{
+		"group":        group,
+		"studyPlaceId": studyPlaceId,
+		"type":         lessonType,
+	}
+
+	if from != nil {
+		lessonMatcher["startDate"] = bson.M{"$gte": from}
+	}
+
+	if to != nil {
+		lessonMatcher["startDate"] = bson.M{"$lte": to}
+	}
+
+	if from != nil && to != nil {
+		lessonMatcher["startDate"] = bson.M{"$gte": from, "$lte": to}
+	}
+
+	var cursor, err = j.usersCollection.Aggregate(ctx, bson.A{
+		bson.M{
+			"$group": bson.M{"_id": nil, "users": bson.M{"$push": "$$ROOT"}},
+		},
+		bson.M{
+			"$project": bson.M{
+				"users._id":          1,
+				"users.name":         1,
+				"users.type":         1,
+				"users.typename":     1,
+				"users.studyPlaceID": 1,
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from": "SignUpCodes",
+				"pipeline": bson.A{
+					bson.M{
+						"$project": bson.M{
+							"name":         1,
+							"type":         1,
+							"typename":     1,
+							"studyPlaceID": 1,
+						},
+					},
+				},
+				"as": "codeUsers",
+			},
+		},
+		bson.M{
+			"$project": bson.M{
+				"users": bson.M{
+					"$filter": bson.M{
+						"input": bson.M{"$concatArrays": bson.A{"$codeUsers", "$users"}},
+						"as":    "user",
+						"cond":  bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$$user.type", "group"}}, bson.M{"$eq": bson.A{"$$user.typename", group}}, bson.M{"$eq": bson.A{"$$user.studyPlaceID", studyPlaceId}}}},
+					},
+				},
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from": "Lessons",
+				"let":  bson.M{"userID": "$_id"},
+				"pipeline": bson.A{
+					bson.M{
+						"$match": lessonMatcher,
+					},
+				},
+				"as": "lessons",
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from": "StudyPlaces",
+				"pipeline": bson.A{
+					bson.M{"$match": bson.M{
+						"_id": studyPlaceId,
+					}},
+				},
+				"as": "studyPlace",
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"lessons": bson.M{
+					"$sortArray": bson.M{
+						"input":  "$lessons",
+						"sortBy": bson.M{"startDate": 1},
+					},
+				},
+			},
+		},
+		bson.M{
+			"$unwind": "$users",
+		},
+		bson.M{
+			"$unwind": "$lessons",
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"lessons.marks": hMongo.Filter("lessons.marks", hMongo.AEq("$$marks.studentID", "$users._id")),
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"lessons.marks": hMongo.Filter("lessons.marks", hMongo.AEq("$$marks.mark", mark)),
+			},
+		},
+		bson.M{
+			"$group": bson.M{
+				"_id": bson.M{
+					"user":    "$users",
+					"subject": "$lessons.subject",
+				},
+				"title":   bson.M{"$first": "$users.name"},
+				"subject": bson.M{"$first": "$lessons.subject"},
+				"marks":   bson.M{"$push": "$lessons.marks"},
+			},
+		},
+		bson.M{
+			"$group": bson.M{
+				"_id":  nil,
+				"list": bson.M{"$push": "$$ROOT"},
+			},
+		},
+		bson.M{
+			"$replaceRoot": bson.D{
+				{"newRoot", bson.D{hMongo.Func(`function (list) {
+					const groupBy = function (xs, key) {
+						return xs.reduce(function (rv, x) {
+							(rv[x[key]] = rv[x[key]] || []).push(x);
+							return rv;
+						}, {});
+					};
+                    
+    				list.forEach(el => {
+                        el.totalLen = el.marks.length
+                        el.marksLen = el.marks.flatMap(l => l ?? []).length
+                                               
+                        el.text = (el.totalLen - el.marksLen).toString() + "/" + el.totalLen.toString()
+                        
+                        delete el._id
+                        delete el.marks
+                    })
+                    
+                    list = groupBy(list, "title")
+                    list = Object.entries(list).map(entry => entry[1].sort((a, b) => a.subject > b.subject))
+                    list.forEach(el => el[0].temp = el.reduce((r, e) => {
+                        r.totalLessonsLen += e.totalLen
+                        r.totalMarksLen += e.marksLen
+                        return r
+                    }, {totalLessonsLen: 0, totalMarksLen: 0}))
+
+                  	let titles = list[0].map(el => el.subject)
+                  	titles.unshift("")
+                  	titles.push("")
+                  	
+                  	list = list.map(el => {
+                          let temp = el[0].temp
+                          let text = (temp.totalLessonsLen - temp.totalMarksLen).toString() + "/" + temp.totalLessonsLen.toString()
+                          return [el[0].title, ...el.map(v => v.text), text]
+                    })
+                                                           
+   					return {titles: titles, rows: list}
+				}`, "$list")}},
+			},
+		},
+		bson.M{
+			"$project": bson.M{
+				"_id":  0,
+				"list": 0,
+			},
+		},
+	})
+
+	if err != nil {
+		return entities.GeneratedTable{}, err
+	}
+
+	if !cursor.Next(ctx) {
+		return entities.GeneratedTable{}, nil
+	}
+	var table entities.GeneratedTable
+	if err = cursor.Decode(&table); err != nil {
+		return entities.GeneratedTable{}, err
+	}
+
+	return table, nil
+}
+
+func (j *journalRepository) GenerateAbsences(ctx context.Context, group string, from, to *time.Time, studyPlaceId primitive.ObjectID) (entities.GeneratedTable, error) {
+	var lessonMatcher = bson.M{
+		"group":        group,
+		"studyPlaceId": studyPlaceId,
+	}
+
+	if from != nil {
+		lessonMatcher["startDate"] = bson.M{"$gte": from}
+	}
+
+	if to != nil {
+		lessonMatcher["startDate"] = bson.M{"$lte": to}
+	}
+
+	if from != nil && to != nil {
+		lessonMatcher["startDate"] = bson.M{"$gte": from, "$lte": to}
+	}
+
+	var cursor, err = j.usersCollection.Aggregate(ctx, bson.A{
+		bson.M{
+			"$group": bson.M{"_id": nil, "users": bson.M{"$push": "$$ROOT"}},
+		},
+		bson.M{
+			"$project": bson.M{
+				"users._id":          1,
+				"users.name":         1,
+				"users.type":         1,
+				"users.typename":     1,
+				"users.studyPlaceID": 1,
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from": "SignUpCodes",
+				"pipeline": bson.A{
+					bson.M{
+						"$project": bson.M{
+							"name":         1,
+							"type":         1,
+							"typename":     1,
+							"studyPlaceID": 1,
+						},
+					},
+				},
+				"as": "codeUsers",
+			},
+		},
+		bson.M{
+			"$project": bson.M{
+				"users": bson.M{
+					"$filter": bson.M{
+						"input": bson.M{"$concatArrays": bson.A{"$codeUsers", "$users"}},
+						"as":    "user",
+						"cond":  bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$$user.type", "group"}}, bson.M{"$eq": bson.A{"$$user.typename", group}}, bson.M{"$eq": bson.A{"$$user.studyPlaceID", studyPlaceId}}}},
+					},
+				},
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from": "Lessons",
+				"let":  bson.M{"userID": "$_id"},
+				"pipeline": bson.A{
+					bson.M{"$match": lessonMatcher},
+				},
+				"as": "lessons",
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from": "StudyPlaces",
+				"pipeline": bson.A{
+					bson.M{"$match": bson.M{
+						"_id": studyPlaceId,
+					}},
+				},
+				"as": "studyPlace",
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"lessons": bson.M{
+					"$sortArray": bson.M{
+						"input":  "$lessons",
+						"sortBy": bson.M{"startDate": 1},
+					},
+				},
+			},
+		},
+		bson.M{
+			"$unwind": "$users",
+		},
+		bson.M{
+			"$unwind": "$lessons",
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"lessons.absences": hMongo.Filter("lessons.absences", hMongo.AEq("$$absences.studentID", "$users._id")),
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"lessons.absences": hMongo.Filter("lessons.absences", hMongo.AEq("$$absences.time", nil)),
+			},
+		},
+		bson.M{
+			"$group": bson.M{
+				"_id": bson.M{
+					"user": "$users",
+					"date": bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$lessons.startDate"}},
+				},
+				"title":    bson.M{"$first": "$users.name"},
+				"date":     bson.M{"$first": "$lessons.startDate"},
+				"absences": bson.M{"$sum": bson.M{"$cond": bson.M{"if": bson.M{"$isArray": "$lessons.absences"}, "then": bson.M{"$size": "$lessons.absences"}, "else": 0}}}},
+		},
+		bson.M{
+			"$group": bson.M{
+				"_id":  nil,
+				"list": bson.M{"$push": "$$ROOT"},
+			},
+		},
+		bson.M{
+			"$replaceRoot": bson.D{
+				{"newRoot", bson.D{hMongo.Func(`function (list) {
+					const groupBy = function (xs, key) {
+						return xs.reduce(function (rv, x) {
+							(rv[x[key]] = rv[x[key]] || []).push(x);
+							return rv;
+						}, {});
+					};
+                    
+                    list = groupBy(list, "title")
+                    list = Object.entries(list).map(entry => entry[1].sort((a, b) => a.date > b.date))
+
+                    let titles = list[0].map(el => el.date.getDate() + "." + (el.date.getMonth() + 1))
+                  	titles.unshift("")
+                  	titles.push("")
+                    
+                    list = list.map(el => {
+                          return [el[0].title, ...el.map(v => v.absences === 0 ? "" : v.absences.toString()), ""]
+                    })
+                    
+					return {titles: titles, rows: list}
+				}`, "$list")}},
+			},
+		},
+	})
+
+	if err != nil {
+		return entities.GeneratedTable{}, err
+	}
+
+	if !cursor.Next(ctx) {
+		return entities.GeneratedTable{}, nil
+	}
+	var table entities.GeneratedTable
+	if err = cursor.Decode(&table); err != nil {
+		return entities.GeneratedTable{}, err
+	}
+
+	return table, nil
 }
 
 func (j *journalRepository) GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]entities.JournalAvailableOption, error) {

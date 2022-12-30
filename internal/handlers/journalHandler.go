@@ -23,6 +23,9 @@ type JournalHandler interface {
 	AddAbsence(ctx *gin.Context)
 	UpdateAbsence(ctx *gin.Context)
 	DeleteAbsence(ctx *gin.Context)
+
+	GenerateMarks(ctx *gin.Context)
+	GenerateAbsences(ctx *gin.Context)
 }
 
 type journalHandler struct {
@@ -56,7 +59,46 @@ func NewJournalHandler(authHandler Handler, controller controllers.JournalContro
 		absences.DELETE(":id", h.DeleteAbsence)
 	}
 
+	group.POST("/generate/marks", h.Auth(), h.GenerateMarks)
+	group.POST("/generate/absences", h.Auth(), h.GenerateAbsences)
+
 	return h
+}
+
+func (j *journalHandler) GenerateMarks(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	var config dto.MarksReport
+	if err := ctx.BindJSON(&config); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	file, err := j.controller.Generate(ctx, config, user)
+	if err != nil {
+		j.Error(ctx, err)
+		return
+	}
+
+	file.WriteTo(ctx.Writer)
+}
+
+func (j *journalHandler) GenerateAbsences(ctx *gin.Context) {
+	user := utils.GetUserViaCtx(ctx)
+
+	var config dto.AbsencesReport
+	if err := ctx.BindJSON(&config); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	file, err := j.controller.GenerateAbsences(ctx, config, user)
+	if err != nil {
+		j.Error(ctx, err)
+		return
+	}
+
+	file.WriteTo(ctx.Writer)
 }
 
 func (j *journalHandler) GetJournalAvailableOptions(ctx *gin.Context) {

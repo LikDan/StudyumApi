@@ -3,12 +3,15 @@ package controllers
 import (
 	"context"
 	"github.com/pkg/errors"
+	"github.com/xuri/excelize/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/exp/slices"
+	"strconv"
 	"studyum/internal/dto"
 	"studyum/internal/entities"
 	parser "studyum/internal/parser/handler"
 	"studyum/internal/repositories"
+	"studyum/internal/utils"
 	"studyum/pkg/encryption"
 )
 
@@ -33,6 +36,9 @@ type JournalController interface {
 	AddAbsence(ctx context.Context, absencesDTO dto.AddAbsencesDTO, user entities.User) (entities.Absence, error)
 	UpdateAbsence(ctx context.Context, user entities.User, absences dto.UpdateAbsencesDTO) error
 	DeleteAbsence(ctx context.Context, user entities.User, id string) error
+
+	Generate(ctx context.Context, config dto.MarksReport, user entities.User) (*excelize.File, error)
+	GenerateAbsences(ctx context.Context, config dto.AbsencesReport, user entities.User) (*excelize.File, error)
 }
 
 type journalController struct {
@@ -45,6 +51,100 @@ type journalController struct {
 
 func NewJournalController(parser parser.Handler, repository repositories.JournalRepository, encrypt encryption.Encryption) JournalController {
 	return &journalController{parser: parser, repository: repository, encrypt: encrypt}
+}
+
+func (j *journalController) Generate(ctx context.Context, config dto.MarksReport, user entities.User) (*excelize.File, error) {
+	table, err := j.repository.Generate(ctx, user.TuitionGroup, config.LessonType, config.Mark, config.StartDate, config.EndDate, user.StudyPlaceID)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range table.Rows {
+		table.Rows[i][0] = j.encrypt.DecryptString(table.Rows[i][0])
+	}
+
+	slices.SortFunc(table.Rows, func(el1, el2 []string) bool {
+		return el1[0] < el2[0]
+	})
+
+	f := excelize.NewFile()
+	sheetName := f.GetSheetList()[0]
+
+	if err = f.MergeCell(sheetName, "B1", "D1"); err != nil {
+		return nil, err
+	}
+	err = f.SetCellValue(sheetName, "B1", user.TypeName+" -> "+user.TuitionGroup)
+
+	column := "B"
+	for _, title := range table.Titles {
+		if err = f.SetCellValue(sheetName, column+"3", title); err != nil {
+			return nil, err
+		}
+		column = utils.NextColumn(column)
+	}
+
+	for y, row := range table.Rows {
+		column = "B"
+		for _, el := range row {
+			if err = f.SetCellValue(sheetName, column+strconv.Itoa(y+4), el); err != nil {
+				return nil, err
+			}
+			column = utils.NextColumn(column)
+		}
+	}
+
+	if err = utils.AutoSizeColumns(f, sheetName); err != nil {
+		return nil, err
+	}
+
+	return f, nil
+}
+
+func (j *journalController) GenerateAbsences(ctx context.Context, config dto.AbsencesReport, user entities.User) (*excelize.File, error) {
+	table, err := j.repository.GenerateAbsences(ctx, user.TuitionGroup, config.StartDate, config.EndDate, user.StudyPlaceID)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range table.Rows {
+		table.Rows[i][0] = j.encrypt.DecryptString(table.Rows[i][0])
+	}
+
+	slices.SortFunc(table.Rows, func(el1, el2 []string) bool {
+		return el1[0] < el2[0]
+	})
+
+	f := excelize.NewFile()
+	sheetName := f.GetSheetList()[0]
+
+	if err = f.MergeCell(sheetName, "B1", "D1"); err != nil {
+		return nil, err
+	}
+	err = f.SetCellValue(sheetName, "B1", user.TypeName+" -> "+user.TuitionGroup)
+
+	column := "B"
+	for _, title := range table.Titles {
+		if err = f.SetCellValue(sheetName, column+"3", title); err != nil {
+			return nil, err
+		}
+		column = utils.NextColumn(column)
+	}
+
+	for y, row := range table.Rows {
+		column = "B"
+		for _, el := range row {
+			if err = f.SetCellValue(sheetName, column+strconv.Itoa(y+4), el); err != nil {
+				return nil, err
+			}
+			column = utils.NextColumn(column)
+		}
+	}
+
+	if err = utils.AutoSizeColumns(f, sheetName); err != nil {
+		return nil, err
+	}
+
+	return f, nil
 }
 
 func (j *journalController) GetJournalAvailableOptions(ctx context.Context, user entities.User) ([]entities.JournalAvailableOption, error) {
