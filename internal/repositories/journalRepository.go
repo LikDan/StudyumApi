@@ -52,6 +52,49 @@ func (j *journalRepository) GetAvailableOptions(ctx context.Context, teacher str
 			"subject": bson.M{"$first": "$subject"},
 			"group":   bson.M{"$first": "$group"}},
 		},
+		bson.M{"$lookup": bson.M{
+			"from": "Users",
+			"let":  bson.M{"group": "$group"},
+			"pipeline": bson.A{
+				bson.M{
+					"$group": bson.M{"_id": nil, "users": bson.M{"$push": "$$ROOT"}},
+				},
+				bson.M{
+					"$lookup": bson.M{
+						"from": "SignUpCodes",
+						"pipeline": bson.A{
+							bson.M{
+								"$project": bson.M{
+									"name":         1,
+									"type":         1,
+									"typename":     1,
+									"studyPlaceID": 1,
+								},
+							},
+						},
+						"as": "codeUsers",
+					},
+				},
+				bson.M{
+					"$project": bson.M{
+						"len": bson.M{"$size": bson.M{
+							"$filter": bson.M{
+								"input": bson.M{"$concatArrays": bson.A{"$codeUsers", "$users"}},
+								"as":    "user",
+								"cond": bson.M{
+									"$and": bson.A{
+										bson.M{"$eq": bson.A{"$$user.typename", "$$group"}},
+									},
+								},
+							},
+						}},
+					},
+				},
+			},
+			"as": "users",
+		}},
+		bson.M{"$addFields": bson.M{"temp": bson.M{"$first": "$users"}}},
+		bson.M{"$match": bson.M{"temp.len": bson.M{"$gt": 0}}},
 		bson.M{"$addFields": bson.M{"editable": editable}},
 		bson.M{"$sort": bson.M{"group": 1, "subject": 1, "teacher": 1}},
 	})
