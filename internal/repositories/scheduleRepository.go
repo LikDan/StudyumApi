@@ -27,6 +27,8 @@ type ScheduleRepository interface {
 
 	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace entities.StudyPlace)
 	GetGeneralLessons(ctx context.Context, studyPlaceId primitive.ObjectID, weekIndex, dayIndex int) ([]entities.GeneralLesson, error)
+
+	FilterLessonMarks(ctx context.Context, lessonID primitive.ObjectID, marks []string) error
 }
 
 type scheduleRepository struct {
@@ -353,5 +355,13 @@ func (s *scheduleRepository) RemoveGroupLessonBetweenDates(ctx context.Context, 
 
 func (s *scheduleRepository) RemoveGeneralLessonsByType(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typename string) error {
 	_, err := s.generalLessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": studyPlaceID, type_: typename})
+	return err
+}
+
+func (s *scheduleRepository) FilterLessonMarks(ctx context.Context, lessonID primitive.ObjectID, marks []string) error {
+	_, err := s.lessonsCollection.UpdateByID(ctx, lessonID, bson.M{"$pull": bson.M{"marks": bson.M{"mark": bson.M{"$nin": marks}}}})
+	if err != nil && err.Error() == "write exception: write errors: [Cannot apply $pull to a non-array value]" {
+		return nil
+	}
 	return err
 }

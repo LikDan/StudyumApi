@@ -216,10 +216,40 @@ func (j *journalController) GetUserJournal(ctx context.Context, user entities.Us
 	return j.repository.GetStudentJournal(ctx, user.Id, user.TypeName, user.StudyPlaceID)
 }
 
+func (j *journalController) checkMarkExistence(ctx context.Context, mark dto.AddMarkDTO, studyPlaceID primitive.ObjectID) bool {
+	lesson, err := j.repository.GetLessonByID(ctx, mark.LessonId)
+	if err != nil {
+		return false
+	}
+	studyPlace, err := j.repository.GetStudyPlaceByID(ctx, studyPlaceID)
+	if err != nil {
+		return false
+	}
+
+	for _, lessonType := range studyPlace.LessonTypes {
+		if lessonType.Type != lesson.Type {
+			continue
+		}
+
+		for _, markType := range lessonType.Marks {
+			if markType.Mark == mark.Mark {
+				return true
+			}
+		}
+		for _, markType := range lessonType.StandaloneMarks {
+			if markType.Mark == mark.Mark {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func (j *journalController) AddMarks(ctx context.Context, dto []dto.AddMarkDTO, user entities.User) ([]entities.Mark, error) {
 	marks := make([]entities.Mark, len(dto))
 	for i, markDTO := range dto {
-		if markDTO.Mark == "" || markDTO.StudentID.IsZero() || markDTO.LessonId.IsZero() {
+		if markDTO.Mark == "" || markDTO.StudentID.IsZero() || markDTO.LessonId.IsZero() || !j.checkMarkExistence(ctx, markDTO, user.StudyPlaceID) {
 			return nil, NotValidParams
 		}
 
@@ -258,7 +288,7 @@ func (j *journalController) GetMark(ctx context.Context, group string, subject s
 }
 
 func (j *journalController) AddMark(ctx context.Context, dto dto.AddMarkDTO, user entities.User) (entities.Mark, error) {
-	if dto.Mark == "" || dto.StudentID.IsZero() || dto.LessonId.IsZero() {
+	if dto.Mark == "" || dto.StudentID.IsZero() || dto.LessonId.IsZero() || !j.checkMarkExistence(ctx, dto, user.StudyPlaceID) {
 		return entities.Mark{}, NotValidParams
 	}
 
@@ -282,7 +312,7 @@ func (j *journalController) AddMark(ctx context.Context, dto dto.AddMarkDTO, use
 }
 
 func (j *journalController) UpdateMark(ctx context.Context, user entities.User, dto dto.UpdateMarkDTO) error {
-	if dto.Mark == "" || dto.Id.IsZero() || dto.LessonId.IsZero() {
+	if dto.Mark == "" || dto.Id.IsZero() || dto.LessonId.IsZero() || !j.checkMarkExistence(ctx, dto.AddMarkDTO, user.StudyPlaceID) {
 		return NotValidParams
 	}
 

@@ -200,6 +200,31 @@ func (s *scheduleController) UpdateLesson(ctx context.Context, dto dto.UpdateLes
 
 	go s.parser.EditLesson(lesson)
 
+	err, studyPlace := s.repository.GetStudyPlaceByID(ctx, user.StudyPlaceID, false)
+	if err != nil {
+		return err
+	}
+
+	var lessonType entities.LessonType
+	for _, lessonType_ := range studyPlace.LessonTypes {
+		if lessonType_.Type == lesson.Type {
+			lessonType = lessonType_
+			break
+		}
+	}
+
+	marks := make([]string, len(lessonType.Marks)+len(lessonType.StandaloneMarks))
+	for i, markType := range lessonType.Marks {
+		marks[i] = markType.Mark
+	}
+	for i, markType := range lessonType.StandaloneMarks {
+		marks[len(lessonType.Marks)+i] = markType.Mark
+	}
+
+	if err = s.repository.FilterLessonMarks(ctx, lesson.Id, marks); err != nil {
+		return err
+	}
+
 	return s.repository.UpdateLesson(ctx, lesson)
 }
 

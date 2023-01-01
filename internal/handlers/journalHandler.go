@@ -59,8 +59,11 @@ func NewJournalHandler(authHandler Handler, controller controllers.JournalContro
 		absences.DELETE(":id", h.DeleteAbsence)
 	}
 
-	group.POST("/generate/marks", h.Auth(), h.GenerateMarks)
-	group.POST("/generate/absences", h.Auth(), h.GenerateAbsences)
+	generate := group.Group("/generate", h.Auth())
+	{
+		generate.POST("/marks", h.Auth(), h.GenerateMarks)
+		generate.POST("/absences", h.Auth(), h.GenerateAbsences)
+	}
 
 	return h
 }

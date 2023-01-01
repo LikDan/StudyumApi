@@ -25,6 +25,8 @@ type JournalRepository interface {
 	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
 	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId primitive.ObjectID) ([]entities.Lesson, error)
 
+	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID) (entities.StudyPlace, error)
+
 	AddAbsences(ctx context.Context, absences []entities.Absence, teacher string) error
 	AddAbsence(ctx context.Context, absence entities.Absence, teacher string) (primitive.ObjectID, error)
 	UpdateAbsence(ctx context.Context, absence entities.Absence, teacher string) error
@@ -919,6 +921,11 @@ func (j *journalRepository) GetJournal(ctx context.Context, option entities.Jour
 
 func (j *journalRepository) GetLessonByID(ctx context.Context, id primitive.ObjectID) (lesson entities.Lesson, err error) {
 	err = j.lessonsCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&lesson)
+	return
+}
+
+func (j *journalRepository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID) (studyPlace entities.StudyPlace, err error) {
+	err = j.studyPlacesCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&studyPlace)
 	return
 }
 
