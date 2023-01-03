@@ -986,7 +986,12 @@ func (j *journalRepository) DeleteMarkByID(ctx context.Context, id primitive.Obj
 }
 
 func (j *journalRepository) AddAbsences(ctx context.Context, absences []entities.Absence, teacher string) error {
-	if _, err := j.lessonsCollection.UpdateOne(ctx, bson.M{"_id": absences[0].LessonID, "teacher": teacher}, hMongo.PushArray("absences", absences)); err != nil {
+	ids := make([]primitive.ObjectID, len(absences))
+	for i, absence := range absences {
+		ids[i] = absence.StudentID
+	}
+
+	if _, err := j.lessonsCollection.UpdateOne(ctx, bson.M{"_id": absences[0].LessonID, "teacher": teacher, "absences.$.studentID": bson.M{"$nin": ids}}, hMongo.PushArray("absences", absences)); err != nil {
 		return err
 	}
 
@@ -995,8 +1000,14 @@ func (j *journalRepository) AddAbsences(ctx context.Context, absences []entities
 
 func (j *journalRepository) AddAbsence(ctx context.Context, absence entities.Absence, teacher string) (primitive.ObjectID, error) {
 	absence.Id = primitive.NewObjectID()
-	if _, err := j.lessonsCollection.UpdateOne(ctx, bson.M{"_id": absence.LessonID, "teacher": teacher}, hMongo.Push("absences", absence)); err != nil {
+
+	res, err := j.lessonsCollection.UpdateOne(ctx, bson.M{"_id": absence.LessonID, "teacher": teacher, "absences.studentID": bson.M{"$nin": bson.A{absence.StudentID}}}, hMongo.Push("absences", absence))
+	if err != nil {
 		return primitive.NilObjectID, err
+	}
+
+	if res.MatchedCount == 0 {
+		return primitive.NilObjectID, mongo.ErrNoDocuments
 	}
 
 	return absence.Id, nil
