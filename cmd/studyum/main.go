@@ -8,14 +8,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
-	"studyum/internal/controllers"
-	"studyum/internal/controllers/validators"
-	"studyum/internal/entities"
-	"studyum/internal/handlers"
+	"studyum/internal/general"
+	"studyum/internal/global"
+	"studyum/internal/journal"
 	pController "studyum/internal/parser/controller"
 	pHandler "studyum/internal/parser/handler"
 	pRepository "studyum/internal/parser/repository"
-	"studyum/internal/repositories"
+	"studyum/internal/schedule"
+	"studyum/internal/user"
 	"studyum/pkg/encryption"
 	fb "studyum/pkg/firebase"
 	"studyum/pkg/jwt"
@@ -49,34 +49,32 @@ func main() {
 
 	secret := os.Getenv("JWT_SECRET")
 	expTime := time.Minute * 10
-	jwtController := jwt.New[entities.JWTClaims](expTime, secret)
+	jwtController := jwt.New[global.JWTClaims](expTime, secret)
 
-	repository := repositories.NewRepository(client)
-	userRepository := repositories.NewUserRepository(repository)
-	generalRepository := repositories.NewGeneralRepository(repository)
-	journalRepository := repositories.NewJournalRepository(repository)
-	scheduleRepository := repositories.NewScheduleRepository(repository)
-	signUpCodesRepository := repositories.NewSignUpCodesRepository(repository)
+	repository := global.NewRepository(client)
+	userRepository := user.NewUserRepository(repository)
+	generalRepository := general.NewGeneralRepository(repository)
+	journalRepository := journal.NewJournalRepository(repository)
+	scheduleRepository := schedule.NewScheduleRepository(repository)
 
-	scheduleValidator := validators.NewSchedule(validator.New())
+	scheduleValidator := schedule.NewSchedule(validator.New())
 
-	signUpCodesController := controllers.NewSignUpCodesController(signUpCodesRepository)
-	controller := controllers.NewController(jwtController, userRepository, generalRepository, encrypt)
-	userController := controllers.NewUserController(jwtController, signUpCodesController, userRepository, encrypt, parserHandler)
-	generalController := controllers.NewGeneralController(generalRepository)
-	journalController := controllers.NewJournalController(parserHandler, journalRepository, encrypt)
-	scheduleController := controllers.NewScheduleController(parserHandler, scheduleValidator, scheduleRepository, generalController)
+	controller := global.NewController(jwtController, *repository, encrypt)
+	userController := user.NewUserController(jwtController, userRepository, encrypt, parserHandler)
+	generalController := general.NewGeneralController(generalRepository)
+	journalController := journal.NewJournalController(parserHandler, journalRepository, encrypt)
+	scheduleController := schedule.NewScheduleController(parserHandler, scheduleValidator, scheduleRepository, generalController)
 
 	jwtController.SetGetClaimsFunc(controller.GetClaims)
 
 	engine := gin.Default()
 	api := engine.Group("/api")
 
-	handler := handlers.NewHandler(controller)
-	handlers.NewGeneralHandler(handler, generalController, api)
-	handlers.NewUserHandler(handler, userController, api.Group("/user"))
-	handlers.NewJournalHandler(handler, journalController, api.Group("/journal"))
-	handlers.NewScheduleHandler(handler, scheduleController, api.Group("/schedule"))
+	handler := global.NewHandler(controller)
+	general.NewGeneralHandler(handler, generalController, api)
+	user.NewUserHandler(handler, userController, api.Group("/user"))
+	journal.NewJournalHandler(handler, journalController, api.Group("/journal"))
+	schedule.NewScheduleHandler(handler, scheduleController, api.Group("/schedule"))
 
 	logrus.Fatalf("Error launching server %s", engine.Run().Error())
 }

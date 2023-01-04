@@ -8,7 +8,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
-	"studyum/internal/entities"
 	"studyum/internal/parser/apps"
 	"studyum/internal/parser/controller"
 	"studyum/internal/parser/dto"
@@ -18,15 +17,13 @@ import (
 type Handler interface {
 	Update(app apps.App)
 
-	AddMark(mark entities.Mark)
-	EditMark(mark entities.Mark)
+	AddMark(mark dto.MarkDTO)
+	EditMark(mark dto.MarkDTO)
 	DeleteMark(mark primitive.ObjectID, studyPlaceID primitive.ObjectID)
 
-	AddLesson(lesson entities.Lesson)
-	EditLesson(lesson entities.Lesson)
-	DeleteLesson(lesson entities.Lesson)
-
-	GetSignUpDataByCode(ctx context.Context, code string) (entities.SignUpCode, error)
+	AddLesson(lesson dto.LessonDTO)
+	EditLesson(lesson dto.LessonDTO)
+	DeleteLesson(lesson dto.LessonDTO)
 }
 
 type handler struct {
@@ -83,30 +80,14 @@ func (h *handler) Update(app apps.App) {
 	go h.controller.UpdateJournal(ctx, app)
 }
 
-func (h *handler) AddMark(mark entities.Mark) {
+func (h *handler) AddMark(mark dto.MarkDTO) {
 	ctx := context.Background()
-
-	markDTO := dto.MarkDTO{
-		Id:           mark.Id,
-		Mark:         mark.Mark,
-		StudentID:    mark.StudentID,
-		LessonId:     mark.LessonID,
-		StudyPlaceId: mark.StudyPlaceID,
-	}
-	h.controller.AddMark(ctx, markDTO)
+	h.controller.AddMark(ctx, mark)
 }
 
-func (h *handler) EditMark(mark entities.Mark) {
+func (h *handler) EditMark(mark dto.MarkDTO) {
 	ctx := context.Background()
-
-	markDTO := dto.MarkDTO{
-		Id:           mark.Id,
-		Mark:         mark.Mark,
-		StudentID:    mark.StudentID,
-		LessonId:     mark.LessonID,
-		StudyPlaceId: mark.StudyPlaceID,
-	}
-	h.controller.EditMark(ctx, markDTO)
+	h.controller.EditMark(ctx, mark)
 }
 
 func (h *handler) DeleteMark(id primitive.ObjectID, studyPlaceID primitive.ObjectID) {
@@ -115,74 +96,20 @@ func (h *handler) DeleteMark(id primitive.ObjectID, studyPlaceID primitive.Objec
 	h.controller.DeleteMark(ctx, id, studyPlaceID)
 }
 
-func (h *handler) AddLesson(lesson entities.Lesson) {
+func (h *handler) AddLesson(lesson dto.LessonDTO) {
 	ctx := context.Background()
 
-	lessonDTO := dto.LessonDTO{
-		Id:             lesson.Id,
-		StudyPlaceId:   lesson.StudyPlaceId,
-		PrimaryColor:   lesson.PrimaryColor,
-		SecondaryColor: lesson.SecondaryColor,
-		EndDate:        lesson.EndDate,
-		StartDate:      lesson.StartDate,
-		Subject:        lesson.Subject,
-		Group:          lesson.Group,
-		Teacher:        lesson.Teacher,
-		Room:           lesson.Room,
-	}
-	h.controller.AddLesson(ctx, lessonDTO)
+	h.controller.AddLesson(ctx, lesson)
 }
 
-func (h *handler) EditLesson(lesson entities.Lesson) {
+func (h *handler) EditLesson(lesson dto.LessonDTO) {
 	ctx := context.Background()
 
-	lessonDTO := dto.LessonDTO{
-		Id:             lesson.Id,
-		StudyPlaceId:   lesson.StudyPlaceId,
-		PrimaryColor:   lesson.PrimaryColor,
-		SecondaryColor: lesson.SecondaryColor,
-		EndDate:        lesson.EndDate,
-		StartDate:      lesson.StartDate,
-		Subject:        lesson.Subject,
-		Group:          lesson.Group,
-		Teacher:        lesson.Teacher,
-		Room:           lesson.Room,
-	}
-	h.controller.EditLesson(ctx, lessonDTO)
+	h.controller.EditLesson(ctx, lesson)
 }
 
-func (h *handler) DeleteLesson(lesson entities.Lesson) {
+func (h *handler) DeleteLesson(lesson dto.LessonDTO) {
 	ctx := context.Background()
 
-	lessonDTO := dto.LessonDTO{
-		Id:             lesson.Id,
-		StudyPlaceId:   lesson.StudyPlaceId,
-		PrimaryColor:   lesson.PrimaryColor,
-		SecondaryColor: lesson.SecondaryColor,
-		EndDate:        lesson.EndDate,
-		StartDate:      lesson.StartDate,
-		Subject:        lesson.Subject,
-		Group:          lesson.Group,
-		Teacher:        lesson.Teacher,
-		Room:           lesson.Room,
-	}
-	h.controller.DeleteLesson(ctx, lessonDTO)
-}
-
-func (h *handler) GetSignUpDataByCode(ctx context.Context, code string) (entities.SignUpCode, error) {
-	codeDTO, err := h.controller.GetSignUpDataByCode(ctx, code)
-	if err != nil {
-		return entities.SignUpCode{}, err
-	}
-
-	codeData := entities.SignUpCode{
-		Id:           primitive.NilObjectID,
-		Code:         codeDTO.Code,
-		Name:         codeDTO.Name,
-		StudyPlaceID: codeDTO.StudyPlaceID,
-		Type:         codeDTO.Type,
-		Typename:     codeDTO.Typename,
-	}
-
-	return codeData, nil
+	h.controller.DeleteLesson(ctx, lesson)
 }

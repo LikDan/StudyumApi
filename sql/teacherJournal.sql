@@ -1,13 +1,13 @@
 db.Users.aggregate([
     {
-        "$group": {"_id": null, "users": {"$push": "$$ROOT"}}
+        "$group": {"_id": null, "user": {"$push": "$$ROOT"}}
     },
     {
         "$project": {
-            "users._id": 1,
-            "users.name": 1,
-            "users.type": 1,
-            "users.typename": 1
+            "user._id": 1,
+            "user.name": 1,
+            "user.type": 1,
+            "user.typename": 1
         }
     },
     {
@@ -27,9 +27,9 @@ db.Users.aggregate([
     },
     {
         "$project": {
-            "users": {
+            "user": {
                 "$filter": {
-                    "input": {"$concatArrays": ["$codeUsers", "$users"]},
+                    "input": {"$concatArrays": ["$codeUsers", "$user"]},
                     "as": "user",
                     "cond": {"$and": [{"$eq": ["$$user.type", "group"]}, {"$eq": ["$$user.typename", "95Т"]}]}
                 }
@@ -69,7 +69,7 @@ db.Users.aggregate([
         }
     },
     {
-        "$unwind": "$users"
+        "$unwind": "$user"
     },
     {
         "$unwind": "$lessons"
@@ -79,7 +79,7 @@ db.Users.aggregate([
             "from": "Marks",
             "localField": "lessons._id",
             "foreignField": "lessonID",
-            "let": {"userID": "$users._id"},
+            "let": {"userID": "$user._id"},
             "pipeline": [
                 {
                     "$match": {
@@ -122,8 +122,8 @@ db.Users.aggregate([
     {
         "$group": {
             "_id": {
-                "_id": "$users._id",
-                "title": "$users.name",
+                "_id": "$user._id",
+                "title": "$user.name",
             },
             "lessons": {"$push": "$lessons"},
             "studyPlace": {"$first": {"$first": "$studyPlace"}}
