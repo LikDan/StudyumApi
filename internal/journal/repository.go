@@ -33,8 +33,8 @@ type Repository interface {
 	UpdateAbsence(ctx context.Context, absence Absence, teacher string) error
 	DeleteAbsenceByID(ctx context.Context, id primitive.ObjectID, teacher string) error
 
-	Generate(ctx context.Context, group string, lessonType string, mark string, from, to *time.Time, studyPlaceId primitive.ObjectID) (GeneratedTable, error)
-	GenerateAbsences(ctx context.Context, group string, from, to *time.Time, id primitive.ObjectID) (GeneratedTable, error)
+	GenerateMarksReport(ctx context.Context, group string, lessonType string, mark string, from, to *time.Time, studyPlaceId primitive.ObjectID) (GeneratedTable, error)
+	GenerateAbsencesReport(ctx context.Context, group string, from, to *time.Time, id primitive.ObjectID) (GeneratedTable, error)
 }
 
 type repository struct {
@@ -45,7 +45,7 @@ func NewJournalRepository(repo *global.Repository) Repository {
 	return &repository{Repository: repo}
 }
 
-func (j *repository) Generate(ctx context.Context, group string, lessonType string, mark string, from, to *time.Time, studyPlaceId primitive.ObjectID) (GeneratedTable, error) {
+func (j *repository) GenerateMarksReport(ctx context.Context, group string, lessonType string, mark string, from, to *time.Time, studyPlaceId primitive.ObjectID) (GeneratedTable, error) {
 	var lessonMatcher = bson.M{
 		"group":        group,
 		"studyPlaceId": studyPlaceId,
@@ -235,7 +235,7 @@ func (j *repository) Generate(ctx context.Context, group string, lessonType stri
 	return table, nil
 }
 
-func (j *repository) GenerateAbsences(ctx context.Context, group string, from, to *time.Time, studyPlaceId primitive.ObjectID) (GeneratedTable, error) {
+func (j *repository) GenerateAbsencesReport(ctx context.Context, group string, from, to *time.Time, studyPlaceId primitive.ObjectID) (GeneratedTable, error) {
 	var lessonMatcher = bson.M{
 		"group":        group,
 		"studyPlaceId": studyPlaceId,

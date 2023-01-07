@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/internal/general"
 	"studyum/internal/global"
+	"studyum/internal/journal"
 	"studyum/internal/parser/dto"
 	parser "studyum/internal/parser/handler"
 	"time"
@@ -19,9 +20,14 @@ type Controller interface {
 
 	AddGeneralLessons(ctx context.Context, user global.User, lessonsDTO []AddGeneralLessonDTO) ([]GeneralLesson, error)
 	AddLessons(ctx context.Context, user global.User, lessonsDTO []AddLessonDTO) ([]Lesson, error)
+
 	AddLesson(ctx context.Context, lesson AddLessonDTO, user global.User) (Lesson, error)
+	GetLessonByID(ctx context.Context, user global.User, idHex string) (Lesson, error)
 	UpdateLesson(ctx context.Context, lesson UpdateLessonDTO, user global.User) error
 	DeleteLesson(ctx context.Context, idHex string, user global.User) error
+
+	GetLessonsByDateAndID(ctx context.Context, user global.User, idHex string) ([]Lesson, error)
+
 	RemoveLessonBetweenDates(ctx context.Context, user global.User, date1, date2 time.Time) error
 
 	SaveCurrentScheduleAsGeneral(ctx context.Context, user global.User, type_ string, typeName string) error
@@ -32,11 +38,11 @@ type controller struct {
 	parser    parser.Handler
 	validator Validator
 
-	repository        ScheduleRepository
+	repository        Repository
 	generalController general.Controller
 }
 
-func NewScheduleController(parser parser.Handler, validator Validator, repository ScheduleRepository, generalController general.Controller) Controller {
+func NewScheduleController(parser parser.Handler, validator Validator, repository Repository, generalController general.Controller) Controller {
 	return &controller{parser: parser, validator: validator, repository: repository, generalController: generalController}
 }
 
@@ -281,6 +287,50 @@ func (s *controller) DeleteLesson(ctx context.Context, idHex string, user global
 	go s.parser.DeleteLesson(lessonDTO)
 
 	return nil
+}
+
+func (s *controller) GetLessonsByDateAndID(ctx context.Context, user global.User, idHex string) ([]Lesson, error) {
+	id, err := primitive.ObjectIDFromHex(idHex)
+	if err != nil {
+		return nil, errors.Wrap(global.NotValidParams, "id")
+	}
+
+	if user.Type == "group" {
+		return s.repository.GetFullLessonsByIDAndDate(ctx, user.Id, id)
+	}
+
+	return s.repository.GetFullLessonsByIDAndDate(ctx, user.Id, id)
+}
+
+func (s *controller) GetLessonByID(ctx context.Context, user global.User, idHex string) (Lesson, error) {
+	id, err := primitive.ObjectIDFromHex(idHex)
+	if err != nil {
+		return Lesson{}, errors.Wrap(global.NotValidParams, "id")
+	}
+
+	if user.Type == "group" {
+		lesson, err := s.repository.GetFullLessonByID(ctx, id)
+		var marks []journal.Mark
+		for _, mark := range lesson.Marks {
+			if mark.StudentID == user.Id {
+				marks = append(marks, mark)
+			}
+		}
+		lesson.Marks = marks
+
+		if err != nil {
+			return Lesson{}, err
+		}
+
+		return lesson, nil
+	}
+
+	lesson, err := s.repository.GetLessonByID(ctx, id)
+	if err != nil {
+		return Lesson{}, err
+	}
+
+	return lesson, nil
 }
 
 func (s *controller) RemoveLessonBetweenDates(ctx context.Context, user global.User, date1, date2 time.Time) error {

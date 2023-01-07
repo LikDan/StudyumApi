@@ -75,7 +75,7 @@ func (j *handler) GenerateMarks(ctx *gin.Context) {
 		return
 	}
 
-	file, err := j.controller.Generate(ctx, config, user)
+	file, err := j.controller.GenerateMarksReport(ctx, config, user)
 	if err != nil {
 		j.Error(ctx, err)
 		return
@@ -93,7 +93,7 @@ func (j *handler) GenerateAbsences(ctx *gin.Context) {
 		return
 	}
 
-	file, err := j.controller.GenerateAbsences(ctx, config, user)
+	file, err := j.controller.GenerateAbsencesReport(ctx, config, user)
 	if err != nil {
 		j.Error(ctx, err)
 		return

@@ -4,21 +4,29 @@ import (
 	"context"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"studyum/internal/general"
 	"studyum/internal/global"
 	"studyum/pkg/datetime"
+	"studyum/pkg/hMongo"
 	"studyum/pkg/slicetools"
 	"time"
 )
 
-type ScheduleRepository interface {
+type Repository interface {
 	GetSchedule(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string, typeName string, asPreview bool) (Schedule, error)
 	GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string) []string
 
-	AddLessons(ctx context.Context, lessons []Lesson) error
 	AddGeneralLessons(ctx context.Context, lessons []GeneralLesson) error
+
+	AddLessons(ctx context.Context, lessons []Lesson) error
 	AddLesson(ctx context.Context, lesson Lesson) (primitive.ObjectID, error)
+	GetLessonByID(ctx context.Context, id primitive.ObjectID) (Lesson, error)
+	GetFullLessonByID(ctx context.Context, id primitive.ObjectID) (Lesson, error)
 	UpdateLesson(ctx context.Context, lesson Lesson) error
+
+	GetFullLessonsByIDAndDate(ctx context.Context, userID primitive.ObjectID, id primitive.ObjectID) ([]Lesson, error)
+
 	FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId primitive.ObjectID) (Lesson, error)
 	UpdateGeneralSchedule(ctx context.Context, lessons []GeneralLesson) error
 	RemoveLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID) error
@@ -32,20 +40,20 @@ type ScheduleRepository interface {
 	FilterLessonMarks(ctx context.Context, lessonID primitive.ObjectID, marks []string) error
 }
 
-type scheduleRepository struct {
+type repository struct {
 	*global.Repository
 }
 
-func NewScheduleRepository(repository *global.Repository) ScheduleRepository {
-	return &scheduleRepository{Repository: repository}
+func NewScheduleRepository(r *global.Repository) Repository {
+	return &repository{Repository: r}
 }
 
-func (s *scheduleRepository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace general.StudyPlace) {
+func (s *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace general.StudyPlace) {
 	err = s.StudyPlacesCollection.FindOne(ctx, bson.M{"_id": id, "restricted": restricted}).Decode(&studyPlace)
 	return
 }
 
-func (s *scheduleRepository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeName string, asPreview bool) (Schedule, error) {
+func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeName string, asPreview bool) (Schedule, error) {
 	filter := bson.M{"_id": studyPlaceID}
 	if asPreview {
 		filter["restricted"] = false
@@ -266,7 +274,7 @@ func (s *scheduleRepository) GetSchedule(ctx context.Context, studyPlaceID primi
 	return schedule, nil
 }
 
-func (s *scheduleRepository) GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string) []string {
+func (s *repository) GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string) []string {
 	namesInterface, _ := s.LessonsCollection.Distinct(ctx, type_, bson.M{"studyPlaceId": studyPlaceId})
 
 	names := make([]string, len(namesInterface))
@@ -277,7 +285,7 @@ func (s *scheduleRepository) GetScheduleType(ctx context.Context, studyPlaceId p
 	return names
 }
 
-func (s *scheduleRepository) AddGeneralLessons(ctx context.Context, lessons []GeneralLesson) error {
+func (s *repository) AddGeneralLessons(ctx context.Context, lessons []GeneralLesson) error {
 	_, err := s.GeneralLessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": lessons[0].StudyPlaceId})
 	if err != nil {
 		return err
@@ -287,18 +295,31 @@ func (s *scheduleRepository) AddGeneralLessons(ctx context.Context, lessons []Ge
 	return err
 }
 
-func (s *scheduleRepository) AddLessons(ctx context.Context, lessons []Lesson) error {
+func (s *repository) AddLessons(ctx context.Context, lessons []Lesson) error {
 	_, err := s.LessonsCollection.InsertMany(ctx, slicetools.ToInterface(lessons))
 	return err
 }
 
-func (s *scheduleRepository) AddLesson(ctx context.Context, lesson Lesson) (primitive.ObjectID, error) {
+func (s *repository) AddLesson(ctx context.Context, lesson Lesson) (primitive.ObjectID, error) {
 	lesson.Id = primitive.NewObjectID()
 	_, err := s.LessonsCollection.InsertOne(ctx, lesson)
 	return lesson.Id, err
 }
 
-func (s *scheduleRepository) UpdateLesson(ctx context.Context, lesson Lesson) error {
+func (s *repository) GetLessonByID(ctx context.Context, id primitive.ObjectID) (lesson Lesson, err error) {
+	opt := options.FindOne()
+	opt.Projection = bson.M{"marks": 0, "absences": 0}
+
+	err = s.LessonsCollection.FindOne(ctx, bson.M{"_id": id}, opt).Decode(&lesson)
+	return
+}
+
+func (s *repository) GetFullLessonByID(ctx context.Context, id primitive.ObjectID) (lesson Lesson, err error) {
+	err = s.LessonsCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&lesson)
+	return
+}
+
+func (s *repository) UpdateLesson(ctx context.Context, lesson Lesson) error {
 	_, err := s.LessonsCollection.UpdateOne(ctx, bson.M{"_id": lesson.Id, "studyPlaceId": lesson.StudyPlaceId}, bson.M{"$set": bson.M{
 		"primaryColor":   lesson.PrimaryColor,
 		"secondaryColor": lesson.SecondaryColor,
@@ -316,13 +337,13 @@ func (s *scheduleRepository) UpdateLesson(ctx context.Context, lesson Lesson) er
 	return err
 }
 
-func (s *scheduleRepository) FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId primitive.ObjectID) (Lesson, error) {
+func (s *repository) FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId primitive.ObjectID) (Lesson, error) {
 	var lesson Lesson
 	err := s.LessonsCollection.FindOneAndDelete(ctx, bson.M{"_id": id, "studyPlaceId": studyPlaceId}).Decode(&lesson)
 	return lesson, err
 }
 
-func (s *scheduleRepository) UpdateGeneralSchedule(ctx context.Context, lessons []GeneralLesson) error {
+func (s *repository) UpdateGeneralSchedule(ctx context.Context, lessons []GeneralLesson) error {
 	if _, err := s.GeneralLessonsCollection.InsertMany(ctx, slicetools.ToInterface(lessons)); err != nil {
 		return err
 	}
@@ -330,7 +351,7 @@ func (s *scheduleRepository) UpdateGeneralSchedule(ctx context.Context, lessons 
 	return nil
 }
 
-func (s *scheduleRepository) GetGeneralLessons(ctx context.Context, studyPlaceId primitive.ObjectID, weekIndex, dayIndex int) ([]GeneralLesson, error) {
+func (s *repository) GetGeneralLessons(ctx context.Context, studyPlaceId primitive.ObjectID, weekIndex, dayIndex int) ([]GeneralLesson, error) {
 	cursor, err := s.GeneralLessonsCollection.Find(ctx, bson.M{"studyPlaceId": studyPlaceId, "weekIndex": weekIndex, "dayIndex": dayIndex})
 	if err != nil {
 		return nil, err
@@ -344,25 +365,89 @@ func (s *scheduleRepository) GetGeneralLessons(ctx context.Context, studyPlaceId
 	return lessons, nil
 }
 
-func (s *scheduleRepository) RemoveLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID) error {
+func (s *repository) RemoveLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID) error {
 	_, err := s.LessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": id, "startDate": bson.M{"$gte": date1, "$lt": date2}})
 	return err
 }
 
-func (s *scheduleRepository) RemoveGroupLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID, group string) error {
+func (s *repository) RemoveGroupLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID, group string) error {
 	_, err := s.LessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": id, "group": group, "startDate": bson.M{"$gte": date1, "$lt": date2}})
 	return err
 }
 
-func (s *scheduleRepository) RemoveGeneralLessonsByType(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typename string) error {
+func (s *repository) RemoveGeneralLessonsByType(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typename string) error {
 	_, err := s.GeneralLessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": studyPlaceID, type_: typename})
 	return err
 }
 
-func (s *scheduleRepository) FilterLessonMarks(ctx context.Context, lessonID primitive.ObjectID, marks []string) error {
+func (s *repository) FilterLessonMarks(ctx context.Context, lessonID primitive.ObjectID, marks []string) error {
 	_, err := s.LessonsCollection.UpdateByID(ctx, lessonID, bson.M{"$pull": bson.M{"marks": bson.M{"mark": bson.M{"$nin": marks}}}})
 	if err != nil && err.Error() == "write exception: write errors: [Cannot apply $pull to a non-array value]" {
 		return nil
 	}
 	return err
+}
+
+func (s *repository) GetFullLessonsByIDAndDate(ctx context.Context, userID primitive.ObjectID, id primitive.ObjectID) (lessons []Lesson, err error) {
+	cursor, err := s.LessonsCollection.Aggregate(ctx, bson.A{
+		bson.M{
+			"$match": bson.M{"_id": id},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from": "Lessons",
+				"let": bson.M{
+					"date": bson.M{"$dateToString": bson.M{
+						"date":   "$startDate",
+						"format": "%Y-%m-%d",
+					}},
+					"group":   "$group",
+					"teacher": "$teacher",
+					"subject": "$subject",
+				},
+				"pipeline": bson.A{
+					bson.M{"$match": bson.M{"$expr": bson.M{"$and": bson.A{
+						bson.M{"$eq": bson.A{
+							"$$date", bson.M{"$dateToString": bson.M{
+								"date":   "$startDate",
+								"format": "%Y-%m-%d",
+							}},
+						}},
+						bson.M{"$eq": bson.A{"$group", "$$group"}},
+						bson.M{"$eq": bson.A{"$subject", "$$subject"}},
+						bson.M{"$eq": bson.A{"$teacher", "$$teacher"}},
+					}}}},
+					bson.M{
+						"$addFields": bson.M{
+							"marks":    hMongo.Filter("marks", bson.M{"$eq": bson.A{"$$marks.studentID", userID}}),
+							"absences": hMongo.Filter("absences", bson.M{"$eq": bson.A{"$$absences.studentID", userID}}),
+						},
+					},
+				},
+				"as": "lessons",
+			},
+		},
+		bson.M{
+			"$project": bson.M{
+				"lessons": 1,
+			},
+		},
+		bson.M{
+			"$unwind": "$lessons",
+		},
+		bson.M{
+			"$replaceRoot": bson.M{"newRoot": "$lessons"},
+		},
+		bson.M{
+			"$sort": bson.M{
+				"startDate": 1,
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = cursor.All(ctx, &lessons)
+	return
 }

@@ -31,8 +31,8 @@ type Controller interface {
 	UpdateAbsence(ctx context.Context, user global.User, absences UpdateAbsencesDTO) error
 	DeleteAbsence(ctx context.Context, user global.User, id string) error
 
-	Generate(ctx context.Context, config MarksReport, user global.User) (*excelize.File, error)
-	GenerateAbsences(ctx context.Context, config AbsencesReport, user global.User) (*excelize.File, error)
+	GenerateMarksReport(ctx context.Context, config MarksReport, user global.User) (*excelize.File, error)
+	GenerateAbsencesReport(ctx context.Context, config AbsencesReport, user global.User) (*excelize.File, error)
 }
 
 type controller struct {
@@ -47,8 +47,8 @@ func NewJournalController(parser parser.Handler, repository Repository, encrypt 
 	return &controller{parser: parser, repository: repository, encrypt: encrypt}
 }
 
-func (j *controller) Generate(ctx context.Context, config MarksReport, user global.User) (*excelize.File, error) {
-	table, err := j.repository.Generate(ctx, user.TuitionGroup, config.LessonType, config.Mark, config.StartDate, config.EndDate, user.StudyPlaceID)
+func (j *controller) GenerateMarksReport(ctx context.Context, config MarksReport, user global.User) (*excelize.File, error) {
+	table, err := j.repository.GenerateMarksReport(ctx, user.TuitionGroup, config.LessonType, config.Mark, config.StartDate, config.EndDate, user.StudyPlaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -94,8 +94,8 @@ func (j *controller) Generate(ctx context.Context, config MarksReport, user glob
 	return f, nil
 }
 
-func (j *controller) GenerateAbsences(ctx context.Context, config AbsencesReport, user global.User) (*excelize.File, error) {
-	table, err := j.repository.GenerateAbsences(ctx, user.TuitionGroup, config.StartDate, config.EndDate, user.StudyPlaceID)
+func (j *controller) GenerateAbsencesReport(ctx context.Context, config AbsencesReport, user global.User) (*excelize.File, error) {
+	table, err := j.repository.GenerateAbsencesReport(ctx, user.TuitionGroup, config.StartDate, config.EndDate, user.StudyPlaceID)
 	if err != nil {
 		return nil, err
 	}

@@ -16,6 +16,7 @@ type Handler interface {
 	AddLesson(ctx *gin.Context)
 	UpdateLesson(ctx *gin.Context)
 	DeleteLesson(ctx *gin.Context)
+	GetLessonByID(ctx *gin.Context)
 
 	AddGeneralLessons(ctx *gin.Context)
 
@@ -44,6 +45,7 @@ func NewScheduleHandler(authHandler global.Handler, controller Controller, group
 	group.POST("", h.Auth("editSchedule"), h.AddLesson)
 	group.PUT("", h.Auth("editJournal"), h.UpdateLesson)
 	group.DELETE(":id", h.Auth("editSchedule"), h.DeleteLesson)
+	group.GET("lessons/:id", h.Auth(), h.GetLessonByID)
 	group.DELETE("between/:startDate/:endDate", h.Auth("editSchedule"), h.RemoveLessonsBetweenDates)
 
 	group.POST("/list", h.Auth("editSchedule"), h.AddLessons)
@@ -70,6 +72,30 @@ func (s *handler) GetSchedule(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, schedule)
+}
+
+func (s *handler) GetLessonByID(ctx *gin.Context) {
+	user := s.GetUserViaCtx(ctx)
+
+	id := ctx.Param("id")
+	if ctx.Query("type") == "date" {
+		lesson, err := s.controller.GetLessonsByDateAndID(ctx, user, id)
+		if err != nil {
+			s.Error(ctx, err)
+			return
+		}
+
+		ctx.JSON(http.StatusOK, lesson)
+		return
+	}
+
+	lesson, err := s.controller.GetLessonByID(ctx, user, id)
+	if err != nil {
+		s.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, lesson)
 }
 
 func (s *handler) GetUserSchedule(ctx *gin.Context) {
