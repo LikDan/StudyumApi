@@ -524,7 +524,7 @@ func (j *repository) getCellColor() string {
 
 func (j *repository) getRowInfo() string {
 	return `function(studyPlace, row) {
-		let marks = row.lessons.flatMap(l => l?.marks ?? [])
+		let marks = row.cells.flatMap(l => l?.marks ?? [])
 
 		let markList = studyPlace.lessonTypes
 				.flatMap(t => t.marks.concat(t.standaloneMarks ?? [])).map(m => m.mark)
@@ -545,18 +545,18 @@ func (j *repository) getRowInfo() string {
         row.numericMarksSum = marks.reduce((sum, a) => sum + a, 0)
 		row.numericMarksAmount = marks.length
 
-		let absences = row.lessons.flatMap(l => l?.absences ?? []).map(a => a.time)
+		let absences = row.cells.flatMap(l => l?.absences ?? []).map(a => a.time)
 		row.absencesAmount = absences.filter(v => !v).length
         row.absencesTime = absences.filter(v => v).reduce((sum, a) => sum + a, 0)
 		
 		let color = studyPlace.journalColors.general
-		for (let lesson of row.lessons) {
-		  if (lesson == null) continue
+		for (let cell of row.cells) {
+		  if (cell == null) continue
 		
-		  if (lesson.journalCellColor == studyPlace.journalColors.warning)
+		  if (cell.journalCellColor == studyPlace.journalColors.warning)
 			  color = studyPlace.journalColors.warning
 		
-		  if (lesson.journalCellColor == studyPlace.journalColors.danger){
+		  if (cell.journalCellColor == studyPlace.journalColors.danger){
 			  color = studyPlace.journalColors.danger
 			  break
 		  }
@@ -637,13 +637,13 @@ func (j *repository) GetStudentJournal(ctx context.Context, userId primitive.Obj
 
                         let rows = []
                         for (const [key, value] of Object.entries(groupedLessons)) {
-                            rows.unshift({title: key, lessons: [], info: {}})
+                            rows.unshift({title: key, cells: [], info: {}})
 
                             let added = 0
                             for (let i = 0; i < value.length; i++) {
                                 let startTime = new Date(value[i].startDate.toDateString()).getTime()
                                 if (i > 0 && new Date(value[i - 1].startDate.toDateString()).getTime() === startTime) {
-                                    let prevLesson = rows[0].lessons.at(-1)
+                                    let prevLesson = rows[0].cells.at(-1)
 
                                     if (value[i].journalCellColor != studyPlace.journalColors.general && prevLesson.journalCellColor == studyPlace.journalColors.general) {
                                         prevLesson.journalCellColor = value[i].journalCellColor
@@ -655,14 +655,20 @@ func (j *repository) GetStudentJournal(ctx context.Context, userId primitive.Obj
                                     continue
                                 }
                                 while (dates[i + added].getTime() !== startTime) {
-                                    rows[0].lessons.push(null)
+                                    rows[0].cells.push(null)
                                     added++
                                 }
-                                rows[0].lessons.push(value[i])
+                                rows[0].cells.push({
+                                 _id: value[i]._id,
+                                 type: value[i].type,
+                                 journalCellColor: value[i].journalCellColor,
+                                 marks: value[i].marks,
+                                 absences: value[i].absences
+                                })
                             }
 
                             for (let i = added + value.length; i < dates.length; i++) {
-                                rows[0].lessons.push(null)
+                                rows[0].cells.push(null)
                             }
                         }
 
@@ -843,16 +849,16 @@ func (j *repository) GetJournal(ctx context.Context, option AvailableOption, stu
 					"_id":   "$user._id",
 					"title": "$user.name",
 				},
-				"lessons":    bson.M{"$push": "$lessons"},
+				"cells":      bson.M{"$push": "$lessons"},
 				"studyPlace": bson.M{"$first": bson.M{"$first": "$studyPlace"}},
 			},
 		},
 		bson.M{
 			"$project": bson.M{
 				"row": bson.M{
-					"_id":     "$_id._id",
-					"title":   "$_id.title",
-					"lessons": "$lessons",
+					"_id":   "$_id._id",
+					"title": "$_id.title",
+					"cells": "$cells",
 				},
 				"studyPlace": "$studyPlace",
 			},
@@ -865,7 +871,7 @@ func (j *repository) GetJournal(ctx context.Context, option AvailableOption, stu
 		bson.M{
 			"$group": bson.M{
 				"_id":        nil,
-				"dates":      bson.M{"$first": "$row.lessons"},
+				"dates":      bson.M{"$first": "$row.cells"},
 				"rows":       bson.M{"$push": "$row"},
 				"studyPlace": bson.M{"$first": "$studyPlace"},
 			},
@@ -873,6 +879,7 @@ func (j *repository) GetJournal(ctx context.Context, option AvailableOption, stu
 		bson.M{
 			"$project": bson.M{
 				"dates.marks":            0,
+				"dates.absences":         0,
 				"dates.journalCellColor": 0,
 				"dates.studyPlace":       0,
 				"rows.studyPlace":        0,
