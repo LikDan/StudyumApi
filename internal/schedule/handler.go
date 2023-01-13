@@ -13,6 +13,9 @@ type Handler interface {
 	GetSchedule(ctx *gin.Context)
 	GetUserSchedule(ctx *gin.Context)
 
+	GetGeneralSchedule(ctx *gin.Context)
+	GetGeneralUserSchedule(ctx *gin.Context)
+
 	AddLesson(ctx *gin.Context)
 	UpdateLesson(ctx *gin.Context)
 	DeleteLesson(ctx *gin.Context)
@@ -41,6 +44,9 @@ func NewScheduleHandler(authHandler global.Handler, controller Controller, group
 	group.GET("getTypes", h.User(), h.GetScheduleTypes)
 	group.GET(":type/:name", h.User(), h.GetSchedule)
 	group.GET("", h.Auth(), h.GetUserSchedule)
+
+	group.GET("general/:type/:name", h.User(), h.GetGeneralSchedule)
+	group.GET("general", h.Auth(), h.GetGeneralUserSchedule)
 
 	group.POST("", h.Auth("editSchedule"), h.AddLesson)
 	group.PUT("", h.Auth("editJournal"), h.UpdateLesson)
@@ -74,6 +80,56 @@ func (s *handler) GetSchedule(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, schedule)
 }
 
+func (s *handler) GetUserSchedule(ctx *gin.Context) {
+	user := s.GetUserViaCtx(ctx)
+
+	schedule, err := s.controller.GetUserSchedule(ctx, user)
+	if err != nil {
+		s.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, schedule)
+}
+
+func (s *handler) GetGeneralSchedule(ctx *gin.Context) {
+	user := s.GetUserViaCtx(ctx)
+
+	studyPlaceID := ctx.Query("studyPlaceID")
+
+	type_ := ctx.Param("type")
+	typeName := ctx.Param("name")
+
+	schedule, err := s.controller.GetGeneralSchedule(ctx, studyPlaceID, type_, typeName, user)
+	if err != nil {
+		s.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, schedule)
+}
+
+func (s *handler) GetGeneralUserSchedule(ctx *gin.Context) {
+	user := s.GetUserViaCtx(ctx)
+
+	schedule, err := s.controller.GetGeneralUserSchedule(ctx, user)
+	if err != nil {
+		s.Error(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, schedule)
+}
+
+func (s *handler) GetScheduleTypes(ctx *gin.Context) {
+	user := s.GetUserViaCtx(ctx)
+
+	id := ctx.Query("id")
+	types := s.controller.GetScheduleTypes(ctx, user, id)
+
+	ctx.JSON(http.StatusOK, types)
+}
+
 func (s *handler) GetLessonByID(ctx *gin.Context) {
 	user := s.GetUserViaCtx(ctx)
 
@@ -96,27 +152,6 @@ func (s *handler) GetLessonByID(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, lesson)
-}
-
-func (s *handler) GetUserSchedule(ctx *gin.Context) {
-	user := s.GetUserViaCtx(ctx)
-
-	schedule, err := s.controller.GetUserSchedule(ctx, user)
-	if err != nil {
-		s.Error(ctx, err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, schedule)
-}
-
-func (s *handler) GetScheduleTypes(ctx *gin.Context) {
-	user := s.GetUserViaCtx(ctx)
-
-	id := ctx.Query("id")
-	types := s.controller.GetScheduleTypes(ctx, user, id)
-
-	ctx.JSON(http.StatusOK, types)
 }
 
 func (s *handler) AddLesson(ctx *gin.Context) {

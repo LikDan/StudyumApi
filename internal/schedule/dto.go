@@ -8,6 +8,7 @@ import (
 type AddGeneralLessonDTO struct {
 	PrimaryColor   string `json:"primaryColor" binding:"hexcolor|eq=transparent"`
 	SecondaryColor string `json:"secondaryColor" binding:"hexcolor|eq=transparent"`
+	LessonIndex    int    `json:"lessonIndex"`
 	DayIndex       int    `json:"dayIndex"`
 	WeekIndex      int    `json:"weekIndex"`
 	StartTime      string `json:"startTime" binding:"required"`
@@ -23,6 +24,7 @@ type AddLessonDTO struct {
 	SecondaryColor string    `json:"secondaryColor" binding:"hexcolor|eq=transparent"`
 	EndDate        time.Time `json:"endDate"`
 	StartDate      time.Time `json:"startDate"`
+	LessonIndex    int       `json:"lessonIndex"`
 	Type           string    `json:"type" binding:"required"`
 	Subject        string    `json:"subject"`
 	Group          string    `json:"group" binding:"required"`

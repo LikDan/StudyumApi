@@ -80,6 +80,7 @@ type Lesson struct {
 	Type             string                `json:"type" bson:"type"`
 	EndDate          time.Time             `json:"endDate" bson:"endDate"`
 	StartDate        time.Time             `json:"startDate" bson:"startDate"`
+	LessonIndex      int                   `json:"lessonIndex" bson:"lessonIndex"`
 	Marks            []Mark                `json:"marks,omitempty" bson:"marks"`
 	Absences         []Absence             `json:"absences,omitempty" bson:"absences"`
 	Subject          string                `json:"subject" bson:"subject"`

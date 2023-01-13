@@ -16,6 +16,9 @@ type Controller interface {
 	GetSchedule(ctx context.Context, studyPlaceID string, type_ string, typeName string, user global.User) (Schedule, error)
 	GetUserSchedule(ctx context.Context, user global.User) (Schedule, error)
 
+	GetGeneralSchedule(ctx context.Context, studyPlaceID string, type_ string, typeName string, user global.User) (Schedule, error)
+	GetGeneralUserSchedule(ctx context.Context, user global.User) (Schedule, error)
+
 	GetScheduleTypes(ctx context.Context, user global.User, idHex string) Types
 
 	AddGeneralLessons(ctx context.Context, user global.User, lessonsDTO []AddGeneralLessonDTO) ([]GeneralLesson, error)
@@ -58,11 +61,30 @@ func (s *controller) GetSchedule(ctx context.Context, studyPlaceIDHex string, ty
 		restricted = false
 	}
 
-	return s.repository.GetSchedule(ctx, studyPlaceID, type_, typeName, !restricted)
+	return s.repository.GetSchedule(ctx, studyPlaceID, type_, typeName, false, !restricted)
 }
 
 func (s *controller) GetUserSchedule(ctx context.Context, user global.User) (Schedule, error) {
-	return s.repository.GetSchedule(ctx, user.StudyPlaceID, user.Type, user.TypeName, false)
+	return s.repository.GetSchedule(ctx, user.StudyPlaceID, user.Type, user.TypeName, false, false)
+}
+
+func (s *controller) GetGeneralSchedule(ctx context.Context, studyPlaceIDHex string, type_ string, typeName string, user global.User) (Schedule, error) {
+	if type_ == "" || typeName == "" {
+		return Schedule{}, global.NotValidParams
+	}
+
+	studyPlaceID := user.StudyPlaceID
+	restricted := true
+	if id, err := primitive.ObjectIDFromHex(studyPlaceIDHex); err == nil && id != user.StudyPlaceID {
+		studyPlaceID = id
+		restricted = false
+	}
+
+	return s.repository.GetSchedule(ctx, studyPlaceID, type_, typeName, true, !restricted)
+}
+
+func (s *controller) GetGeneralUserSchedule(ctx context.Context, user global.User) (Schedule, error) {
+	return s.repository.GetSchedule(ctx, user.StudyPlaceID, user.Type, user.TypeName, true, false)
 }
 
 func (s *controller) GetScheduleTypes(ctx context.Context, user global.User, idHex string) Types {
@@ -101,6 +123,7 @@ func (s *controller) AddGeneralLessons(ctx context.Context, user global.User, le
 			Group:          lessonDTO.Group,
 			Teacher:        lessonDTO.Teacher,
 			Room:           lessonDTO.Room,
+			LessonIndex:    lessonDTO.LessonIndex,
 			DayIndex:       lessonDTO.DayIndex,
 			WeekIndex:      lessonDTO.WeekIndex,
 		}
@@ -127,6 +150,7 @@ func (s *controller) AddLessons(ctx context.Context, user global.User, lessonsDT
 			PrimaryColor:   lessonDTO.PrimaryColor,
 			SecondaryColor: lessonDTO.SecondaryColor,
 			Type:           lessonDTO.Type,
+			LessonIndex:    lessonDTO.LessonIndex,
 			StartDate:      lessonDTO.StartDate,
 			EndDate:        lessonDTO.EndDate,
 			Subject:        lessonDTO.Subject,
@@ -164,6 +188,7 @@ func (s *controller) AddLesson(ctx context.Context, addDTO AddLessonDTO, user gl
 		SecondaryColor: addDTO.SecondaryColor,
 		EndDate:        addDTO.EndDate,
 		StartDate:      addDTO.StartDate,
+		LessonIndex:    addDTO.LessonIndex,
 		Subject:        addDTO.Subject,
 		Group:          addDTO.Group,
 		Teacher:        addDTO.Teacher,
@@ -207,6 +232,7 @@ func (s *controller) UpdateLesson(ctx context.Context, updateDTO UpdateLessonDTO
 		SecondaryColor: updateDTO.SecondaryColor,
 		EndDate:        updateDTO.EndDate,
 		StartDate:      updateDTO.StartDate,
+		LessonIndex:    updateDTO.LessonIndex,
 		Subject:        updateDTO.Subject,
 		Group:          updateDTO.Group,
 		Teacher:        updateDTO.Teacher,
@@ -342,7 +368,7 @@ func (s *controller) RemoveLessonBetweenDates(ctx context.Context, user global.U
 }
 
 func (s *controller) SaveCurrentScheduleAsGeneral(ctx context.Context, user global.User, type_ string, typeName string) error {
-	schedule, err := s.repository.GetSchedule(ctx, user.StudyPlaceID, type_, typeName, false)
+	schedule, err := s.repository.GetSchedule(ctx, user.StudyPlaceID, type_, typeName, false, false)
 	if err != nil {
 		return err
 	}

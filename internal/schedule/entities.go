@@ -22,6 +22,7 @@ type Lesson struct {
 	Type             string                `json:"type" bson:"type"`
 	EndDate          time.Time             `json:"endDate" bson:"endDate"`
 	StartDate        time.Time             `json:"startDate" bson:"startDate"`
+	LessonIndex      int                   `json:"lessonIndex" bson:"lessonIndex"`
 	Marks            []journal.Mark        `json:"marks" bson:"marks"`
 	Absences         []journal.Absence     `json:"absences" bson:"absences"`
 	Subject          string                `json:"subject" bson:"subject"`
@@ -47,6 +48,7 @@ type GeneralLesson struct {
 	Teacher        string                `json:"teacher" bson:"teacher"`
 	Room           string                `json:"room" bson:"room"`
 	Type           string                `json:"type" bson:"type"`
+	LessonIndex    int                   `json:"lessonIndex" bson:"lessonIndex"`
 	DayIndex       int                   `json:"dayIndex" bson:"dayIndex"`
 	WeekIndex      int                   `json:"weekIndex" bson:"weekIndex"`
 	ParsedInfo     parser.ParsedInfoType `json:"-" bson:"parsedInfo"`

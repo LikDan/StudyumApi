@@ -14,7 +14,7 @@ import (
 )
 
 type Repository interface {
-	GetSchedule(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string, typeName string, asPreview bool) (Schedule, error)
+	GetSchedule(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string, typeName string, general bool, asPreview bool) (Schedule, error)
 	GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string) []string
 
 	AddGeneralLessons(ctx context.Context, lessons []GeneralLesson) error
@@ -53,7 +53,7 @@ func (s *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectI
 	return
 }
 
-func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeName string, asPreview bool) (Schedule, error) {
+func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeName string, isGeneral bool, asPreview bool) (Schedule, error) {
 	filter := bson.M{"_id": studyPlaceID}
 	if asPreview {
 		filter["restricted"] = false
@@ -88,6 +88,8 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 							"$expr": bson.M{
 								"$and": bson.A{
 									bson.M{
+										"$eq": bson.A{isGeneral, false},
+									}, bson.M{
 										"$eq": bson.A{"$studyPlaceId", "$$env.studyPlaceID"},
 									}, bson.M{
 										"$eq": bson.A{"$" + type_, typeName},
