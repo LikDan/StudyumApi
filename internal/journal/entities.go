@@ -35,7 +35,7 @@ type Row struct {
 
 type Cell struct {
 	Id               primitive.ObjectID `json:"id" bson:"_id"`
-	Type             string             `json:"type" bson:"type"`
+	Type             []string           `json:"type" bson:"type"`
 	JournalCellColor string             `json:"journalCellColor" bson:"journalCellColor"`
 	Marks            []Mark             `json:"marks,omitempty" bson:"marks"`
 	Absences         []Absence          `json:"absences,omitempty" bson:"absences"`
