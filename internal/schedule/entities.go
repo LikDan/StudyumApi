@@ -3,7 +3,7 @@ package schedule
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/internal/general"
-	"studyum/internal/journal"
+	"studyum/internal/journal/entities"
 	parser "studyum/internal/parser/entities"
 	"time"
 )
@@ -23,8 +23,8 @@ type Lesson struct {
 	EndDate          time.Time             `json:"endDate" bson:"endDate"`
 	StartDate        time.Time             `json:"startDate" bson:"startDate"`
 	LessonIndex      int                   `json:"lessonIndex" bson:"lessonIndex"`
-	Marks            []journal.Mark        `json:"marks" bson:"marks"`
-	Absences         []journal.Absence     `json:"absences" bson:"absences"`
+	Marks            []entities.Mark       `json:"marks" bson:"marks"`
+	Absences         []entities.Absence    `json:"absences" bson:"absences"`
 	Subject          string                `json:"subject" bson:"subject"`
 	Group            string                `json:"group" bson:"group"`
 	Teacher          string                `json:"teacher" bson:"teacher"`

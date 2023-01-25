@@ -1,8 +1,8 @@
-package journal
+package entities
 
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"studyum/internal/general"
+	"studyum/internal/global"
 	parser "studyum/internal/parser/entities"
 	"time"
 )
@@ -14,23 +14,24 @@ type Journal struct {
 }
 
 type Info struct {
-	Editable   bool               `json:"editable" bson:"editable"`
-	StudyPlace general.StudyPlace `json:"studyPlace" bson:"studyPlace"`
-	Group      string             `json:"group" bson:"group"`
-	Teacher    string             `json:"teacher" bson:"teacher"`
-	Subject    string             `json:"subject" bson:"subject"`
+	Editable   bool              `json:"editable" bson:"editable"`
+	StudyPlace global.StudyPlace `json:"studyPlace" bson:"studyPlace"`
+	Group      string            `json:"group" bson:"group"`
+	Teacher    string            `json:"teacher" bson:"teacher"`
+	Subject    string            `json:"subject" bson:"subject"`
 }
 
 type Row struct {
-	ID                 string       `json:"id" bson:"_id"`
-	Title              string       `json:"title" bson:"title"`
-	Cells              []*Cell      `json:"cells" bson:"cells"`
-	NumericMarksSum    int          `json:"numericMarksSum" bson:"numericMarksSum"`
-	NumericMarksLength int          `json:"numericMarksAmount" bson:"numericMarksAmount"`
-	AbsencesAmount     int          `json:"absencesAmount" bson:"absencesAmount"`
-	AbsencesTime       int          `json:"absencesTime" bson:"absencesTime"`
-	MarksAmount        []MarkAmount `json:"marksAmount" bson:"marksAmount"`
-	Color              string       `json:"color" bson:"color"`
+	ID                 string         `json:"id" bson:"_id"`
+	Title              string         `json:"title" bson:"title"`
+	Cells              []*Cell        `json:"cells" bson:"cells"`
+	AverageMark        float32        `json:"averageMark" bson:"averageMark"`
+	NumericMarksSum    int            `json:"numericMarksSum" bson:"numericMarksSum"`
+	NumericMarksLength int            `json:"numericMarksAmount" bson:"numericMarksAmount"`
+	AbsencesAmount     int            `json:"absencesAmount" bson:"absencesAmount"`
+	AbsencesTime       int            `json:"absencesTime" bson:"absencesTime"`
+	MarksAmount        map[string]int `json:"marksAmount" bson:"marksAmount"`
+	Color              string         `json:"color" bson:"color"`
 }
 
 type Cell struct {

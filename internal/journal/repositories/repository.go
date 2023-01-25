@@ -1,4 +1,4 @@
-package journal
+package repositories
 
 import (
 	"context"
@@ -7,34 +7,35 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"studyum/internal/general"
 	"studyum/internal/global"
+	"studyum/internal/journal/entities"
 	"studyum/pkg/hMongo"
 	"time"
 )
 
 type Repository interface {
-	AddMarks(ctx context.Context, marks []Mark, teacher string) error
-	AddMark(ctx context.Context, mark Mark, teacher string) (primitive.ObjectID, error)
-	UpdateMark(ctx context.Context, mark Mark, teacher string) error
+	AddMarks(ctx context.Context, marks []entities.Mark, teacher string) error
+	AddMark(ctx context.Context, mark entities.Mark, teacher string) (primitive.ObjectID, error)
+	UpdateMark(ctx context.Context, mark entities.Mark, teacher string) error
 	DeleteMarkByID(ctx context.Context, id primitive.ObjectID, teacher string) error
 
-	GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]AvailableOption, error)
-	GetAvailableTuitionOptions(ctx context.Context, name string, editable bool) ([]AvailableOption, error)
+	GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]entities.AvailableOption, error)
+	GetAvailableTuitionOptions(ctx context.Context, name string, editable bool) ([]entities.AvailableOption, error)
 
-	GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId primitive.ObjectID) (Journal, error)
-	GetJournal(ctx context.Context, option AvailableOption, studyPlaceId primitive.ObjectID) (Journal, error)
+	GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId primitive.ObjectID) (entities.Journal, error)
+	GetJournal(ctx context.Context, option entities.AvailableOption, studyPlaceId primitive.ObjectID) (entities.Journal, error)
 
-	GetLessonByID(ctx context.Context, id primitive.ObjectID) (Lesson, error)
-	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId primitive.ObjectID) ([]Lesson, error)
+	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
+	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId primitive.ObjectID) ([]entities.Lesson, error)
 
 	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID) (general.StudyPlace, error)
 
-	AddAbsences(ctx context.Context, absences []Absence, teacher string) error
-	AddAbsence(ctx context.Context, absence Absence, teacher string) (primitive.ObjectID, error)
-	UpdateAbsence(ctx context.Context, absence Absence, teacher string) error
+	AddAbsences(ctx context.Context, absences []entities.Absence, teacher string) error
+	AddAbsence(ctx context.Context, absence entities.Absence, teacher string) (primitive.ObjectID, error)
+	UpdateAbsence(ctx context.Context, absence entities.Absence, teacher string) error
 	DeleteAbsenceByID(ctx context.Context, id primitive.ObjectID, teacher string) error
 
-	GenerateMarksReport(ctx context.Context, group string, lessonType string, mark string, from, to *time.Time, studyPlaceId primitive.ObjectID) (GeneratedTable, error)
-	GenerateAbsencesReport(ctx context.Context, group string, from, to *time.Time, id primitive.ObjectID) (GeneratedTable, error)
+	GenerateMarksReport(ctx context.Context, group string, lessonType string, mark string, from, to *time.Time, studyPlaceId primitive.ObjectID) (entities.GeneratedTable, error)
+	GenerateAbsencesReport(ctx context.Context, group string, from, to *time.Time, id primitive.ObjectID) (entities.GeneratedTable, error)
 }
 
 type repository struct {
@@ -45,7 +46,7 @@ func NewJournalRepository(repo *global.Repository) Repository {
 	return &repository{Repository: repo}
 }
 
-func (j *repository) GenerateMarksReport(ctx context.Context, group string, lessonType string, mark string, from, to *time.Time, studyPlaceId primitive.ObjectID) (GeneratedTable, error) {
+func (j *repository) GenerateMarksReport(ctx context.Context, group string, lessonType string, mark string, from, to *time.Time, studyPlaceId primitive.ObjectID) (entities.GeneratedTable, error) {
 	var lessonMatcher = bson.M{
 		"group":        group,
 		"studyPlaceId": studyPlaceId,
@@ -221,21 +222,21 @@ func (j *repository) GenerateMarksReport(ctx context.Context, group string, less
 	})
 
 	if err != nil {
-		return GeneratedTable{}, err
+		return entities.GeneratedTable{}, err
 	}
 
 	if !cursor.Next(ctx) {
-		return GeneratedTable{}, nil
+		return entities.GeneratedTable{}, nil
 	}
-	var table GeneratedTable
+	var table entities.GeneratedTable
 	if err = cursor.Decode(&table); err != nil {
-		return GeneratedTable{}, err
+		return entities.GeneratedTable{}, err
 	}
 
 	return table, nil
 }
 
-func (j *repository) GenerateAbsencesReport(ctx context.Context, group string, from, to *time.Time, studyPlaceId primitive.ObjectID) (GeneratedTable, error) {
+func (j *repository) GenerateAbsencesReport(ctx context.Context, group string, from, to *time.Time, studyPlaceId primitive.ObjectID) (entities.GeneratedTable, error) {
 	var lessonMatcher = bson.M{
 		"group":        group,
 		"studyPlaceId": studyPlaceId,
@@ -384,21 +385,21 @@ func (j *repository) GenerateAbsencesReport(ctx context.Context, group string, f
 	})
 
 	if err != nil {
-		return GeneratedTable{}, err
+		return entities.GeneratedTable{}, err
 	}
 
 	if !cursor.Next(ctx) {
-		return GeneratedTable{}, nil
+		return entities.GeneratedTable{}, nil
 	}
-	var table GeneratedTable
+	var table entities.GeneratedTable
 	if err = cursor.Decode(&table); err != nil {
-		return GeneratedTable{}, err
+		return entities.GeneratedTable{}, err
 	}
 
 	return table, nil
 }
 
-func (j *repository) GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]AvailableOption, error) {
+func (j *repository) GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]entities.AvailableOption, error) {
 	aggregate, err := j.LessonsCollection.Aggregate(ctx, bson.A{
 		bson.M{"$match": bson.M{"teacher": teacher}},
 		bson.M{"$group": bson.M{
@@ -461,7 +462,7 @@ func (j *repository) GetAvailableOptions(ctx context.Context, teacher string, ed
 		return nil, err
 	}
 
-	var options []AvailableOption
+	var options []entities.AvailableOption
 	if err = aggregate.All(ctx, &options); err != nil {
 		return nil, err
 	}
@@ -469,7 +470,7 @@ func (j *repository) GetAvailableOptions(ctx context.Context, teacher string, ed
 	return options, nil
 }
 
-func (j *repository) GetAvailableTuitionOptions(ctx context.Context, group string, editable bool) ([]AvailableOption, error) {
+func (j *repository) GetAvailableTuitionOptions(ctx context.Context, group string, editable bool) ([]entities.AvailableOption, error) {
 	aggregate, err := j.LessonsCollection.Aggregate(ctx, bson.A{
 		bson.M{"$match": bson.M{"group": group}},
 		bson.M{"$group": bson.M{
@@ -489,7 +490,7 @@ func (j *repository) GetAvailableTuitionOptions(ctx context.Context, group strin
 		return nil, err
 	}
 
-	var options []AvailableOption
+	var options []entities.AvailableOption
 	if err = aggregate.All(ctx, &options); err != nil {
 		return nil, err
 	}
@@ -497,82 +498,7 @@ func (j *repository) GetAvailableTuitionOptions(ctx context.Context, group strin
 	return options, nil
 }
 
-func (j *repository) getCellColor() string {
-	return `function (studyPlace, lesson) {
-                        if (!lesson) return "";
-
-                        let color = studyPlace.journalColors.general
-						let type = studyPlace.lessonTypes.find(v => v.type === lesson.type);
-						if (type === undefined) return studyPlace.journalColors.general;
-
-                        for (let mark of lesson.marks ?? []) {
-                            let markType = type.marks.find(m => m.mark === mark.mark);
-                            if (markType === undefined || markType.workOutTime === undefined || markType.workOutTime === 0) return studyPlace.journalColors.general;
-
-                            let date = new Date(lesson.startDate);
-							date.setSeconds(lesson.startDate.getSeconds() + markType.workOutTime);
-                            color = date.getTime() > new Date().getTime() ? studyPlace.journalColors.warning : studyPlace.journalColors.danger;
-                        }
-
-						if (!lesson.absences || lesson.absences.length === 0 || type.absenceWorkOutTime === undefined || type.absenceWorkOutTime === 0) return color
-
-						let date = new Date(lesson.startDate);
-						date.setSeconds(lesson.startDate.getSeconds() + type.absenceWorkOutTime);
-                        return date.getTime() > new Date().getTime() ? studyPlace.journalColors.warning : studyPlace.journalColors.danger;
-                    }`
-}
-
-func (j *repository) getRowInfo() string {
-	return `function(studyPlace, row) {
-    	for(let i = 0; i < row.cells.length; i++) {
-            if (!row.cells[i] || Array.isArray(row.cells[i].type)) continue
-            row.cells[i].type = [row.cells[i].type]
-    	}
-    
-		let marks = row.cells.flatMap(l => l?.marks ?? [])
-		
-		let markList = studyPlace.lessonTypes
-				.flatMap(t => t.marks.concat(t.standaloneMarks ?? [])).map(m => m.mark)
-				.filter((v, i, a) => a.indexOf(v) === i)
-						
-		let marksAmount = {}
-		for (let m of markList) {
-		  marksAmount[m] = {
-              mark: m,
-              amount: 0
-		  }
-		}
-        for (let mark of marks) marksAmount[mark.mark].amount++
-        row.marksAmount = Object.values(marksAmount)
-
-        marks = marks.map(m => Number.parseInt(m.mark)).filter(m => m)
-        
-        row.numericMarksSum = marks.reduce((sum, a) => sum + a, 0)
-		row.numericMarksAmount = marks.length
-
-		let absences = row.cells.flatMap(l => l?.absences ?? []).map(a => a.time)
-		row.absencesAmount = absences.filter(v => !v).length
-        row.absencesTime = absences.filter(v => v).reduce((sum, a) => sum + a, 0)
-		
-		let color = studyPlace.journalColors.general
-		for (let cell of row.cells) {
-		  if (cell == null) continue
-		
-		  if (cell.journalCellColor == studyPlace.journalColors.warning)
-			  color = studyPlace.journalColors.warning
-		
-		  if (cell.journalCellColor == studyPlace.journalColors.danger){
-			  color = studyPlace.journalColors.danger
-			  break
-		  }
-		}
-
-		row.color = color
-		return row
-	}`
-}
-
-func (j *repository) GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId primitive.ObjectID) (Journal, error) {
+func (j *repository) GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
 	cursor, err := j.LessonsCollection.Aggregate(ctx, bson.A{
 		bson.M{"$match": bson.M{"group": group, "studyPlaceId": studyPlaceId}},
 		bson.M{"$addFields": bson.M{
@@ -584,17 +510,6 @@ func (j *repository) GetStudentJournal(ctx context.Context, userId primitive.Obj
 				"from":     "StudyPlaces",
 				"pipeline": bson.A{bson.M{"$match": bson.M{"_id": studyPlaceId}}},
 				"as":       "studyPlace",
-			},
-		},
-		bson.M{
-			"$addFields": bson.M{
-				"journalCellColor": bson.M{
-					"$function": bson.M{
-						"body": j.getCellColor(),
-						"args": bson.A{bson.M{"$first": "$studyPlace"}, "$$ROOT"},
-						"lang": "js",
-					},
-				},
 			},
 		},
 		bson.M{
@@ -689,13 +604,6 @@ func (j *repository) GetStudentJournal(ctx context.Context, userId primitive.Obj
 		},
 		bson.M{
 			"$addFields": bson.M{
-				"rows": hMongo.Map("rows", bson.D{
-					hMongo.Func(j.getRowInfo(), "$studyPlace", "$$rows"),
-				}),
-			},
-		},
-		bson.M{
-			"$addFields": bson.M{
 				"info": bson.M{
 					"editable":   false,
 					"studyPlace": "$studyPlace",
@@ -728,27 +636,27 @@ func (j *repository) GetStudentJournal(ctx context.Context, userId primitive.Obj
 		},
 	})
 	if err != nil {
-		return Journal{}, err
+		return entities.Journal{}, err
 	}
 
 	if !cursor.Next(ctx) {
-		return Journal{
-			Info: Info{
+		return entities.Journal{
+			Info: entities.Info{
 				Editable:   false,
-				StudyPlace: general.StudyPlace{},
+				StudyPlace: global.StudyPlace{},
 				Group:      group,
 			},
 		}, nil
 	}
-	var journal Journal
+	var journal entities.Journal
 	if err = cursor.Decode(&journal); err != nil {
-		return Journal{}, err
+		return entities.Journal{}, err
 	}
 
 	return journal, nil
 }
 
-func (j *repository) GetJournal(ctx context.Context, option AvailableOption, studyPlaceId primitive.ObjectID) (Journal, error) {
+func (j *repository) GetJournal(ctx context.Context, option entities.AvailableOption, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
 	var cursor, err = j.UsersCollection.Aggregate(ctx, bson.A{
 		bson.M{
 			"$group": bson.M{"_id": nil, "user": bson.M{"$push": "$$ROOT"}},
@@ -854,13 +762,7 @@ func (j *repository) GetJournal(ctx context.Context, option AvailableOption, stu
 		},
 		bson.M{
 			"$addFields": bson.M{
-				"lessons.journalCellColor": bson.M{
-					"$function": bson.M{
-						"body": j.getCellColor(),
-						"args": bson.A{bson.M{"$first": "$studyPlace"}, "$lessons"},
-						"lang": "js",
-					},
-				},
+				"lessons.type": bson.A{"$lessons.type"},
 			},
 		},
 		bson.M{
@@ -883,11 +785,6 @@ func (j *repository) GetJournal(ctx context.Context, option AvailableOption, stu
 					"cells": "$cells",
 				},
 				"studyPlace": "$studyPlace",
-			},
-		},
-		bson.M{
-			"$addFields": bson.D{
-				{"row", bson.D{hMongo.Func(j.getRowInfo(), "$studyPlace", "$row")}},
 			},
 		},
 		bson.M{
@@ -923,29 +820,29 @@ func (j *repository) GetJournal(ctx context.Context, option AvailableOption, stu
 	})
 
 	if err != nil {
-		return Journal{}, err
+		return entities.Journal{}, err
 	}
 
 	if !cursor.Next(ctx) {
-		return Journal{
-			Info: Info{
+		return entities.Journal{
+			Info: entities.Info{
 				Editable:   option.Editable,
-				StudyPlace: general.StudyPlace{},
+				StudyPlace: global.StudyPlace{},
 				Group:      option.Subject,
 				Teacher:    option.Group,
 				Subject:    option.Teacher,
 			},
 		}, nil
 	}
-	var journal Journal
+	var journal entities.Journal
 	if err = cursor.Decode(&journal); err != nil {
-		return Journal{}, err
+		return entities.Journal{}, err
 	}
 
 	return journal, nil
 }
 
-func (j *repository) GetLessonByID(ctx context.Context, id primitive.ObjectID) (lesson Lesson, err error) {
+func (j *repository) GetLessonByID(ctx context.Context, id primitive.ObjectID) (lesson entities.Lesson, err error) {
 	err = j.LessonsCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&lesson)
 	return
 }
@@ -955,7 +852,7 @@ func (j *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectI
 	return
 }
 
-func (j *repository) GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId primitive.ObjectID) ([]Lesson, error) {
+func (j *repository) GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId primitive.ObjectID) ([]entities.Lesson, error) {
 	lessonsCursor, err := j.LessonsCollection.Aggregate(ctx, mongo.Pipeline{
 		bson.D{{"$lookup", bson.M{
 			"from":         "Marks",
@@ -970,7 +867,7 @@ func (j *repository) GetLessons(ctx context.Context, userId primitive.ObjectID, 
 		bson.D{{"$sort", bson.M{"date": 1}}},
 	})
 
-	var marks []Lesson
+	var marks []entities.Lesson
 	if err = lessonsCursor.All(ctx, &marks); err != nil {
 		return nil, err
 	}
@@ -978,7 +875,7 @@ func (j *repository) GetLessons(ctx context.Context, userId primitive.ObjectID, 
 	return marks, nil
 }
 
-func (j *repository) AddMarks(ctx context.Context, marks []Mark, teacher string) error {
+func (j *repository) AddMarks(ctx context.Context, marks []entities.Mark, teacher string) error {
 	if _, err := j.LessonsCollection.UpdateOne(ctx, bson.M{"_id": marks[0].LessonID, "teacher": teacher}, hMongo.PushArray("marks", marks)); err != nil {
 		return err
 	}
@@ -986,7 +883,7 @@ func (j *repository) AddMarks(ctx context.Context, marks []Mark, teacher string)
 	return nil
 }
 
-func (j *repository) AddMark(ctx context.Context, mark Mark, teacher string) (primitive.ObjectID, error) {
+func (j *repository) AddMark(ctx context.Context, mark entities.Mark, teacher string) (primitive.ObjectID, error) {
 	mark.ID = primitive.NewObjectID()
 	if _, err := j.LessonsCollection.UpdateOne(ctx, bson.M{"_id": mark.LessonID, "teacher": teacher}, hMongo.Push("marks", mark)); err != nil {
 		return primitive.NilObjectID, err
@@ -995,7 +892,7 @@ func (j *repository) AddMark(ctx context.Context, mark Mark, teacher string) (pr
 	return mark.ID, nil
 }
 
-func (j *repository) UpdateMark(ctx context.Context, mark Mark, teacher string) error {
+func (j *repository) UpdateMark(ctx context.Context, mark entities.Mark, teacher string) error {
 	if _, err := j.LessonsCollection.UpdateOne(ctx, bson.M{"_id": mark.LessonID, "teacher": teacher, "marks._id": mark.ID}, bson.M{"$set": bson.M{"marks.$": mark}}); err != nil {
 		return err
 	}
@@ -1011,7 +908,7 @@ func (j *repository) DeleteMarkByID(ctx context.Context, id primitive.ObjectID, 
 	return nil
 }
 
-func (j *repository) AddAbsences(ctx context.Context, absences []Absence, teacher string) error {
+func (j *repository) AddAbsences(ctx context.Context, absences []entities.Absence, teacher string) error {
 	ids := make([]primitive.ObjectID, len(absences))
 	for i, absence := range absences {
 		ids[i] = absence.StudentID
@@ -1024,7 +921,7 @@ func (j *repository) AddAbsences(ctx context.Context, absences []Absence, teache
 	return nil
 }
 
-func (j *repository) AddAbsence(ctx context.Context, absence Absence, teacher string) (primitive.ObjectID, error) {
+func (j *repository) AddAbsence(ctx context.Context, absence entities.Absence, teacher string) (primitive.ObjectID, error) {
 	absence.ID = primitive.NewObjectID()
 
 	res, err := j.LessonsCollection.UpdateOne(ctx, bson.M{"_id": absence.LessonID, "teacher": teacher, "absences.studentID": bson.M{"$nin": bson.A{absence.StudentID}}}, hMongo.Push("absences", absence))
@@ -1039,7 +936,7 @@ func (j *repository) AddAbsence(ctx context.Context, absence Absence, teacher st
 	return absence.ID, nil
 }
 
-func (j *repository) UpdateAbsence(ctx context.Context, absence Absence, teacher string) error {
+func (j *repository) UpdateAbsence(ctx context.Context, absence entities.Absence, teacher string) error {
 	if _, err := j.LessonsCollection.UpdateOne(ctx, bson.M{"_id": absence.LessonID, "teacher": teacher, "absences._id": absence.ID}, bson.M{"$set": bson.M{"absences.$": absence}}); err != nil {
 		return err
 	}

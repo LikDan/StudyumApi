@@ -6,7 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/internal/general"
 	"studyum/internal/global"
-	"studyum/internal/journal"
+	"studyum/internal/journal/entities"
 	"studyum/internal/parser/dto"
 	parser "studyum/internal/parser/handler"
 	"time"
@@ -336,7 +336,7 @@ func (s *controller) GetLessonByID(ctx context.Context, user global.User, idHex 
 
 	if user.Type == "group" {
 		lesson, err := s.repository.GetFullLessonByID(ctx, id)
-		var marks []journal.Mark
+		var marks []entities.Mark
 		for _, mark := range lesson.Marks {
 			if mark.StudentID == user.Id {
 				marks = append(marks, mark)

@@ -10,7 +10,9 @@ import (
 	"os"
 	"studyum/internal/general"
 	"studyum/internal/global"
-	"studyum/internal/journal"
+	"studyum/internal/journal/controllers"
+	"studyum/internal/journal/handlers"
+	"studyum/internal/journal/repositories"
 	pController "studyum/internal/parser/controller"
 	pHandler "studyum/internal/parser/handler"
 	pRepository "studyum/internal/parser/repository"
@@ -54,7 +56,7 @@ func main() {
 	repository := global.NewRepository(client)
 	userRepository := user.NewUserRepository(repository)
 	generalRepository := general.NewGeneralRepository(repository)
-	journalRepository := journal.NewJournalRepository(repository)
+	journalRepository := repositories.NewJournalRepository(repository)
 	scheduleRepository := schedule.NewScheduleRepository(repository)
 
 	scheduleValidator := schedule.NewSchedule(validator.New())
@@ -62,7 +64,8 @@ func main() {
 	controller := global.NewController(jwtController, *repository, encrypt)
 	userController := user.NewUserController(jwtController, userRepository, encrypt, parserHandler)
 	generalController := general.NewGeneralController(generalRepository)
-	journalController := journal.NewJournalController(parserHandler, journalRepository, encrypt)
+	mainJournalController := controllers.NewController(parserHandler, journalRepository, encrypt)
+	journalController := controllers.NewJournalController(journalRepository, encrypt)
 	scheduleController := schedule.NewScheduleController(parserHandler, scheduleValidator, scheduleRepository, generalController)
 
 	jwtController.SetGetClaimsFunc(controller.GetClaims)
@@ -73,7 +76,7 @@ func main() {
 	handler := global.NewHandler(controller)
 	general.NewGeneralHandler(handler, generalController, api)
 	user.NewUserHandler(handler, userController, api.Group("/user"))
-	journal.NewJournalHandler(handler, journalController, api.Group("/journal"))
+	handlers.NewJournalHandler(handler, mainJournalController, journalController, api.Group("/journal"))
 	schedule.NewScheduleHandler(handler, scheduleController, api.Group("/schedule"))
 
 	logrus.Fatalf("Error launching server %s", engine.Run().Error())

@@ -1,4 +1,4 @@
-package journal
+package controllers
 
 import (
 	"context"
@@ -8,6 +8,9 @@ import (
 	"golang.org/x/exp/slices"
 	"strconv"
 	"studyum/internal/global"
+	"studyum/internal/journal/dtos"
+	"studyum/internal/journal/entities"
+	"studyum/internal/journal/repositories"
 	"studyum/internal/parser/dto"
 	parser "studyum/internal/parser/handler"
 	"studyum/internal/utils"
@@ -15,39 +18,34 @@ import (
 )
 
 type Controller interface {
-	GetJournalAvailableOptions(ctx context.Context, user global.User) ([]AvailableOption, error)
-
-	GetJournal(ctx context.Context, group string, subject string, teacher string, user global.User) (Journal, error)
-	GetUserJournal(ctx context.Context, user global.User) (Journal, error)
-
-	AddMarks(ctx context.Context, marks []AddMarkDTO, user global.User) ([]Mark, error)
-	AddMark(ctx context.Context, dto AddMarkDTO, user global.User) (Mark, error)
-	GetMark(ctx context.Context, group string, subject string, userIdHex string, user global.User) ([]Lesson, error)
-	UpdateMark(ctx context.Context, user global.User, dto UpdateMarkDTO) error
+	AddMarks(ctx context.Context, marks []dtos.AddMarkDTO, user global.User) ([]entities.Mark, error)
+	AddMark(ctx context.Context, dto dtos.AddMarkDTO, user global.User) (entities.Mark, error)
+	GetMark(ctx context.Context, group string, subject string, userIdHex string, user global.User) ([]entities.Lesson, error)
+	UpdateMark(ctx context.Context, user global.User, dto dtos.UpdateMarkDTO) error
 	DeleteMark(ctx context.Context, user global.User, markIdHex string) error
 
-	AddAbsences(ctx context.Context, dto []AddAbsencesDTO, user global.User) ([]Absence, error)
-	AddAbsence(ctx context.Context, absencesDTO AddAbsencesDTO, user global.User) (Absence, error)
-	UpdateAbsence(ctx context.Context, user global.User, absences UpdateAbsencesDTO) error
+	AddAbsences(ctx context.Context, dto []dtos.AddAbsencesDTO, user global.User) ([]entities.Absence, error)
+	AddAbsence(ctx context.Context, absencesDTO dtos.AddAbsencesDTO, user global.User) (entities.Absence, error)
+	UpdateAbsence(ctx context.Context, user global.User, absences dtos.UpdateAbsencesDTO) error
 	DeleteAbsence(ctx context.Context, user global.User, id string) error
 
-	GenerateMarksReport(ctx context.Context, config MarksReport, user global.User) (*excelize.File, error)
-	GenerateAbsencesReport(ctx context.Context, config AbsencesReport, user global.User) (*excelize.File, error)
+	GenerateMarksReport(ctx context.Context, config dtos.MarksReport, user global.User) (*excelize.File, error)
+	GenerateAbsencesReport(ctx context.Context, config dtos.AbsencesReport, user global.User) (*excelize.File, error)
 }
 
 type controller struct {
 	parser parser.Handler
 
-	repository Repository
+	repository repositories.Repository
 
 	encrypt encryption.Encryption
 }
 
-func NewJournalController(parser parser.Handler, repository Repository, encrypt encryption.Encryption) Controller {
+func NewController(parser parser.Handler, repository repositories.Repository, encrypt encryption.Encryption) Controller {
 	return &controller{parser: parser, repository: repository, encrypt: encrypt}
 }
 
-func (j *controller) GenerateMarksReport(ctx context.Context, config MarksReport, user global.User) (*excelize.File, error) {
+func (j *controller) GenerateMarksReport(ctx context.Context, config dtos.MarksReport, user global.User) (*excelize.File, error) {
 	table, err := j.repository.GenerateMarksReport(ctx, user.TuitionGroup, config.LessonType, config.Mark, config.StartDate, config.EndDate, user.StudyPlaceID)
 	if err != nil {
 		return nil, err
@@ -94,7 +92,7 @@ func (j *controller) GenerateMarksReport(ctx context.Context, config MarksReport
 	return f, nil
 }
 
-func (j *controller) GenerateAbsencesReport(ctx context.Context, config AbsencesReport, user global.User) (*excelize.File, error) {
+func (j *controller) GenerateAbsencesReport(ctx context.Context, config dtos.AbsencesReport, user global.User) (*excelize.File, error) {
 	table, err := j.repository.GenerateAbsencesReport(ctx, user.TuitionGroup, config.StartDate, config.EndDate, user.StudyPlaceID)
 	if err != nil {
 		return nil, err
@@ -141,76 +139,7 @@ func (j *controller) GenerateAbsencesReport(ctx context.Context, config Absences
 	return f, nil
 }
 
-func (j *controller) GetJournalAvailableOptions(ctx context.Context, user global.User) ([]AvailableOption, error) {
-	if user.Type == "group" {
-		return []AvailableOption{{
-			Teacher:  "",
-			Subject:  "",
-			Group:    user.TypeName,
-			Editable: false,
-		}}, nil
-	}
-
-	options, err := j.repository.GetAvailableOptions(ctx, user.TypeName, slices.Contains(user.Permissions, "editJournal"))
-	if err != nil {
-		return nil, err
-	}
-
-	if tuitionOptions, err := j.repository.GetAvailableTuitionOptions(ctx, user.TuitionGroup, false); err == nil {
-		options = append(options, tuitionOptions...)
-	}
-
-	return options, nil
-}
-
-func (j *controller) GetJournal(ctx context.Context, group string, subject string, teacher string, user global.User) (Journal, error) {
-	if group == "" || subject == "" || teacher == "" {
-		return Journal{}, global.NotValidParams
-	}
-
-	options, err := j.GetJournalAvailableOptions(ctx, user)
-	if err != nil {
-		return Journal{}, err
-	}
-
-	var option *AvailableOption
-	for _, opt := range options {
-		if opt.Group == group && opt.Teacher == teacher && opt.Subject == subject {
-			var temp = opt
-			option = &temp
-		}
-		if opt.Group == group && opt.Teacher == teacher && opt.Subject == subject && opt.Editable {
-			var temp = opt
-			option = &temp
-			break
-		}
-	}
-
-	if option == nil {
-		return Journal{}, global.NoPermission
-	}
-
-	journal, err := j.repository.GetJournal(ctx, *option, user.StudyPlaceID)
-	if err != nil {
-		return Journal{}, err
-	}
-
-	for i := range journal.Rows {
-		journal.Rows[i].Title = j.encrypt.DecryptString(journal.Rows[i].Title)
-	}
-
-	slices.SortFunc(journal.Rows, func(el1, el2 Row) bool {
-		return el1.Title < el2.Title
-	})
-
-	return journal, nil
-}
-
-func (j *controller) GetUserJournal(ctx context.Context, user global.User) (Journal, error) {
-	return j.repository.GetStudentJournal(ctx, user.Id, user.TypeName, user.StudyPlaceID)
-}
-
-func (j *controller) checkMarkExistence(ctx context.Context, mark AddMarkDTO, studyPlaceID primitive.ObjectID) bool {
+func (j *controller) checkMarkExistence(ctx context.Context, mark dtos.AddMarkDTO, studyPlaceID primitive.ObjectID) bool {
 	lesson, err := j.repository.GetLessonByID(ctx, mark.LessonID)
 	if err != nil {
 		return false
@@ -240,14 +169,14 @@ func (j *controller) checkMarkExistence(ctx context.Context, mark AddMarkDTO, st
 	return false
 }
 
-func (j *controller) AddMarks(ctx context.Context, addDTO []AddMarkDTO, user global.User) ([]Mark, error) {
-	marks := make([]Mark, len(addDTO))
+func (j *controller) AddMarks(ctx context.Context, addDTO []dtos.AddMarkDTO, user global.User) ([]entities.Mark, error) {
+	marks := make([]entities.Mark, len(addDTO))
 	for i, markDTO := range addDTO {
 		if markDTO.Mark == "" || markDTO.StudentID.IsZero() || markDTO.LessonID.IsZero() || !j.checkMarkExistence(ctx, markDTO, user.StudyPlaceID) {
 			return nil, global.NotValidParams
 		}
 
-		mark := Mark{
+		mark := entities.Mark{
 			ID:           primitive.NewObjectID(),
 			Mark:         markDTO.Mark,
 			StudentID:    markDTO.StudentID,
@@ -277,7 +206,7 @@ func (j *controller) AddMarks(ctx context.Context, addDTO []AddMarkDTO, user glo
 	return marks, nil
 }
 
-func (j *controller) GetMark(ctx context.Context, group string, subject string, userIdHex string, user global.User) ([]Lesson, error) {
+func (j *controller) GetMark(ctx context.Context, group string, subject string, userIdHex string, user global.User) ([]entities.Lesson, error) {
 	if group == "" || subject == "" || userIdHex == "" {
 		return nil, global.NotValidParams
 	}
@@ -290,12 +219,12 @@ func (j *controller) GetMark(ctx context.Context, group string, subject string, 
 	return j.repository.GetLessons(ctx, userId, group, user.Name, subject, user.StudyPlaceID)
 }
 
-func (j *controller) AddMark(ctx context.Context, addDTO AddMarkDTO, user global.User) (Mark, error) {
+func (j *controller) AddMark(ctx context.Context, addDTO dtos.AddMarkDTO, user global.User) (entities.Mark, error) {
 	if addDTO.Mark == "" || addDTO.StudentID.IsZero() || addDTO.LessonID.IsZero() || !j.checkMarkExistence(ctx, addDTO, user.StudyPlaceID) {
-		return Mark{}, global.NotValidParams
+		return entities.Mark{}, global.NotValidParams
 	}
 
-	mark := Mark{
+	mark := entities.Mark{
 		Mark:         addDTO.Mark,
 		StudentID:    addDTO.StudentID,
 		LessonID:     addDTO.LessonID,
@@ -304,7 +233,7 @@ func (j *controller) AddMark(ctx context.Context, addDTO AddMarkDTO, user global
 
 	id, err := j.repository.AddMark(ctx, mark, user.TypeName)
 	if err != nil {
-		return Mark{}, err
+		return entities.Mark{}, err
 	}
 
 	mark.ID = id
@@ -322,12 +251,12 @@ func (j *controller) AddMark(ctx context.Context, addDTO AddMarkDTO, user global
 	return mark, nil
 }
 
-func (j *controller) UpdateMark(ctx context.Context, user global.User, updateDTO UpdateMarkDTO) error {
+func (j *controller) UpdateMark(ctx context.Context, user global.User, updateDTO dtos.UpdateMarkDTO) error {
 	if updateDTO.Mark == "" || updateDTO.ID.IsZero() || updateDTO.LessonID.IsZero() || !j.checkMarkExistence(ctx, updateDTO.AddMarkDTO, user.StudyPlaceID) {
 		return global.NotValidParams
 	}
 
-	mark := Mark{
+	mark := entities.Mark{
 		ID:        updateDTO.ID,
 		Mark:      updateDTO.Mark,
 		StudentID: updateDTO.StudentID,
@@ -365,14 +294,14 @@ func (j *controller) DeleteMark(ctx context.Context, user global.User, markIdHex
 	return nil
 }
 
-func (j *controller) AddAbsences(ctx context.Context, dto []AddAbsencesDTO, user global.User) ([]Absence, error) {
-	absences := make([]Absence, len(dto))
+func (j *controller) AddAbsences(ctx context.Context, dto []dtos.AddAbsencesDTO, user global.User) ([]entities.Absence, error) {
+	absences := make([]entities.Absence, len(dto))
 	for i, markDTO := range dto {
 		if markDTO.StudentID.IsZero() || markDTO.LessonID.IsZero() {
 			return nil, global.NotValidParams
 		}
 
-		absence := Absence{
+		absence := entities.Absence{
 			ID:           primitive.NewObjectID(),
 			Time:         markDTO.Time,
 			StudentID:    markDTO.StudentID,
@@ -393,12 +322,12 @@ func (j *controller) AddAbsences(ctx context.Context, dto []AddAbsencesDTO, user
 	return absences, nil
 }
 
-func (j *controller) AddAbsence(ctx context.Context, dto AddAbsencesDTO, user global.User) (Absence, error) {
+func (j *controller) AddAbsence(ctx context.Context, dto dtos.AddAbsencesDTO, user global.User) (entities.Absence, error) {
 	if dto.StudentID.IsZero() || dto.LessonID.IsZero() {
-		return Absence{}, global.NotValidParams
+		return entities.Absence{}, global.NotValidParams
 	}
 
-	absences := Absence{
+	absences := entities.Absence{
 		Time:         dto.Time,
 		StudentID:    dto.StudentID,
 		LessonID:     dto.LessonID,
@@ -407,7 +336,7 @@ func (j *controller) AddAbsence(ctx context.Context, dto AddAbsencesDTO, user gl
 
 	id, err := j.repository.AddAbsence(ctx, absences, user.TypeName)
 	if err != nil {
-		return Absence{}, err
+		return entities.Absence{}, err
 	}
 
 	absences.ID = id
@@ -415,12 +344,12 @@ func (j *controller) AddAbsence(ctx context.Context, dto AddAbsencesDTO, user gl
 	return absences, nil
 }
 
-func (j *controller) UpdateAbsence(ctx context.Context, user global.User, dto UpdateAbsencesDTO) error {
+func (j *controller) UpdateAbsence(ctx context.Context, user global.User, dto dtos.UpdateAbsencesDTO) error {
 	if dto.ID.IsZero() || dto.LessonID.IsZero() {
 		return global.NotValidParams
 	}
 
-	absences := Absence{
+	absences := entities.Absence{
 		ID:           dto.ID,
 		Time:         dto.Time,
 		StudentID:    dto.StudentID,

@@ -1,9 +1,11 @@
-package journal
+package handlers
 
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"studyum/internal/global"
+	"studyum/internal/journal/controllers"
+	"studyum/internal/journal/dtos"
 )
 
 type Handler interface {
@@ -29,13 +31,14 @@ type Handler interface {
 type handler struct {
 	global.Handler
 
-	controller Controller
+	controller        controllers.Controller
+	journalController controllers.Journal
 
 	Group *gin.RouterGroup
 }
 
-func NewJournalHandler(authHandler global.Handler, controller Controller, group *gin.RouterGroup) Handler {
-	h := &handler{Handler: authHandler, controller: controller, Group: group}
+func NewJournalHandler(authHandler global.Handler, controller controllers.Controller, journal controllers.Journal, group *gin.RouterGroup) Handler {
+	h := &handler{Handler: authHandler, controller: controller, journalController: journal, Group: group}
 
 	group.GET("/options", h.Auth(), h.GetJournalAvailableOptions)
 	group.GET("/:group/:subject/:teacher", h.Auth(), h.GetJournal)
@@ -69,7 +72,7 @@ func NewJournalHandler(authHandler global.Handler, controller Controller, group 
 func (j *handler) GenerateMarks(ctx *gin.Context) {
 	user := j.Handler.GetUserViaCtx(ctx)
 
-	var config MarksReport
+	var config dtos.MarksReport
 	if err := ctx.BindJSON(&config); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
@@ -87,7 +90,7 @@ func (j *handler) GenerateMarks(ctx *gin.Context) {
 func (j *handler) GenerateAbsences(ctx *gin.Context) {
 	user := j.GetUserViaCtx(ctx)
 
-	var config AbsencesReport
+	var config dtos.AbsencesReport
 	if err := ctx.BindJSON(&config); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
@@ -105,7 +108,7 @@ func (j *handler) GenerateAbsences(ctx *gin.Context) {
 func (j *handler) GetJournalAvailableOptions(ctx *gin.Context) {
 	user := j.GetUserViaCtx(ctx)
 
-	options, err := j.controller.GetJournalAvailableOptions(ctx, user)
+	options, err := j.journalController.BuildAvailableOptions(ctx, user)
 	if err != nil {
 		j.Error(ctx, err)
 		return
@@ -121,7 +124,7 @@ func (j *handler) GetJournal(ctx *gin.Context) {
 	subject := ctx.Param("subject")
 	teacher := ctx.Param("teacher")
 
-	journal, err := j.controller.GetJournal(ctx, group, subject, teacher, user)
+	journal, err := j.journalController.BuildSubjectsJournal(ctx, group, subject, teacher, user)
 	if err != nil {
 		j.Error(ctx, err)
 		return
@@ -133,7 +136,7 @@ func (j *handler) GetJournal(ctx *gin.Context) {
 func (j *handler) GetUserJournal(ctx *gin.Context) {
 	user := j.Handler.GetUserViaCtx(ctx)
 
-	journal, err := j.controller.GetUserJournal(ctx, user)
+	journal, err := j.journalController.BuildStudentsJournal(ctx, user)
 	if err != nil {
 		j.Error(ctx, err)
 		return
@@ -145,7 +148,7 @@ func (j *handler) GetUserJournal(ctx *gin.Context) {
 func (j *handler) AddMarks(ctx *gin.Context) {
 	user := j.GetUserViaCtx(ctx)
 
-	var marks []AddMarkDTO
+	var marks []dtos.AddMarkDTO
 	if err := ctx.BindJSON(&marks); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
@@ -163,7 +166,7 @@ func (j *handler) AddMarks(ctx *gin.Context) {
 func (j *handler) AddMark(ctx *gin.Context) {
 	user := j.GetUserViaCtx(ctx)
 
-	var mark AddMarkDTO
+	var mark dtos.AddMarkDTO
 	if err := ctx.BindJSON(&mark); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
@@ -197,7 +200,7 @@ func (j *handler) GetMark(ctx *gin.Context) {
 func (j *handler) UpdateMark(ctx *gin.Context) {
 	user := j.GetUserViaCtx(ctx)
 
-	var mark UpdateMarkDTO
+	var mark dtos.UpdateMarkDTO
 	if err := ctx.BindJSON(&mark); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
@@ -229,7 +232,7 @@ func (j *handler) DeleteMark(ctx *gin.Context) {
 func (j *handler) AddAbsences(ctx *gin.Context) {
 	user := j.GetUserViaCtx(ctx)
 
-	var absencesDTO []AddAbsencesDTO
+	var absencesDTO []dtos.AddAbsencesDTO
 	if err := ctx.BindJSON(&absencesDTO); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
@@ -247,7 +250,7 @@ func (j *handler) AddAbsences(ctx *gin.Context) {
 func (j *handler) AddAbsence(ctx *gin.Context) {
 	user := j.GetUserViaCtx(ctx)
 
-	var absencesDTO AddAbsencesDTO
+	var absencesDTO dtos.AddAbsencesDTO
 	if err := ctx.BindJSON(&absencesDTO); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
@@ -265,7 +268,7 @@ func (j *handler) AddAbsence(ctx *gin.Context) {
 func (j *handler) UpdateAbsence(ctx *gin.Context) {
 	user := j.GetUserViaCtx(ctx)
 
-	var absences UpdateAbsencesDTO
+	var absences dtos.UpdateAbsencesDTO
 	if err := ctx.BindJSON(&absences); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
