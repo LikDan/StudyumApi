@@ -5,7 +5,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"studyum/internal/general"
 	"studyum/internal/global"
 	"studyum/pkg/datetime"
 	"studyum/pkg/hMongo"
@@ -34,7 +33,7 @@ type Repository interface {
 
 	RemoveGeneralLessonsByType(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, name string) error
 
-	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace general.StudyPlace)
+	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace global.StudyPlace)
 	GetGeneralLessons(ctx context.Context, studyPlaceId primitive.ObjectID, weekIndex, dayIndex int) ([]GeneralLesson, error)
 
 	FilterLessonMarks(ctx context.Context, lessonID primitive.ObjectID, marks []string) error
@@ -48,7 +47,7 @@ func NewScheduleRepository(r *global.Repository) Repository {
 	return &repository{Repository: r}
 }
 
-func (s *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace general.StudyPlace) {
+func (s *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace global.StudyPlace) {
 	err = s.StudyPlacesCollection.FindOne(ctx, bson.M{"_id": id, "restricted": restricted}).Decode(&studyPlace)
 	return
 }
@@ -252,7 +251,7 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 	}
 
 	if !cursor.Next(ctx) {
-		var studyPlace general.StudyPlace
+		var studyPlace global.StudyPlace
 		if err = s.StudyPlacesCollection.FindOne(ctx, bson.M{"_id": studyPlaceID}).Decode(&studyPlace); err != nil {
 			return Schedule{}, err
 		}

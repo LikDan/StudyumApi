@@ -5,7 +5,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"studyum/internal/general"
 	"studyum/internal/global"
 	"studyum/internal/journal/entities"
 	"studyum/pkg/hMongo"
@@ -13,6 +12,7 @@ import (
 )
 
 type Repository interface {
+	GetMarkByID(ctx context.Context, id primitive.ObjectID) (entities.Mark, error)
 	AddMarks(ctx context.Context, marks []entities.Mark, teacher string) error
 	AddMark(ctx context.Context, mark entities.Mark, teacher string) (primitive.ObjectID, error)
 	UpdateMark(ctx context.Context, mark entities.Mark, teacher string) error
@@ -27,8 +27,9 @@ type Repository interface {
 	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
 	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId primitive.ObjectID) ([]entities.Lesson, error)
 
-	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID) (general.StudyPlace, error)
+	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID) (global.StudyPlace, error)
 
+	GetAbsenceByID(ctx context.Context, id primitive.ObjectID) (entities.Absence, error)
 	AddAbsences(ctx context.Context, absences []entities.Absence, teacher string) error
 	AddAbsence(ctx context.Context, absence entities.Absence, teacher string) (primitive.ObjectID, error)
 	UpdateAbsence(ctx context.Context, absence entities.Absence, teacher string) error
@@ -36,6 +37,8 @@ type Repository interface {
 
 	GenerateMarksReport(ctx context.Context, group string, lessonType string, mark string, from, to *time.Time, studyPlaceId primitive.ObjectID) (entities.GeneratedTable, error)
 	GenerateAbsencesReport(ctx context.Context, group string, from, to *time.Time, id primitive.ObjectID) (entities.GeneratedTable, error)
+
+	GetJournalRowWithDates(ctx context.Context, userID primitive.ObjectID, subject, teacher, group string, studyPlaceId primitive.ObjectID) ([]*entities.Cell, []time.Time, error)
 }
 
 type repository struct {
@@ -847,7 +850,7 @@ func (j *repository) GetLessonByID(ctx context.Context, id primitive.ObjectID) (
 	return
 }
 
-func (j *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID) (studyPlace general.StudyPlace, err error) {
+func (j *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID) (studyPlace global.StudyPlace, err error) {
 	err = j.StudyPlacesCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&studyPlace)
 	return
 }
@@ -866,6 +869,9 @@ func (j *repository) GetLessons(ctx context.Context, userId primitive.ObjectID, 
 		bson.D{{"$match", bson.M{"group": group, "teacher": teacher, "subject": subject, "studyPlaceId": studyPlaceId}}},
 		bson.D{{"$sort", bson.M{"date": 1}}},
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	var marks []entities.Lesson
 	if err = lessonsCursor.All(ctx, &marks); err != nil {
@@ -906,6 +912,44 @@ func (j *repository) DeleteMarkByID(ctx context.Context, id primitive.ObjectID, 
 	}
 
 	return nil
+}
+
+func (j *repository) GetMarkByID(ctx context.Context, id primitive.ObjectID) (mark entities.Mark, err error) {
+	markCursor, err := j.LessonsCollection.Aggregate(ctx, bson.A{
+		bson.M{"$match": bson.M{"marks._id": id}},
+		bson.M{"$unwind": "$marks"},
+		bson.M{"$match": bson.M{"marks._id": id}},
+		bson.M{"$replaceRoot": bson.M{"newRoot": "$marks"}},
+	})
+	if err != nil {
+		return entities.Mark{}, err
+	}
+
+	if !markCursor.Next(ctx) {
+		return entities.Mark{}, mongo.ErrNoDocuments
+	}
+
+	err = markCursor.Decode(&mark)
+	return
+}
+
+func (j *repository) GetAbsenceByID(ctx context.Context, id primitive.ObjectID) (absence entities.Absence, err error) {
+	markCursor, err := j.LessonsCollection.Aggregate(ctx, bson.A{
+		bson.M{"$match": bson.M{"absences._id": id}},
+		bson.M{"$unwind": "$absences"},
+		bson.M{"$match": bson.M{"absences._id": id}},
+		bson.M{"$replaceRoot": bson.M{"newRoot": "$absences"}},
+	})
+	if err != nil {
+		return entities.Absence{}, err
+	}
+
+	if !markCursor.Next(ctx) {
+		return entities.Absence{}, mongo.ErrNoDocuments
+	}
+
+	err = markCursor.Decode(&absence)
+	return
 }
 
 func (j *repository) AddAbsences(ctx context.Context, absences []entities.Absence, teacher string) error {
@@ -950,4 +994,49 @@ func (j *repository) DeleteAbsenceByID(ctx context.Context, id primitive.ObjectI
 	}
 
 	return nil
+}
+
+func (j *repository) GetJournalRowWithDates(ctx context.Context, userID primitive.ObjectID, subject, teacher, group string, studyPlaceId primitive.ObjectID) ([]*entities.Cell, []time.Time, error) {
+	rowCursor, err := j.LessonsCollection.Aggregate(ctx, bson.A{
+		bson.M{"$match": bson.M{"group": group, "subject": subject, "teacher": teacher, "studyPlaceId": studyPlaceId}},
+		bson.M{"$addFields": bson.M{
+			"marks": bson.M{"$filter": bson.M{
+				"input": "$marks",
+				"as":    "mark",
+				"cond":  bson.M{"$eq": bson.A{"$$mark.studentID", userID}},
+			}},
+			"absences": bson.M{"$filter": bson.M{
+				"input": "$absences",
+				"as":    "absence",
+				"cond":  bson.M{"$eq": bson.A{"$$absence.studentID", userID}},
+			}},
+		}},
+		bson.M{"$sort": bson.M{"startDate": 1}},
+		bson.M{"$group": bson.M{
+			"_id":   nil,
+			"dates": bson.M{"$push": "$startDate"},
+			"cells": bson.M{"$push": bson.M{
+				"id":       "$_id",
+				"type":     bson.A{"$type"},
+				"marks":    "$marks",
+				"absences": "$absences",
+			}},
+		}},
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	if !rowCursor.Next(ctx) {
+		return nil, nil, mongo.ErrNoDocuments
+	}
+
+	var res struct {
+		Cells []*entities.Cell `bson:"cells"`
+		Dates []time.Time      `bson:"dates"`
+	}
+	if err = rowCursor.Decode(&res); err != nil {
+		return nil, nil, err
+	}
+
+	return res.Cells, res.Dates, nil
 }

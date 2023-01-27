@@ -64,8 +64,8 @@ func main() {
 	controller := global.NewController(jwtController, *repository, encrypt)
 	userController := user.NewUserController(jwtController, userRepository, encrypt, parserHandler)
 	generalController := general.NewGeneralController(generalRepository)
-	mainJournalController := controllers.NewController(parserHandler, journalRepository, encrypt)
 	journalController := controllers.NewJournalController(journalRepository, encrypt)
+	mainJournalController := controllers.NewController(parserHandler, journalController, journalRepository, encrypt)
 	scheduleController := schedule.NewScheduleController(parserHandler, scheduleValidator, scheduleRepository, generalController)
 
 	jwtController.SetGetClaimsFunc(controller.GetClaims)

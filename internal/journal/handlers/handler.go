@@ -84,7 +84,7 @@ func (j *handler) GenerateMarks(ctx *gin.Context) {
 		return
 	}
 
-	file.WriteTo(ctx.Writer)
+	_, _ = file.WriteTo(ctx.Writer)
 }
 
 func (j *handler) GenerateAbsences(ctx *gin.Context) {
@@ -102,7 +102,7 @@ func (j *handler) GenerateAbsences(ctx *gin.Context) {
 		return
 	}
 
-	file.WriteTo(ctx.Writer)
+	_, _ = file.WriteTo(ctx.Writer)
 }
 
 func (j *handler) GetJournalAvailableOptions(ctx *gin.Context) {
@@ -172,29 +172,13 @@ func (j *handler) AddMark(ctx *gin.Context) {
 		return
 	}
 
-	lesson, err := j.controller.AddMark(ctx, mark, user)
+	cellResponse, err := j.controller.AddMark(ctx, mark, user)
 	if err != nil {
 		j.Error(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, lesson)
-}
-
-func (j *handler) GetMark(ctx *gin.Context) {
-	user := j.GetUserViaCtx(ctx)
-
-	group := ctx.Query("group")
-	subject := ctx.Query("subject")
-	userIdHex := ctx.Query("userId")
-
-	lessons, err := j.controller.GetMark(ctx, group, subject, userIdHex, user)
-	if err != nil {
-		j.Error(ctx, err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, lessons)
+	ctx.JSON(http.StatusOK, cellResponse)
 }
 
 func (j *handler) UpdateMark(ctx *gin.Context) {
@@ -206,13 +190,13 @@ func (j *handler) UpdateMark(ctx *gin.Context) {
 		return
 	}
 
-	err := j.controller.UpdateMark(ctx, user, mark)
+	cellResponse, err := j.controller.UpdateMark(ctx, user, mark)
 	if err != nil {
 		j.Error(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, mark)
+	ctx.JSON(http.StatusOK, cellResponse)
 }
 
 func (j *handler) DeleteMark(ctx *gin.Context) {
@@ -220,13 +204,13 @@ func (j *handler) DeleteMark(ctx *gin.Context) {
 
 	markId := ctx.Param("id")
 
-	err := j.controller.DeleteMark(ctx, user, markId)
+	cellResponse, err := j.controller.DeleteMark(ctx, user, markId)
 	if err != nil {
 		j.Error(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, markId)
+	ctx.JSON(http.StatusOK, cellResponse)
 }
 
 func (j *handler) AddAbsences(ctx *gin.Context) {
@@ -256,13 +240,13 @@ func (j *handler) AddAbsence(ctx *gin.Context) {
 		return
 	}
 
-	absences, err := j.controller.AddAbsence(ctx, absencesDTO, user)
+	cellResponse, err := j.controller.AddAbsence(ctx, absencesDTO, user)
 	if err != nil {
 		j.Error(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, absences)
+	ctx.JSON(http.StatusOK, cellResponse)
 }
 
 func (j *handler) UpdateAbsence(ctx *gin.Context) {
@@ -274,22 +258,24 @@ func (j *handler) UpdateAbsence(ctx *gin.Context) {
 		return
 	}
 
-	if err := j.controller.UpdateAbsence(ctx, user, absences); err != nil {
+	cellResponse, err := j.controller.UpdateAbsence(ctx, user, absences)
+	if err != nil {
 		j.Error(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, absences)
+	ctx.JSON(http.StatusOK, cellResponse)
 }
 
 func (j *handler) DeleteAbsence(ctx *gin.Context) {
 	user := j.GetUserViaCtx(ctx)
 
 	absencesID := ctx.Param("id")
-	if err := j.controller.DeleteAbsence(ctx, user, absencesID); err != nil {
+	cellResponse, err := j.controller.DeleteAbsence(ctx, user, absencesID)
+	if err != nil {
 		j.Error(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, absencesID)
+	ctx.JSON(http.StatusOK, cellResponse)
 }

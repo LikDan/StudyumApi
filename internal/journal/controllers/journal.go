@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/exp/slices"
 	"strconv"
 	"studyum/internal/global"
@@ -12,6 +13,8 @@ import (
 )
 
 type Journal interface {
+	GetUpdateInfo(ctx context.Context, userID, lessonID primitive.ObjectID) (entities.CellResponse, error)
+
 	BuildAvailableOptions(ctx context.Context, user global.User) ([]entities.AvailableOption, error)
 	BuildSubjectsJournal(ctx context.Context, group string, subject string, teacher string, user global.User) (entities.Journal, error)
 	BuildStudentsJournal(ctx context.Context, user global.User) (entities.Journal, error)
@@ -200,6 +203,84 @@ func (c *journal) proceedJournal(j *entities.Journal) {
 		j.Rows[i].MarksAmount = c.rowMarksAmount(j.Rows[i].Cells)
 		j.Rows[i].AbsencesAmount, j.Rows[i].AbsencesTime = c.rowAbsencesAmount(j.Rows[i].Cells)
 	}
+}
+
+func (c *journal) getCellByLessonAndUserID(ctx context.Context, userID primitive.ObjectID, lesson entities.Lesson) (entities.Cell, error) {
+	cell := entities.Cell{
+		Id:   lesson.Id,
+		Type: []string{lesson.Type},
+	}
+
+	for _, mark := range lesson.Marks {
+		if mark.StudentID == userID {
+			cell.Marks = append(cell.Marks, mark)
+		}
+	}
+
+	for _, absence := range lesson.Absences {
+		if absence.StudentID == userID {
+			cell.Absences = append(cell.Absences, absence)
+		}
+	}
+
+	studyPlace, err := c.repository.GetStudyPlaceByID(ctx, lesson.StudyPlaceId)
+	if err != nil {
+		return entities.Cell{}, err
+	}
+
+	cell.JournalCellColor = c.cellColor(studyPlace, lesson.StartDate, cell)
+	return cell, nil
+}
+
+func (c *journal) getRowInfo(ctx context.Context, userID primitive.ObjectID, lesson entities.Lesson) (float32, map[string]int, string, error) {
+	studyPlace, err := c.repository.GetStudyPlaceByID(ctx, lesson.StudyPlaceId)
+	if err != nil {
+		return 0, nil, "", err
+	}
+
+	cells, dates, err := c.repository.GetJournalRowWithDates(ctx, userID, lesson.Subject, lesson.Teacher, lesson.Group, lesson.StudyPlaceId)
+	if err != nil {
+		return 0, nil, "", err
+	}
+
+	row := entities.Row{
+		Cells: make([]*entities.Cell, len(cells)),
+	}
+
+	for i, cell := range cells {
+		if cell == nil {
+			continue
+		}
+
+		cell.JournalCellColor = c.cellColor(studyPlace, dates[i], *cell)
+		row.Cells[i] = cell
+	}
+
+	return c.rowAverageMark(row), c.rowMarksAmount(row.Cells), c.rowColor(studyPlace, row), nil
+}
+
+func (c *journal) GetUpdateInfo(ctx context.Context, userID, lessonID primitive.ObjectID) (entities.CellResponse, error) {
+	lesson, err := c.repository.GetLessonByID(ctx, lessonID)
+	if err != nil {
+		return entities.CellResponse{}, err
+	}
+
+	cell, err := c.getCellByLessonAndUserID(ctx, userID, lesson)
+	if err != nil {
+		return entities.CellResponse{}, err
+	}
+
+	avg, amount, color, err := c.getRowInfo(ctx, userID, lesson)
+	if err != nil {
+		return entities.CellResponse{}, err
+	}
+
+	return entities.CellResponse{
+		Cell:       cell,
+		RowColor:   color,
+		Average:    avg,
+		MarkAmount: amount,
+	}, nil
 }
 
 func (c *journal) BuildAvailableOptions(ctx context.Context, user global.User) ([]entities.AvailableOption, error) {

@@ -263,7 +263,7 @@ func (s *controller) UpdateLesson(ctx context.Context, updateDTO UpdateLessonDTO
 		return err
 	}
 
-	var lessonType general.LessonType
+	var lessonType global.LessonType
 	for _, lessonType_ := range studyPlace.LessonTypes {
 		if lessonType_.Type == lesson.Type {
 			lessonType = lessonType_
