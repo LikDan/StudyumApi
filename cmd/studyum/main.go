@@ -8,6 +8,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
+	"studyum/internal/auth"
+	authEntries "studyum/internal/auth/entities"
 	"studyum/internal/general"
 	"studyum/internal/global"
 	"studyum/internal/journal/controllers"
@@ -37,9 +39,7 @@ func main() {
 		logrus.Fatalf("Can't connect to database, error: %s", err.Error())
 	}
 
-	defer func() {
-		logrus.Warning("Studyum is stopping at", time.Now().Format("2006-01-02 15:04"))
-	}()
+	defer logrus.Warning("Studyum is stopping at", time.Now().Format("2006-01-02 15:04"))
 
 	firebaseCredentials := []byte(os.Getenv("FIREBASE_CREDENTIALS"))
 	firebase := fb.NewFirebase(firebaseCredentials)
@@ -51,9 +51,15 @@ func main() {
 
 	secret := os.Getenv("JWT_SECRET")
 	expTime := time.Minute * 10
-	jwtController := jwt.New[global.JWTClaims](expTime, secret)
+	jwtController := jwt.New[authEntries.JWTClaims](expTime, secret)
 
 	repository := global.NewRepository(client)
+	controller := global.NewController(*repository, encrypt)
+	handler := global.NewHandler(controller)
+
+	engine := gin.Default()
+	api := engine.Group("/api")
+
 	userRepository := user.NewUserRepository(repository)
 	generalRepository := general.NewGeneralRepository(repository)
 	journalRepository := repositories.NewJournalRepository(repository)
@@ -61,23 +67,19 @@ func main() {
 
 	scheduleValidator := schedule.NewSchedule(validator.New())
 
-	controller := global.NewController(jwtController, *repository, encrypt)
-	userController := user.NewUserController(jwtController, userRepository, encrypt, parserHandler)
+	db := client.Database("Studyum")
+	authMiddleware, _, _, sessionsController := auth.New(api.Group("/user"), handler, encrypt, jwtController, db)
+
+	userController := user.NewUserController(userRepository, sessionsController, encrypt, parserHandler)
 	generalController := general.NewGeneralController(generalRepository)
 	journalController := controllers.NewJournalController(journalRepository, encrypt)
 	mainJournalController := controllers.NewController(parserHandler, journalController, journalRepository, encrypt)
 	scheduleController := schedule.NewScheduleController(parserHandler, scheduleValidator, scheduleRepository, generalController)
 
-	jwtController.SetGetClaimsFunc(controller.GetClaims)
-
-	engine := gin.Default()
-	api := engine.Group("/api")
-
-	handler := global.NewHandler(controller)
 	general.NewGeneralHandler(handler, generalController, api)
-	user.NewUserHandler(handler, userController, api.Group("/user"))
-	handlers.NewJournalHandler(handler, mainJournalController, journalController, api.Group("/journal"))
-	schedule.NewScheduleHandler(handler, scheduleController, api.Group("/schedule"))
+	user.NewUserHandler(handler, authMiddleware, userController, api.Group("/user"))
+	handlers.NewJournalHandler(handler, authMiddleware, mainJournalController, journalController, api.Group("/journal"))
+	schedule.NewScheduleHandler(handler, authMiddleware, scheduleController, api.Group("/schedule"))
 
 	logrus.Fatalf("Error launching server %s", engine.Run().Error())
 }

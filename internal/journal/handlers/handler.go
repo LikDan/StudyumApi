@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	auth "studyum/internal/auth/handlers"
 	"studyum/internal/global"
 	"studyum/internal/journal/controllers"
 	"studyum/internal/journal/dtos"
@@ -30,6 +31,7 @@ type Handler interface {
 
 type handler struct {
 	global.Handler
+	auth.Middleware
 
 	controller        controllers.Controller
 	journalController controllers.Journal
@@ -37,14 +39,14 @@ type handler struct {
 	Group *gin.RouterGroup
 }
 
-func NewJournalHandler(authHandler global.Handler, controller controllers.Controller, journal controllers.Journal, group *gin.RouterGroup) Handler {
-	h := &handler{Handler: authHandler, controller: controller, journalController: journal, Group: group}
+func NewJournalHandler(authHandler global.Handler, middleware auth.Middleware, controller controllers.Controller, journal controllers.Journal, group *gin.RouterGroup) Handler {
+	h := &handler{Handler: authHandler, Middleware: middleware, controller: controller, journalController: journal, Group: group}
 
-	group.GET("/options", h.Auth(), h.GetJournalAvailableOptions)
-	group.GET("/:group/:subject/:teacher", h.Auth(), h.GetJournal)
-	group.GET("", h.Auth(), h.GetUserJournal)
+	group.GET("/options", h.MemberAuth(), h.GetJournalAvailableOptions)
+	group.GET("/:group/:subject/:teacher", h.MemberAuth(), h.GetJournal)
+	group.GET("", h.MemberAuth(), h.GetUserJournal)
 
-	mark := group.Group("/mark", h.Auth("editJournal"))
+	mark := group.Group("/mark", h.MemberAuth("editJournal"))
 	{
 		mark.POST("list", h.AddMarks)
 		mark.POST("", h.AddMark)
@@ -52,7 +54,7 @@ func NewJournalHandler(authHandler global.Handler, controller controllers.Contro
 		mark.DELETE(":id", h.DeleteMark)
 	}
 
-	absences := group.Group("/absences", h.Auth("editJournal"))
+	absences := group.Group("/absences", h.MemberAuth("editJournal"))
 	{
 		absences.POST("list", h.AddAbsences)
 		absences.POST("", h.AddAbsence)
@@ -60,17 +62,17 @@ func NewJournalHandler(authHandler global.Handler, controller controllers.Contro
 		absences.DELETE(":id", h.DeleteAbsence)
 	}
 
-	generate := group.Group("/generate", h.Auth())
+	generate := group.Group("/generate", h.MemberAuth())
 	{
-		generate.POST("/marks", h.Auth(), h.GenerateMarks)
-		generate.POST("/absences", h.Auth(), h.GenerateAbsences)
+		generate.POST("/marks", h.GenerateMarks)
+		generate.POST("/absences", h.GenerateAbsences)
 	}
 
 	return h
 }
 
 func (j *handler) GenerateMarks(ctx *gin.Context) {
-	user := j.Handler.GetUserViaCtx(ctx)
+	user := j.Handler.GetUser(ctx)
 
 	var config dtos.MarksReport
 	if err := ctx.BindJSON(&config); err != nil {
@@ -88,7 +90,7 @@ func (j *handler) GenerateMarks(ctx *gin.Context) {
 }
 
 func (j *handler) GenerateAbsences(ctx *gin.Context) {
-	user := j.GetUserViaCtx(ctx)
+	user := j.GetUser(ctx)
 
 	var config dtos.AbsencesReport
 	if err := ctx.BindJSON(&config); err != nil {
@@ -106,7 +108,7 @@ func (j *handler) GenerateAbsences(ctx *gin.Context) {
 }
 
 func (j *handler) GetJournalAvailableOptions(ctx *gin.Context) {
-	user := j.GetUserViaCtx(ctx)
+	user := j.GetUser(ctx)
 
 	options, err := j.journalController.BuildAvailableOptions(ctx, user)
 	if err != nil {
@@ -118,7 +120,7 @@ func (j *handler) GetJournalAvailableOptions(ctx *gin.Context) {
 }
 
 func (j *handler) GetJournal(ctx *gin.Context) {
-	user := j.GetUserViaCtx(ctx)
+	user := j.GetUser(ctx)
 
 	group := ctx.Param("group")
 	subject := ctx.Param("subject")
@@ -134,7 +136,7 @@ func (j *handler) GetJournal(ctx *gin.Context) {
 }
 
 func (j *handler) GetUserJournal(ctx *gin.Context) {
-	user := j.Handler.GetUserViaCtx(ctx)
+	user := j.GetUser(ctx)
 
 	journal, err := j.journalController.BuildStudentsJournal(ctx, user)
 	if err != nil {
@@ -146,7 +148,7 @@ func (j *handler) GetUserJournal(ctx *gin.Context) {
 }
 
 func (j *handler) AddMarks(ctx *gin.Context) {
-	user := j.GetUserViaCtx(ctx)
+	user := j.GetUser(ctx)
 
 	var marks []dtos.AddMarkDTO
 	if err := ctx.BindJSON(&marks); err != nil {
@@ -164,7 +166,7 @@ func (j *handler) AddMarks(ctx *gin.Context) {
 }
 
 func (j *handler) AddMark(ctx *gin.Context) {
-	user := j.GetUserViaCtx(ctx)
+	user := j.GetUser(ctx)
 
 	var mark dtos.AddMarkDTO
 	if err := ctx.BindJSON(&mark); err != nil {
@@ -182,7 +184,7 @@ func (j *handler) AddMark(ctx *gin.Context) {
 }
 
 func (j *handler) UpdateMark(ctx *gin.Context) {
-	user := j.GetUserViaCtx(ctx)
+	user := j.GetUser(ctx)
 
 	var mark dtos.UpdateMarkDTO
 	if err := ctx.BindJSON(&mark); err != nil {
@@ -200,7 +202,7 @@ func (j *handler) UpdateMark(ctx *gin.Context) {
 }
 
 func (j *handler) DeleteMark(ctx *gin.Context) {
-	user := j.GetUserViaCtx(ctx)
+	user := j.GetUser(ctx)
 
 	markId := ctx.Param("id")
 
@@ -214,7 +216,7 @@ func (j *handler) DeleteMark(ctx *gin.Context) {
 }
 
 func (j *handler) AddAbsences(ctx *gin.Context) {
-	user := j.GetUserViaCtx(ctx)
+	user := j.GetUser(ctx)
 
 	var absencesDTO []dtos.AddAbsencesDTO
 	if err := ctx.BindJSON(&absencesDTO); err != nil {
@@ -232,7 +234,7 @@ func (j *handler) AddAbsences(ctx *gin.Context) {
 }
 
 func (j *handler) AddAbsence(ctx *gin.Context) {
-	user := j.GetUserViaCtx(ctx)
+	user := j.GetUser(ctx)
 
 	var absencesDTO dtos.AddAbsencesDTO
 	if err := ctx.BindJSON(&absencesDTO); err != nil {
@@ -250,7 +252,7 @@ func (j *handler) AddAbsence(ctx *gin.Context) {
 }
 
 func (j *handler) UpdateAbsence(ctx *gin.Context) {
-	user := j.GetUserViaCtx(ctx)
+	user := j.GetUser(ctx)
 
 	var absences dtos.UpdateAbsencesDTO
 	if err := ctx.BindJSON(&absences); err != nil {
@@ -268,7 +270,7 @@ func (j *handler) UpdateAbsence(ctx *gin.Context) {
 }
 
 func (j *handler) DeleteAbsence(ctx *gin.Context) {
-	user := j.GetUserViaCtx(ctx)
+	user := j.GetUser(ctx)
 
 	absencesID := ctx.Param("id")
 	cellResponse, err := j.controller.DeleteAbsence(ctx, user, absencesID)

@@ -5,6 +5,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/exp/slices"
 	"strconv"
+	auth "studyum/internal/auth/entities"
 	"studyum/internal/global"
 	"studyum/internal/journal/entities"
 	"studyum/internal/journal/repositories"
@@ -15,9 +16,9 @@ import (
 type Journal interface {
 	GetUpdateInfo(ctx context.Context, userID, lessonID primitive.ObjectID) (entities.CellResponse, error)
 
-	BuildAvailableOptions(ctx context.Context, user global.User) ([]entities.AvailableOption, error)
-	BuildSubjectsJournal(ctx context.Context, group string, subject string, teacher string, user global.User) (entities.Journal, error)
-	BuildStudentsJournal(ctx context.Context, user global.User) (entities.Journal, error)
+	BuildAvailableOptions(ctx context.Context, user auth.User) ([]entities.AvailableOption, error)
+	BuildSubjectsJournal(ctx context.Context, group string, subject string, teacher string, user auth.User) (entities.Journal, error)
+	BuildStudentsJournal(ctx context.Context, user auth.User) (entities.Journal, error)
 }
 
 type journal struct {
@@ -283,7 +284,7 @@ func (c *journal) GetUpdateInfo(ctx context.Context, userID, lessonID primitive.
 	}, nil
 }
 
-func (c *journal) BuildAvailableOptions(ctx context.Context, user global.User) ([]entities.AvailableOption, error) {
+func (c *journal) BuildAvailableOptions(ctx context.Context, user auth.User) ([]entities.AvailableOption, error) {
 	if user.Type == "group" {
 		return []entities.AvailableOption{{
 			Teacher:  "",
@@ -305,7 +306,7 @@ func (c *journal) BuildAvailableOptions(ctx context.Context, user global.User) (
 	return options, nil
 }
 
-func (c *journal) BuildSubjectsJournal(ctx context.Context, group string, subject string, teacher string, user global.User) (entities.Journal, error) {
+func (c *journal) BuildSubjectsJournal(ctx context.Context, group string, subject string, teacher string, user auth.User) (entities.Journal, error) {
 	if group == "" || subject == "" || teacher == "" {
 		return entities.Journal{}, global.NotValidParams
 	}
@@ -353,7 +354,7 @@ func (c *journal) BuildSubjectsJournal(ctx context.Context, group string, subjec
 	return journal, nil
 }
 
-func (c *journal) BuildStudentsJournal(ctx context.Context, user global.User) (entities.Journal, error) {
+func (c *journal) BuildStudentsJournal(ctx context.Context, user auth.User) (entities.Journal, error) {
 	journal, err := c.repository.GetStudentJournal(ctx, user.Id, user.TypeName, user.StudyPlaceID)
 	if err != nil {
 		return entities.Journal{}, err

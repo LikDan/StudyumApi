@@ -21,7 +21,7 @@ type JWT[C any] interface {
 	SetGetClaimsFunc(fn GetClaimsByRefreshToken[C])
 }
 
-type GetClaimsByRefreshToken[C any] func(ctx context.Context, refresh string) (error, C)
+type GetClaimsByRefreshToken[C any] func(ctx context.Context, refresh string) (C, error)
 
 type controller[C any] struct {
 	validTime time.Duration
@@ -102,7 +102,7 @@ func (c *controller[C]) RefreshPair(ctx context.Context, token string) (TokenPai
 }
 
 func (c *controller[C]) Refresh(ctx context.Context, token string) (string, error) {
-	err, claims := c.getClaims(ctx, token)
+	claims, err := c.getClaims(ctx, token)
 	if err != nil {
 		return "", err
 	}

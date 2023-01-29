@@ -3,6 +3,7 @@ package schedule
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	auth "studyum/internal/auth/handlers"
 	"studyum/internal/global"
 	"time"
 )
@@ -32,39 +33,40 @@ type Handler interface {
 
 type handler struct {
 	global.Handler
+	auth.Middleware
 
 	controller Controller
 
 	Group *gin.RouterGroup
 }
 
-func NewScheduleHandler(authHandler global.Handler, controller Controller, group *gin.RouterGroup) Handler {
-	h := &handler{Handler: authHandler, controller: controller, Group: group}
+func NewScheduleHandler(authHandler global.Handler, middleware auth.Middleware, controller Controller, group *gin.RouterGroup) Handler {
+	h := &handler{Handler: authHandler, Middleware: middleware, controller: controller, Group: group}
 
-	group.GET("getTypes", h.User(), h.GetScheduleTypes)
-	group.GET(":type/:name", h.User(), h.GetSchedule)
-	group.GET("", h.Auth(), h.GetUserSchedule)
+	group.GET("getTypes", h.TryAuth(), h.GetScheduleTypes)
+	group.GET(":type/:name", h.TryAuth(), h.GetSchedule)
+	group.GET("", h.MemberAuth(), h.GetUserSchedule)
 
-	group.GET("general/:type/:name", h.User(), h.GetGeneralSchedule)
-	group.GET("general", h.Auth(), h.GetGeneralUserSchedule)
+	group.GET("general/:type/:name", h.MemberAuth(), h.GetGeneralSchedule)
+	group.GET("general", h.MemberAuth(), h.GetGeneralUserSchedule)
 
-	group.POST("", h.Auth("editSchedule"), h.AddLesson)
-	group.PUT("", h.Auth("editJournal"), h.UpdateLesson)
-	group.DELETE(":id", h.Auth("editSchedule"), h.DeleteLesson)
-	group.GET("lessons/:id", h.Auth(), h.GetLessonByID)
-	group.DELETE("between/:startDate/:endDate", h.Auth("editSchedule"), h.RemoveLessonsBetweenDates)
+	group.POST("", h.MemberAuth("editSchedule"), h.AddLesson)
+	group.PUT("", h.MemberAuth("editJournal"), h.UpdateLesson)
+	group.DELETE(":id", h.MemberAuth("editSchedule"), h.DeleteLesson)
+	group.GET("lessons/:id", h.MemberAuth(), h.GetLessonByID)
+	group.DELETE("between/:startDate/:endDate", h.MemberAuth("editSchedule"), h.RemoveLessonsBetweenDates)
 
-	group.POST("/list", h.Auth("editSchedule"), h.AddLessons)
-	group.POST("/general/list", h.Auth("editSchedule"), h.AddGeneralLessons)
+	group.POST("/list", h.MemberAuth("editSchedule"), h.AddLessons)
+	group.POST("/general/list", h.MemberAuth("editSchedule"), h.AddGeneralLessons)
 
-	group.POST("/makeGeneral", h.Auth("editSchedule"), h.SaveCurrentScheduleAsGeneral)
-	group.POST("/makeCurrent/:date", h.Auth("editSchedule"), h.SaveGeneralScheduleAsCurrent)
+	group.POST("/makeGeneral", h.MemberAuth("editSchedule"), h.SaveCurrentScheduleAsGeneral)
+	group.POST("/makeCurrent/:date", h.MemberAuth("editSchedule"), h.SaveGeneralScheduleAsCurrent)
 
 	return h
 }
 
 func (s *handler) GetSchedule(ctx *gin.Context) {
-	user := s.GetUserViaCtx(ctx)
+	user := s.GetUser(ctx)
 
 	studyPlaceID := ctx.Query("studyPlaceID")
 
@@ -81,7 +83,7 @@ func (s *handler) GetSchedule(ctx *gin.Context) {
 }
 
 func (s *handler) GetUserSchedule(ctx *gin.Context) {
-	user := s.GetUserViaCtx(ctx)
+	user := s.GetUser(ctx)
 
 	schedule, err := s.controller.GetUserSchedule(ctx, user)
 	if err != nil {
@@ -93,7 +95,7 @@ func (s *handler) GetUserSchedule(ctx *gin.Context) {
 }
 
 func (s *handler) GetGeneralSchedule(ctx *gin.Context) {
-	user := s.GetUserViaCtx(ctx)
+	user := s.GetUser(ctx)
 
 	studyPlaceID := ctx.Query("studyPlaceID")
 
@@ -110,7 +112,7 @@ func (s *handler) GetGeneralSchedule(ctx *gin.Context) {
 }
 
 func (s *handler) GetGeneralUserSchedule(ctx *gin.Context) {
-	user := s.GetUserViaCtx(ctx)
+	user := s.GetUser(ctx)
 
 	schedule, err := s.controller.GetGeneralUserSchedule(ctx, user)
 	if err != nil {
@@ -122,7 +124,7 @@ func (s *handler) GetGeneralUserSchedule(ctx *gin.Context) {
 }
 
 func (s *handler) GetScheduleTypes(ctx *gin.Context) {
-	user := s.GetUserViaCtx(ctx)
+	user := s.GetUser(ctx)
 
 	id := ctx.Query("id")
 	types := s.controller.GetScheduleTypes(ctx, user, id)
@@ -131,7 +133,7 @@ func (s *handler) GetScheduleTypes(ctx *gin.Context) {
 }
 
 func (s *handler) GetLessonByID(ctx *gin.Context) {
-	user := s.GetUserViaCtx(ctx)
+	user := s.GetUser(ctx)
 
 	id := ctx.Param("id")
 	if ctx.Query("type") == "date" {
@@ -155,7 +157,7 @@ func (s *handler) GetLessonByID(ctx *gin.Context) {
 }
 
 func (s *handler) AddLesson(ctx *gin.Context) {
-	user := s.GetUserViaCtx(ctx)
+	user := s.GetUser(ctx)
 
 	var lessonDTO AddLessonDTO
 	if err := ctx.BindJSON(&lessonDTO); err != nil {
@@ -173,7 +175,7 @@ func (s *handler) AddLesson(ctx *gin.Context) {
 }
 
 func (s *handler) AddLessons(ctx *gin.Context) {
-	user := s.GetUserViaCtx(ctx)
+	user := s.GetUser(ctx)
 
 	var lessonsDTO []AddLessonDTO
 	if err := ctx.BindJSON(&lessonsDTO); err != nil {
@@ -191,7 +193,7 @@ func (s *handler) AddLessons(ctx *gin.Context) {
 }
 
 func (s *handler) AddGeneralLessons(ctx *gin.Context) {
-	user := s.GetUserViaCtx(ctx)
+	user := s.GetUser(ctx)
 
 	var lessonsDTO []AddGeneralLessonDTO
 	if err := ctx.BindJSON(&lessonsDTO); err != nil {
@@ -209,7 +211,7 @@ func (s *handler) AddGeneralLessons(ctx *gin.Context) {
 }
 
 func (s *handler) UpdateLesson(ctx *gin.Context) {
-	user := s.GetUserViaCtx(ctx)
+	user := s.GetUser(ctx)
 
 	var lesson UpdateLessonDTO
 	if err := ctx.BindJSON(&lesson); err != nil {
@@ -227,7 +229,7 @@ func (s *handler) UpdateLesson(ctx *gin.Context) {
 }
 
 func (s *handler) DeleteLesson(ctx *gin.Context) {
-	user := s.GetUserViaCtx(ctx)
+	user := s.GetUser(ctx)
 	id := ctx.Param("id")
 
 	err := s.controller.DeleteLesson(ctx, id, user)
@@ -240,7 +242,7 @@ func (s *handler) DeleteLesson(ctx *gin.Context) {
 }
 
 func (s *handler) SaveCurrentScheduleAsGeneral(ctx *gin.Context) {
-	user := s.GetUserViaCtx(ctx)
+	user := s.GetUser(ctx)
 
 	type_ := ctx.Query("type")
 	typeName := ctx.Query("typeName")
@@ -255,7 +257,7 @@ func (s *handler) SaveCurrentScheduleAsGeneral(ctx *gin.Context) {
 }
 
 func (s *handler) SaveGeneralScheduleAsCurrent(ctx *gin.Context) {
-	user := s.GetUserViaCtx(ctx)
+	user := s.GetUser(ctx)
 
 	date_ := ctx.Param("date")
 	date, err := time.Parse(time.RFC3339, date_)
@@ -273,7 +275,7 @@ func (s *handler) SaveGeneralScheduleAsCurrent(ctx *gin.Context) {
 }
 
 func (s *handler) RemoveLessonsBetweenDates(ctx *gin.Context) {
-	user := s.GetUserViaCtx(ctx)
+	user := s.GetUser(ctx)
 
 	startDate, err := time.Parse(time.RFC3339, ctx.Param("startDate"))
 	if err != nil {

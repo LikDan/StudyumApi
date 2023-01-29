@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/exp/slices"
 	"strconv"
+	auth "studyum/internal/auth/entities"
 	"studyum/internal/global"
 	"studyum/internal/journal/dtos"
 	"studyum/internal/journal/entities"
@@ -18,18 +19,18 @@ import (
 )
 
 type Controller interface {
-	AddMarks(ctx context.Context, marks []dtos.AddMarkDTO, user global.User) ([]entities.Mark, error)
-	AddMark(ctx context.Context, dto dtos.AddMarkDTO, user global.User) (entities.CellResponse, error)
-	UpdateMark(ctx context.Context, user global.User, dto dtos.UpdateMarkDTO) (entities.CellResponse, error)
-	DeleteMark(ctx context.Context, user global.User, markIdHex string) (entities.CellResponse, error)
+	AddMarks(ctx context.Context, marks []dtos.AddMarkDTO, user auth.User) ([]entities.Mark, error)
+	AddMark(ctx context.Context, dto dtos.AddMarkDTO, user auth.User) (entities.CellResponse, error)
+	UpdateMark(ctx context.Context, user auth.User, dto dtos.UpdateMarkDTO) (entities.CellResponse, error)
+	DeleteMark(ctx context.Context, user auth.User, markIdHex string) (entities.CellResponse, error)
 
-	AddAbsences(ctx context.Context, dto []dtos.AddAbsencesDTO, user global.User) ([]entities.Absence, error)
-	AddAbsence(ctx context.Context, absencesDTO dtos.AddAbsencesDTO, user global.User) (entities.CellResponse, error)
-	UpdateAbsence(ctx context.Context, user global.User, absences dtos.UpdateAbsencesDTO) (entities.CellResponse, error)
-	DeleteAbsence(ctx context.Context, user global.User, id string) (entities.CellResponse, error)
+	AddAbsences(ctx context.Context, dto []dtos.AddAbsencesDTO, user auth.User) ([]entities.Absence, error)
+	AddAbsence(ctx context.Context, absencesDTO dtos.AddAbsencesDTO, user auth.User) (entities.CellResponse, error)
+	UpdateAbsence(ctx context.Context, user auth.User, absences dtos.UpdateAbsencesDTO) (entities.CellResponse, error)
+	DeleteAbsence(ctx context.Context, user auth.User, id string) (entities.CellResponse, error)
 
-	GenerateMarksReport(ctx context.Context, config dtos.MarksReport, user global.User) (*excelize.File, error)
-	GenerateAbsencesReport(ctx context.Context, config dtos.AbsencesReport, user global.User) (*excelize.File, error)
+	GenerateMarksReport(ctx context.Context, config dtos.MarksReport, user auth.User) (*excelize.File, error)
+	GenerateAbsencesReport(ctx context.Context, config dtos.AbsencesReport, user auth.User) (*excelize.File, error)
 }
 
 type controller struct {
@@ -44,7 +45,7 @@ func NewController(parser parser.Handler, journal Journal, repository repositori
 	return &controller{parser: parser, journal: journal, repository: repository, encrypt: encrypt}
 }
 
-func (j *controller) GenerateMarksReport(ctx context.Context, config dtos.MarksReport, user global.User) (*excelize.File, error) {
+func (j *controller) GenerateMarksReport(ctx context.Context, config dtos.MarksReport, user auth.User) (*excelize.File, error) {
 	table, err := j.repository.GenerateMarksReport(ctx, user.TuitionGroup, config.LessonType, config.Mark, config.StartDate, config.EndDate, user.StudyPlaceID)
 	if err != nil {
 		return nil, err
@@ -91,7 +92,7 @@ func (j *controller) GenerateMarksReport(ctx context.Context, config dtos.MarksR
 	return f, nil
 }
 
-func (j *controller) GenerateAbsencesReport(ctx context.Context, config dtos.AbsencesReport, user global.User) (*excelize.File, error) {
+func (j *controller) GenerateAbsencesReport(ctx context.Context, config dtos.AbsencesReport, user auth.User) (*excelize.File, error) {
 	table, err := j.repository.GenerateAbsencesReport(ctx, user.TuitionGroup, config.StartDate, config.EndDate, user.StudyPlaceID)
 	if err != nil {
 		return nil, err
@@ -168,7 +169,7 @@ func (j *controller) checkMarkExistence(ctx context.Context, mark dtos.AddMarkDT
 	return false
 }
 
-func (j *controller) AddMarks(ctx context.Context, addDTO []dtos.AddMarkDTO, user global.User) ([]entities.Mark, error) {
+func (j *controller) AddMarks(ctx context.Context, addDTO []dtos.AddMarkDTO, user auth.User) ([]entities.Mark, error) {
 	marks := make([]entities.Mark, len(addDTO))
 	for i, markDTO := range addDTO {
 		if markDTO.Mark == "" || markDTO.StudentID.IsZero() || markDTO.LessonID.IsZero() || !j.checkMarkExistence(ctx, markDTO, user.StudyPlaceID) {
@@ -205,7 +206,7 @@ func (j *controller) AddMarks(ctx context.Context, addDTO []dtos.AddMarkDTO, use
 	return marks, nil
 }
 
-func (j *controller) AddMark(ctx context.Context, addDTO dtos.AddMarkDTO, user global.User) (entities.CellResponse, error) {
+func (j *controller) AddMark(ctx context.Context, addDTO dtos.AddMarkDTO, user auth.User) (entities.CellResponse, error) {
 	if addDTO.Mark == "" || addDTO.StudentID.IsZero() || addDTO.LessonID.IsZero() || !j.checkMarkExistence(ctx, addDTO, user.StudyPlaceID) {
 		return entities.CellResponse{}, global.NotValidParams
 	}
@@ -237,7 +238,7 @@ func (j *controller) AddMark(ctx context.Context, addDTO dtos.AddMarkDTO, user g
 	return j.journal.GetUpdateInfo(ctx, mark.StudentID, mark.LessonID)
 }
 
-func (j *controller) UpdateMark(ctx context.Context, user global.User, updateDTO dtos.UpdateMarkDTO) (entities.CellResponse, error) {
+func (j *controller) UpdateMark(ctx context.Context, user auth.User, updateDTO dtos.UpdateMarkDTO) (entities.CellResponse, error) {
 	if updateDTO.Mark == "" || updateDTO.ID.IsZero() || updateDTO.LessonID.IsZero() || !j.checkMarkExistence(ctx, updateDTO.AddMarkDTO, user.StudyPlaceID) {
 		return entities.CellResponse{}, global.NotValidParams
 	}
@@ -266,7 +267,7 @@ func (j *controller) UpdateMark(ctx context.Context, user global.User, updateDTO
 	return j.journal.GetUpdateInfo(ctx, mark.StudentID, mark.LessonID)
 }
 
-func (j *controller) DeleteMark(ctx context.Context, user global.User, markIdHex string) (entities.CellResponse, error) {
+func (j *controller) DeleteMark(ctx context.Context, user auth.User, markIdHex string) (entities.CellResponse, error) {
 	markId, err := primitive.ObjectIDFromHex(markIdHex)
 	if err != nil {
 		return entities.CellResponse{}, errors.Wrap(global.NotValidParams, "markId")
@@ -285,7 +286,7 @@ func (j *controller) DeleteMark(ctx context.Context, user global.User, markIdHex
 	return j.journal.GetUpdateInfo(ctx, mark.StudentID, mark.LessonID)
 }
 
-func (j *controller) AddAbsences(ctx context.Context, dto []dtos.AddAbsencesDTO, user global.User) ([]entities.Absence, error) {
+func (j *controller) AddAbsences(ctx context.Context, dto []dtos.AddAbsencesDTO, user auth.User) ([]entities.Absence, error) {
 	absences := make([]entities.Absence, len(dto))
 	for i, markDTO := range dto {
 		if markDTO.StudentID.IsZero() || markDTO.LessonID.IsZero() {
@@ -313,7 +314,7 @@ func (j *controller) AddAbsences(ctx context.Context, dto []dtos.AddAbsencesDTO,
 	return absences, nil
 }
 
-func (j *controller) AddAbsence(ctx context.Context, dto dtos.AddAbsencesDTO, user global.User) (entities.CellResponse, error) {
+func (j *controller) AddAbsence(ctx context.Context, dto dtos.AddAbsencesDTO, user auth.User) (entities.CellResponse, error) {
 	if dto.StudentID.IsZero() || dto.LessonID.IsZero() {
 		return entities.CellResponse{}, global.NotValidParams
 	}
@@ -333,7 +334,7 @@ func (j *controller) AddAbsence(ctx context.Context, dto dtos.AddAbsencesDTO, us
 	return j.journal.GetUpdateInfo(ctx, absence.StudentID, absence.LessonID)
 }
 
-func (j *controller) UpdateAbsence(ctx context.Context, user global.User, dto dtos.UpdateAbsencesDTO) (entities.CellResponse, error) {
+func (j *controller) UpdateAbsence(ctx context.Context, user auth.User, dto dtos.UpdateAbsencesDTO) (entities.CellResponse, error) {
 	if dto.ID.IsZero() || dto.LessonID.IsZero() {
 		return entities.CellResponse{}, global.NotValidParams
 	}
@@ -352,7 +353,7 @@ func (j *controller) UpdateAbsence(ctx context.Context, user global.User, dto dt
 	return j.journal.GetUpdateInfo(ctx, absence.StudentID, absence.LessonID)
 }
 
-func (j *controller) DeleteAbsence(ctx context.Context, user global.User, idHex string) (entities.CellResponse, error) {
+func (j *controller) DeleteAbsence(ctx context.Context, user auth.User, idHex string) (entities.CellResponse, error) {
 	id, err := primitive.ObjectIDFromHex(idHex)
 	if err != nil {
 		return entities.CellResponse{}, errors.Wrap(global.NotValidParams, "markId")

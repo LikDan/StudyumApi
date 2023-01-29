@@ -1,8 +1,6 @@
 package hash
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -11,15 +9,7 @@ func Hash(s string) (string, error) {
 	return string(bytes), err
 }
 
-func CompareHashAndPassword(s string, s2 string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(s), []byte(s2))
+func CompareHashAndPassword(hash string, password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
-}
-
-func GenerateSecureToken() string {
-	b := make([]byte, 128)
-	if _, err := rand.Read(b); err != nil {
-		return ""
-	}
-	return hex.EncodeToString(b)
 }

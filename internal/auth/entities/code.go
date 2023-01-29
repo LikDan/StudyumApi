@@ -1,17 +1,8 @@
-package user
+package entities
 
-import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
-)
+import "go.mongodb.org/mongo-driver/bson/primitive"
 
-type AcceptUser struct {
-	Id       primitive.ObjectID `json:"id" bson:"_id"`
-	Name     string             `json:"name" bson:"name" encryption:""`
-	Type     string             `json:"type" bson:"type"`
-	Typename string             `json:"typename" bson:"typename"`
-}
-
-type SignUpCode struct {
+type UserCodeData struct {
 	Id           primitive.ObjectID `json:"id" bson:"_id"`
 	Code         string             `json:"code" bson:"code"`
 	Name         string             `json:"name" bson:"name" encryption:""`

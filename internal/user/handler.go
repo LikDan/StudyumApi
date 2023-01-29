@@ -4,24 +4,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
-	"path/filepath"
+	auth "studyum/internal/auth/handlers"
 	"studyum/internal/global"
 )
 
 type Handler interface {
 	GetUser(ctx *gin.Context)
 	UpdateUser(ctx *gin.Context)
-
-	PutPicture(ctx *gin.Context)
-
-	LoginUser(ctx *gin.Context)
-	SignUpUser(ctx *gin.Context)
-	SignUpUserStage1(ctx *gin.Context)
-	SignUpUserWithToken(ctx *gin.Context)
-	SignOutUser(ctx *gin.Context)
-
-	OAuth2(ctx *gin.Context)
-	CallbackOAuth2(ctx *gin.Context)
 
 	PutFirebaseToken(ctx *gin.Context)
 
@@ -35,70 +24,51 @@ type Handler interface {
 
 type handler struct {
 	global.Handler
+	auth.Middleware
 
 	controller Controller
 
 	Group *gin.RouterGroup
 }
 
-func NewUserHandler(authHandler global.Handler, controller Controller, group *gin.RouterGroup) Handler {
-	h := &handler{Handler: authHandler, controller: controller, Group: group}
+func NewUserHandler(authHandler global.Handler, middleware auth.Middleware, controller Controller, group *gin.RouterGroup) Handler {
+	h := &handler{Handler: authHandler, Middleware: middleware, controller: controller, Group: group}
 
 	group.GET("", h.Auth(), h.GetUser)
 	group.PUT("", h.Auth(), h.UpdateUser)
-
-	group.PUT("login", h.LoginUser)
-	group.POST("signup/withToken", h.SignUpUserWithToken)
-	group.POST("signup", h.SignUpUser)
-	group.PUT("signup/stage1", h.AuthBlockedOrNotAccepted(), h.SignUpUserStage1)
-
-	group.GET("auth/:oauth", h.OAuth2)
-	group.GET("oauth2/callback/:oauth", h.CallbackOAuth2)
 
 	group.DELETE("signout", h.Auth(), h.SignOutUser)
 	group.DELETE("revoke", h.Auth(), h.RevokeToken)
 	group.DELETE("terminate/:ip", h.Auth(), h.TerminateSession)
 
-	group.POST("code", h.Auth("manageUsers"), h.CreateCode)
-	group.GET("accept", h.Auth("manageUsers"), h.GetAccept)
-	group.POST("accept", h.Auth("manageUsers"), h.Accept)
-	group.POST("block", h.Auth("manageUsers"), h.Block)
+	group.POST("code", h.MemberAuth("manageUsers"), h.CreateCode)
+	group.GET("accept", h.MemberAuth("manageUsers"), h.GetAccept)
+	group.POST("accept", h.MemberAuth("manageUsers"), h.Accept)
+	group.POST("block", h.MemberAuth("manageUsers"), h.Block)
 
 	group.PUT("firebase/token", h.Auth(), h.PutFirebaseToken)
-
-	group.POST("files/profile", h.PutPicture)
 
 	return h
 }
 
 func (h *handler) GetUser(ctx *gin.Context) {
-	user := h.GetUserViaCtx(ctx)
+	user := h.Handler.GetUser(ctx)
+	user = h.controller.DecryptUser(ctx, user)
 
 	ctx.JSON(http.StatusOK, user)
 }
 
-func (h *handler) PutPicture(c *gin.Context) {
-	file, err := c.FormFile("file")
-	if err != nil {
-		return
-	}
-
-	filename := filepath.Base(file.Filename)
-	if err := c.SaveUploadedFile(file, filename); err != nil {
-		return
-	}
-}
-
 func (h *handler) UpdateUser(ctx *gin.Context) {
-	user := h.GetUserViaCtx(ctx)
+	user := h.Handler.GetUser(ctx)
 
-	var data EditUserDTO
+	var data Edit
 	if err := ctx.BindJSON(&data); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
 
-	user, pair, err := h.controller.UpdateUser(ctx, user, data)
+	token, _ := ctx.Cookie("refresh")
+	user, pair, err := h.controller.UpdateUser(ctx, user, token, ctx.ClientIP(), data)
 	if err != nil {
 		h.Error(ctx, err)
 		return
@@ -106,110 +76,26 @@ func (h *handler) UpdateUser(ctx *gin.Context) {
 
 	h.SetTokenPairCookie(ctx, pair)
 	ctx.JSON(http.StatusOK, user)
-}
-
-func (h *handler) LoginUser(ctx *gin.Context) {
-	var data UserLoginDTO
-	if err := ctx.BindJSON(&data); err != nil {
-		ctx.JSON(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	user, pair, err := h.controller.LoginUser(ctx, data, ctx.ClientIP())
-	if err != nil {
-		h.Error(ctx, err)
-		return
-	}
-
-	h.SetTokenPairCookie(ctx, pair)
-
-	ctx.JSON(http.StatusOK, user)
-}
-
-func (h *handler) SignUpUser(ctx *gin.Context) {
-	var data UserSignUpDTO
-	if err := ctx.BindJSON(&data); err != nil {
-		ctx.JSON(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	user, pair, err := h.controller.SignUpUser(ctx, data, ctx.ClientIP())
-	if err != nil {
-		h.Error(ctx, err)
-		return
-	}
-
-	h.SetTokenPairCookie(ctx, pair)
-	ctx.JSON(http.StatusOK, user)
-}
-
-func (h *handler) SignUpUserWithToken(ctx *gin.Context) {
-	var data UserSignUpWithCodeDTO
-	if err := ctx.BindJSON(&data); err != nil {
-		ctx.JSON(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	user, pair, err := h.controller.SignUpUserWithCode(ctx, ctx.ClientIP(), data)
-	if err != nil {
-		h.Error(ctx, err)
-		return
-	}
-
-	h.SetTokenPairCookie(ctx, pair)
-
-	ctx.JSON(http.StatusOK, user)
-}
-
-func (h *handler) SignUpUserStage1(ctx *gin.Context) {
-	user := h.GetUserViaCtx(ctx)
-
-	var data UserSignUpStage1DTO
-	if err := ctx.BindJSON(&data); err != nil {
-		ctx.JSON(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	user, err := h.controller.SignUpUserStage1(ctx, user, data)
-	if err != nil {
-		h.Error(ctx, err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, user)
-}
-
-func (h *handler) OAuth2(ctx *gin.Context) {
-	configName := ctx.Param("oauth")
-	config := h.controller.GetOAuth2ConfigByName(configName)
-
-	if config == nil {
-		ctx.JSON(http.StatusBadRequest, "no such server")
-		return
-	}
-
-	url := config.AuthCodeURL(ctx.Query("host"))
-	ctx.Redirect(307, url)
 }
 
 func (h *handler) CallbackOAuth2(ctx *gin.Context) {
-	configName := ctx.Param("oauth")
-	code := ctx.Query("code")
-
-	pair, err := h.controller.CallbackOAuth2(ctx, configName, code)
-	if err != nil {
-		h.Error(ctx, err)
-		return
-	}
-
-	h.SetTokenPairCookie(ctx, pair)
+	//configName := ctx.Param("oauth")
+	//code := ctx.Query("code")
+	//
+	//pair, err := h.controller.CallbackOAuth2(ctx, configName, code)
+	//if err != nil {
+	//	h.Error(ctx, err)
+	//	return
+	//}
+	//
+	//h.SetTokenPairCookie(ctx, pair)
 
 	ctx.SetSameSite(http.SameSiteNoneMode)
 	ctx.Redirect(302, "http://"+ctx.Query("state")+"/")
 }
 
 func (h *handler) PutFirebaseToken(ctx *gin.Context) {
-	user := h.GetUserViaCtx(ctx)
+	user := h.Handler.GetUser(ctx)
 
 	var token string
 	if err := ctx.BindJSON(&token); err != nil {
@@ -258,7 +144,7 @@ func (h *handler) RevokeToken(ctx *gin.Context) {
 }
 
 func (h *handler) TerminateSession(ctx *gin.Context) {
-	user := h.GetUserViaCtx(ctx)
+	user := h.Handler.GetUser(ctx)
 	ip := ctx.Param("ip")
 
 	err := h.controller.TerminateSession(ctx, user, ip)
@@ -270,7 +156,7 @@ func (h *handler) TerminateSession(ctx *gin.Context) {
 }
 
 func (h *handler) CreateCode(ctx *gin.Context) {
-	user := h.GetUserViaCtx(ctx)
+	user := h.Handler.GetUser(ctx)
 
 	var data UserCreateCodeDTO
 	if err := ctx.BindJSON(&data); err != nil {
@@ -287,7 +173,7 @@ func (h *handler) CreateCode(ctx *gin.Context) {
 }
 
 func (h *handler) GetAccept(ctx *gin.Context) {
-	user := h.GetUserViaCtx(ctx)
+	user := h.Handler.GetUser(ctx)
 
 	users, err := h.controller.GetAccept(ctx, user)
 	if err != nil {
@@ -298,7 +184,7 @@ func (h *handler) GetAccept(ctx *gin.Context) {
 }
 
 func (h *handler) Accept(ctx *gin.Context) {
-	user := h.GetUserViaCtx(ctx)
+	user := h.Handler.GetUser(ctx)
 
 	var idHex string
 	if err := ctx.BindJSON(&idHex); err != nil {
@@ -320,7 +206,7 @@ func (h *handler) Accept(ctx *gin.Context) {
 }
 
 func (h *handler) Block(ctx *gin.Context) {
-	user := h.GetUserViaCtx(ctx)
+	user := h.Handler.GetUser(ctx)
 
 	var idHex string
 	if err := ctx.BindJSON(&idHex); err != nil {
