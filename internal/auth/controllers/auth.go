@@ -16,9 +16,13 @@ var ValidationError = errors.New("Validation error")
 
 type Auth interface {
 	Login(ctx context.Context, ip string, data dto.Login) (entities.User, jwt.TokenPair, error)
+
 	SignUp(ctx context.Context, ip string, data dto.SignUp) (entities.User, jwt.TokenPair, error)
 	SignUpStage1(ctx context.Context, user entities.User, data dto.SignUpStage1) (entities.User, error)
 	SignUpStage1ViaCode(ctx context.Context, user entities.User, code string) (entities.User, error)
+	SignOut(ctx context.Context, token string) error
+
+	TerminateAll(ctx context.Context, user entities.User) error
 }
 
 type auth struct {
@@ -119,4 +123,12 @@ func (c *auth) SignUpStage1ViaCode(ctx context.Context, user entities.User, code
 
 	c.encryption.Decrypt(&user)
 	return user, nil
+}
+
+func (c *auth) SignOut(ctx context.Context, token string) error {
+	return c.sessions.RemoveByToken(ctx, token)
+}
+
+func (c *auth) TerminateAll(ctx context.Context, user entities.User) error {
+	return c.sessions.TerminateAll(ctx, user)
 }

@@ -19,6 +19,8 @@ type Middleware interface {
 	Auth(ctx context.Context, pair jwt.TokenPair, ip string, permissions ...string) (jwt.TokenPair, bool, entities.User, error)
 	MemberAuth(ctx context.Context, pair jwt.TokenPair, ip string, permissions ...string) (jwt.TokenPair, bool, entities.User, error)
 	Recover(ctx context.Context, oldPair, newPair jwt.TokenPair, ip string, userID primitive.ObjectID) error
+
+	AuthViaApiToken(ctx context.Context, token string) (entities.User, error)
 }
 
 type middleware struct {
@@ -100,6 +102,20 @@ func (c *middleware) MemberAuth(ctx context.Context, pair jwt.TokenPair, ip stri
 	}
 
 	return tokenPair, shouldUpdate, user, err
+}
+
+func (c *middleware) AuthViaApiToken(ctx context.Context, token string) (entities.User, error) {
+	studyPlace, err := c.repository.GetStudyPlaceByApiToken(ctx, token)
+	if err != nil {
+		return entities.User{}, err
+	}
+
+	user, err := c.repository.GetUserByID(ctx, studyPlace.AdminID)
+	if err != nil {
+		return entities.User{}, err
+	}
+
+	return user, nil
 }
 
 func (c *middleware) hasPermission(user entities.User, permissions []string) bool {

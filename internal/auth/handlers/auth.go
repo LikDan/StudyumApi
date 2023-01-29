@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 	"studyum/internal/auth/controllers"
 	"studyum/internal/auth/dto"
@@ -21,9 +22,13 @@ func NewAuth(handler global.Handler, middleware Middleware, controller controlle
 	h := &Auth{Handler: handler, Middleware: middleware, controller: controller, Group: group}
 
 	group.PUT("login", h.Login)
+
 	group.POST("signup", h.SignUp)
 	group.PUT("signup/stage1", h.Auth(), h.SignUpUserStage1)
 	group.POST("signup/code", h.Auth(), h.SignUpStage1ViaCode)
+	group.DELETE("signout", h.Auth(), h.SignOut)
+
+	group.DELETE("sessions", h.Auth(), h.TerminateAllSessions)
 
 	return h
 }
@@ -97,4 +102,30 @@ func (h *Auth) SignUpUserStage1(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, user)
+}
+
+func (h *Auth) SignOut(ctx *gin.Context) {
+	token, _ := ctx.Cookie("refresh")
+	if token != "" {
+		if err := h.controller.SignOut(ctx, token); err != nil {
+			if err != mongo.ErrNoDocuments {
+				h.Error(ctx, err)
+				return
+			}
+		}
+	}
+
+	h.DeleteTokenPairCookie(ctx)
+	ctx.Status(http.StatusNoContent)
+}
+
+func (h *Auth) TerminateAllSessions(ctx *gin.Context) {
+	user := h.GetUser(ctx)
+	if err := h.controller.TerminateAll(ctx, user); err != nil {
+		h.Error(ctx, err)
+		return
+	}
+
+	h.DeleteTokenPairCookie(ctx)
+	ctx.Status(http.StatusNoContent)
 }

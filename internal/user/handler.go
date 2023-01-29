@@ -14,9 +14,6 @@ type Handler interface {
 
 	PutFirebaseToken(ctx *gin.Context)
 
-	RevokeToken(ctx *gin.Context)
-	TerminateSession(ctx *gin.Context)
-
 	GetAccept(ctx *gin.Context)
 	Accept(ctx *gin.Context)
 	Block(ctx *gin.Context)
@@ -37,11 +34,6 @@ func NewUserHandler(authHandler global.Handler, middleware auth.Middleware, cont
 	group.GET("", h.Auth(), h.GetUser)
 	group.PUT("", h.Auth(), h.UpdateUser)
 
-	group.DELETE("signout", h.Auth(), h.SignOutUser)
-	group.DELETE("revoke", h.Auth(), h.RevokeToken)
-	group.DELETE("terminate/:ip", h.Auth(), h.TerminateSession)
-
-	group.POST("code", h.MemberAuth("manageUsers"), h.CreateCode)
 	group.GET("accept", h.MemberAuth("manageUsers"), h.GetAccept)
 	group.POST("accept", h.MemberAuth("manageUsers"), h.Accept)
 	group.POST("block", h.MemberAuth("manageUsers"), h.Block)
@@ -78,22 +70,6 @@ func (h *handler) UpdateUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
-func (h *handler) CallbackOAuth2(ctx *gin.Context) {
-	//configName := ctx.Param("oauth")
-	//code := ctx.Query("code")
-	//
-	//pair, err := h.controller.CallbackOAuth2(ctx, configName, code)
-	//if err != nil {
-	//	h.Error(ctx, err)
-	//	return
-	//}
-	//
-	//h.SetTokenPairCookie(ctx, pair)
-
-	ctx.SetSameSite(http.SameSiteNoneMode)
-	ctx.Redirect(302, "http://"+ctx.Query("state")+"/")
-}
-
 func (h *handler) PutFirebaseToken(ctx *gin.Context) {
 	user := h.Handler.GetUser(ctx)
 
@@ -109,67 +85,6 @@ func (h *handler) PutFirebaseToken(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, user)
-}
-
-func (h *handler) SignOutUser(ctx *gin.Context) {
-	refreshToken, err := ctx.Cookie("refresh")
-	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, "no cookie")
-	}
-
-	if err = h.controller.SignOut(ctx, refreshToken); err != nil {
-		h.Error(ctx, err)
-	}
-
-	ctx.SetCookie("access", "", -1, "", "", false, false)
-	ctx.SetCookie("refresh", "", -1, "", "", false, false)
-
-	ctx.JSON(http.StatusOK, "successful")
-}
-
-func (h *handler) RevokeToken(ctx *gin.Context) {
-	token, err := ctx.Cookie("refresh")
-	if err != nil {
-		ctx.JSON(http.StatusForbidden, "token not present")
-		return
-	}
-
-	err = h.controller.RevokeToken(ctx, token)
-	if err != nil {
-		h.Error(ctx, err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, token)
-}
-
-func (h *handler) TerminateSession(ctx *gin.Context) {
-	user := h.Handler.GetUser(ctx)
-	ip := ctx.Param("ip")
-
-	err := h.controller.TerminateSession(ctx, user, ip)
-	if err != nil {
-		h.Error(ctx, err)
-	}
-
-	ctx.JSON(http.StatusOK, ip)
-}
-
-func (h *handler) CreateCode(ctx *gin.Context) {
-	user := h.Handler.GetUser(ctx)
-
-	var data UserCreateCodeDTO
-	if err := ctx.BindJSON(&data); err != nil {
-		ctx.JSON(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	code, err := h.controller.CreateCode(ctx, user, data)
-	if err != nil {
-		h.Error(ctx, err)
-	}
-
-	ctx.JSON(http.StatusOK, code)
 }
 
 func (h *handler) GetAccept(ctx *gin.Context) {

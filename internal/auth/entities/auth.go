@@ -7,7 +7,7 @@ import (
 
 type User struct {
 	Id            primitive.ObjectID `json:"id" bson:"_id"`
-	Password      string             `json:"password" bson:"password"`
+	Password      string             `json:"-" bson:"password"`
 	Email         string             `json:"email" bson:"email"`
 	VerifiedEmail bool               `json:"verifiedEmail" bson:"verifiedEmail"`
 	FirebaseToken string             `json:"-" bson:"firebaseToken" encryption:""`

@@ -13,6 +13,7 @@ type Middleware interface {
 	MemberAuth(permissions ...string) gin.HandlerFunc
 
 	SetTokenPairCookie(ctx *gin.Context, pair jwt.TokenPair)
+	DeleteTokenPairCookie(ctx *gin.Context)
 }
 
 type middleware struct {
@@ -30,6 +31,11 @@ func (h *middleware) SetTokenPairCookie(ctx *gin.Context, pair jwt.TokenPair) {
 	ctx.SetCookie("access", pair.Access, 60*15, "/", "", false, true)
 }
 
+func (h *middleware) DeleteTokenPairCookie(ctx *gin.Context) {
+	ctx.SetCookie("refresh", "", 0, "/", "", false, true)
+	ctx.SetCookie("access", "", 0, "/", "", false, true)
+}
+
 func (h *middleware) tokenPair(ctx *gin.Context) jwt.TokenPair {
 	refresh := ctx.GetString("refresh") //proceed on oauth2
 	if refresh == "" {
@@ -40,8 +46,28 @@ func (h *middleware) tokenPair(ctx *gin.Context) jwt.TokenPair {
 	return jwt.TokenPair{Access: access, Refresh: refresh}
 }
 
+func (h *middleware) authViaApiToken(ctx *gin.Context) bool {
+	apiToken := ctx.GetHeader("ApiToken")
+	if apiToken == "" {
+		return false
+	}
+
+	user, err := h.controller.AuthViaApiToken(ctx, apiToken)
+	if err != nil {
+		h.Error(ctx, err)
+		return true
+	}
+
+	ctx.Set("user", user)
+	return true
+}
+
 func (h *middleware) Auth() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		if h.authViaApiToken(ctx) {
+			return
+		}
+
 		pair := h.tokenPair(ctx)
 		newPair, update, user, err := h.controller.Auth(ctx, pair, ctx.ClientIP())
 		if err != nil {

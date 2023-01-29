@@ -7,7 +7,7 @@ type Edit struct {
 	Password string `json:"password" binding:"min=8|eq="`
 }
 
-type UserCreateCodeDTO struct {
+type CreateCode struct {
 	Code     string `json:"code" binding:"required"`
 	Name     string `json:"name" binding:"required"`
 	Type     string `json:"type" binding:"required"`

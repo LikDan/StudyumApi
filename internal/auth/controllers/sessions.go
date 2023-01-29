@@ -11,6 +11,7 @@ import (
 type Sessions interface {
 	New(ctx context.Context, user entities.User, ip string) (jwt.TokenPair, error)
 	RemoveByToken(ctx context.Context, token string) error
+	TerminateAll(ctx context.Context, user entities.User) error
 }
 
 type sessions struct {
@@ -68,4 +69,8 @@ func (c *sessions) New(ctx context.Context, user entities.User, ip string) (jwt.
 
 func (c *sessions) RemoveByToken(ctx context.Context, token string) error {
 	return c.repository.RemoveByToken(ctx, token)
+}
+
+func (c *sessions) TerminateAll(ctx context.Context, user entities.User) error {
+	return c.repository.RemoveAll(ctx, user.Id)
 }

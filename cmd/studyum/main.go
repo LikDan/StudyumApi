@@ -10,7 +10,9 @@ import (
 	"os"
 	"studyum/internal/auth"
 	authEntries "studyum/internal/auth/entities"
-	"studyum/internal/general"
+	controllers2 "studyum/internal/general/controllers"
+	handlers2 "studyum/internal/general/handlers"
+	repositories2 "studyum/internal/general/repositories"
 	"studyum/internal/global"
 	"studyum/internal/journal/controllers"
 	"studyum/internal/journal/handlers"
@@ -53,30 +55,29 @@ func main() {
 	expTime := time.Minute * 10
 	jwtController := jwt.New[authEntries.JWTClaims](expTime, secret)
 
-	repository := global.NewRepository(client)
-	controller := global.NewController(*repository, encrypt)
-	handler := global.NewHandler(controller)
+	handler := global.NewHandler()
 
 	engine := gin.Default()
 	api := engine.Group("/api")
 
-	userRepository := user.NewUserRepository(repository)
-	generalRepository := general.NewGeneralRepository(repository)
-	journalRepository := repositories.NewJournalRepository(repository)
-	scheduleRepository := schedule.NewScheduleRepository(repository)
+	db := client.Database("Studyum")
+
+	userRepository := user.NewUserRepository(db.Collection("Users"), db.Collection("SignUpCodes"))
+	generalRepository := repositories2.NewGeneralRepository(db.Collection("StudyPlaces"))
+	journalRepository := repositories.NewJournalRepository(db.Collection("Users"), db.Collection("Lessons"), db.Collection("StudyPlaces"))
+	scheduleRepository := schedule.NewScheduleRepository(db.Collection("StudyPlaces"), db.Collection("Lessons"), db.Collection("GeneralLessons"))
 
 	scheduleValidator := schedule.NewSchedule(validator.New())
 
-	db := client.Database("Studyum")
 	authMiddleware, _, _, sessionsController := auth.New(api.Group("/user"), handler, encrypt, jwtController, db)
 
 	userController := user.NewUserController(userRepository, sessionsController, encrypt, parserHandler)
-	generalController := general.NewGeneralController(generalRepository)
+	generalController := controllers2.NewGeneralController(generalRepository)
 	journalController := controllers.NewJournalController(journalRepository, encrypt)
 	mainJournalController := controllers.NewController(parserHandler, journalController, journalRepository, encrypt)
 	scheduleController := schedule.NewScheduleController(parserHandler, scheduleValidator, scheduleRepository, generalController)
 
-	general.NewGeneralHandler(handler, generalController, api)
+	handlers2.NewGeneralHandler(handler, generalController, api)
 	user.NewUserHandler(handler, authMiddleware, userController, api.Group("/user"))
 	handlers.NewJournalHandler(handler, authMiddleware, mainJournalController, journalController, api.Group("/journal"))
 	schedule.NewScheduleHandler(handler, authMiddleware, scheduleController, api.Group("/schedule"))

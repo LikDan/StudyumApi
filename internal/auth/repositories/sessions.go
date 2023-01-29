@@ -12,6 +12,7 @@ type Sessions interface {
 	Add(ctx context.Context, session entities.Session, userID primitive.ObjectID) error
 	RemoveByToken(ctx context.Context, token string) error
 	GetUserByToken(ctx context.Context, token string) (entities.User, error)
+	RemoveAll(ctx context.Context, userID primitive.ObjectID) error
 }
 
 type sessions struct {
@@ -37,4 +38,9 @@ func (r *sessions) RemoveByToken(ctx context.Context, token string) error {
 func (r *sessions) GetUserByToken(ctx context.Context, token string) (user entities.User, err error) {
 	err = r.usersCollection.FindOne(ctx, bson.M{"sessions.token": token}).Decode(&user)
 	return
+}
+
+func (r *sessions) RemoveAll(ctx context.Context, userID primitive.ObjectID) error {
+	_, err := r.usersCollection.UpdateByID(ctx, userID, bson.M{"$set": bson.M{"sessions": make([]entities.Session, 0, 1)}})
+	return err
 }

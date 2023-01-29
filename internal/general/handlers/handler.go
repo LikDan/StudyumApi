@@ -1,4 +1,4 @@
-package general
+package handlers
 
 import (
 	"github.com/gin-gonic/gin"
@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"studyum/internal/general/controllers"
 	"studyum/internal/global"
 )
 
@@ -21,12 +22,12 @@ type Handler interface {
 type handler struct {
 	global.Handler
 
-	controller Controller
+	controller controllers.Controller
 
 	Group *gin.RouterGroup
 }
 
-func NewGeneralHandler(globalHandler global.Handler, controller Controller, group *gin.RouterGroup) Handler {
+func NewGeneralHandler(globalHandler global.Handler, controller controllers.Controller, group *gin.RouterGroup) Handler {
 	h := &handler{Handler: globalHandler, controller: controller, Group: group}
 
 	group.GET("/studyPlaces", h.GetStudyPlaces)

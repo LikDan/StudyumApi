@@ -16,11 +16,12 @@ func New(core *gin.RouterGroup, handler global.Handler, encryption encryption.En
 	usersCollection := db.Collection("Users")
 	codesCollection := db.Collection("SignUpCodes")
 	oauth2Collection := db.Collection("OAuth2Services")
+	studyPlacesCollection := db.Collection("StudyPlaces")
 
 	authRepository := repositories.NewAuth(usersCollection)
 	codesRepository := repositories.NewCode(codesCollection)
 	sessionsRepository := repositories.NewSessions(usersCollection)
-	middlewareRepository := repositories.NewMiddleware(usersCollection)
+	middlewareRepository := repositories.NewMiddleware(usersCollection, studyPlacesCollection)
 	oauth2Repository := repositories.NewOAuth2(oauth2Collection, usersCollection)
 
 	sessionsController := controllers.NewSessions(jwtController, sessionsRepository)

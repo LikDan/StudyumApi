@@ -4,8 +4,9 @@ import (
 	"context"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"studyum/internal/global"
+	general "studyum/internal/general/entities"
 	"studyum/pkg/datetime"
 	"studyum/pkg/hMongo"
 	"studyum/pkg/slicetools"
@@ -33,22 +34,24 @@ type Repository interface {
 
 	RemoveGeneralLessonsByType(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, name string) error
 
-	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace global.StudyPlace)
+	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace general.StudyPlace)
 	GetGeneralLessons(ctx context.Context, studyPlaceId primitive.ObjectID, weekIndex, dayIndex int) ([]GeneralLesson, error)
 
 	FilterLessonMarks(ctx context.Context, lessonID primitive.ObjectID, marks []string) error
 }
 
 type repository struct {
-	*global.Repository
+	studyPlaces    *mongo.Collection
+	lessons        *mongo.Collection
+	generalLessons *mongo.Collection
 }
 
-func NewScheduleRepository(r *global.Repository) Repository {
-	return &repository{Repository: r}
+func NewScheduleRepository(studyPlaces *mongo.Collection, lessons *mongo.Collection, generalLessons *mongo.Collection) Repository {
+	return &repository{studyPlaces: studyPlaces, lessons: lessons, generalLessons: generalLessons}
 }
 
-func (s *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace global.StudyPlace) {
-	err = s.StudyPlacesCollection.FindOne(ctx, bson.M{"_id": id, "restricted": restricted}).Decode(&studyPlace)
+func (s *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace general.StudyPlace) {
+	err = s.studyPlaces.FindOne(ctx, bson.M{"_id": id, "restricted": restricted}).Decode(&studyPlace)
 	return
 }
 
@@ -59,7 +62,7 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 	}
 
 	startWeekDate := datetime.Date().AddDate(0, 0, 1-int(time.Now().Weekday()))
-	cursor, err := s.StudyPlacesCollection.Aggregate(ctx, bson.A{
+	cursor, err := s.studyPlaces.Aggregate(ctx, bson.A{
 		bson.M{"$match": filter},
 		bson.M{
 			"$addFields": bson.M{
@@ -251,8 +254,8 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 	}
 
 	if !cursor.Next(ctx) {
-		var studyPlace global.StudyPlace
-		if err = s.StudyPlacesCollection.FindOne(ctx, bson.M{"_id": studyPlaceID}).Decode(&studyPlace); err != nil {
+		var studyPlace general.StudyPlace
+		if err = s.studyPlaces.FindOne(ctx, bson.M{"_id": studyPlaceID}).Decode(&studyPlace); err != nil {
 			return Schedule{}, err
 		}
 
@@ -276,7 +279,7 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 }
 
 func (s *repository) GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string) []string {
-	namesInterface, _ := s.LessonsCollection.Distinct(ctx, type_, bson.M{"studyPlaceId": studyPlaceId})
+	namesInterface, _ := s.lessons.Distinct(ctx, type_, bson.M{"studyPlaceId": studyPlaceId})
 
 	names := make([]string, len(namesInterface))
 	for i, v := range namesInterface {
@@ -287,23 +290,23 @@ func (s *repository) GetScheduleType(ctx context.Context, studyPlaceId primitive
 }
 
 func (s *repository) AddGeneralLessons(ctx context.Context, lessons []GeneralLesson) error {
-	_, err := s.GeneralLessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": lessons[0].StudyPlaceId})
+	_, err := s.generalLessons.DeleteMany(ctx, bson.M{"studyPlaceId": lessons[0].StudyPlaceId})
 	if err != nil {
 		return err
 	}
 
-	_, err = s.GeneralLessonsCollection.InsertMany(ctx, slicetools.ToInterface(lessons))
+	_, err = s.generalLessons.InsertMany(ctx, slicetools.ToInterface(lessons))
 	return err
 }
 
 func (s *repository) AddLessons(ctx context.Context, lessons []Lesson) error {
-	_, err := s.LessonsCollection.InsertMany(ctx, slicetools.ToInterface(lessons))
+	_, err := s.lessons.InsertMany(ctx, slicetools.ToInterface(lessons))
 	return err
 }
 
 func (s *repository) AddLesson(ctx context.Context, lesson Lesson) (primitive.ObjectID, error) {
 	lesson.Id = primitive.NewObjectID()
-	_, err := s.LessonsCollection.InsertOne(ctx, lesson)
+	_, err := s.lessons.InsertOne(ctx, lesson)
 	return lesson.Id, err
 }
 
@@ -311,17 +314,17 @@ func (s *repository) GetLessonByID(ctx context.Context, id primitive.ObjectID) (
 	opt := options.FindOne()
 	opt.Projection = bson.M{"marks": 0, "absences": 0}
 
-	err = s.LessonsCollection.FindOne(ctx, bson.M{"_id": id}, opt).Decode(&lesson)
+	err = s.lessons.FindOne(ctx, bson.M{"_id": id}, opt).Decode(&lesson)
 	return
 }
 
 func (s *repository) GetFullLessonByID(ctx context.Context, id primitive.ObjectID) (lesson Lesson, err error) {
-	err = s.LessonsCollection.FindOne(ctx, bson.M{"_id": id}).Decode(&lesson)
+	err = s.lessons.FindOne(ctx, bson.M{"_id": id}).Decode(&lesson)
 	return
 }
 
 func (s *repository) UpdateLesson(ctx context.Context, lesson Lesson) error {
-	_, err := s.LessonsCollection.UpdateOne(ctx, bson.M{"_id": lesson.Id, "studyPlaceId": lesson.StudyPlaceId}, bson.M{"$set": bson.M{
+	_, err := s.lessons.UpdateOne(ctx, bson.M{"_id": lesson.Id, "studyPlaceId": lesson.StudyPlaceId}, bson.M{"$set": bson.M{
 		"primaryColor":   lesson.PrimaryColor,
 		"secondaryColor": lesson.SecondaryColor,
 		"type":           lesson.Type,
@@ -340,12 +343,12 @@ func (s *repository) UpdateLesson(ctx context.Context, lesson Lesson) error {
 
 func (s *repository) FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId primitive.ObjectID) (Lesson, error) {
 	var lesson Lesson
-	err := s.LessonsCollection.FindOneAndDelete(ctx, bson.M{"_id": id, "studyPlaceId": studyPlaceId}).Decode(&lesson)
+	err := s.lessons.FindOneAndDelete(ctx, bson.M{"_id": id, "studyPlaceId": studyPlaceId}).Decode(&lesson)
 	return lesson, err
 }
 
 func (s *repository) UpdateGeneralSchedule(ctx context.Context, lessons []GeneralLesson) error {
-	if _, err := s.GeneralLessonsCollection.InsertMany(ctx, slicetools.ToInterface(lessons)); err != nil {
+	if _, err := s.generalLessons.InsertMany(ctx, slicetools.ToInterface(lessons)); err != nil {
 		return err
 	}
 
@@ -353,7 +356,7 @@ func (s *repository) UpdateGeneralSchedule(ctx context.Context, lessons []Genera
 }
 
 func (s *repository) GetGeneralLessons(ctx context.Context, studyPlaceId primitive.ObjectID, weekIndex, dayIndex int) ([]GeneralLesson, error) {
-	cursor, err := s.GeneralLessonsCollection.Find(ctx, bson.M{"studyPlaceId": studyPlaceId, "weekIndex": weekIndex, "dayIndex": dayIndex})
+	cursor, err := s.generalLessons.Find(ctx, bson.M{"studyPlaceId": studyPlaceId, "weekIndex": weekIndex, "dayIndex": dayIndex})
 	if err != nil {
 		return nil, err
 	}
@@ -367,22 +370,22 @@ func (s *repository) GetGeneralLessons(ctx context.Context, studyPlaceId primiti
 }
 
 func (s *repository) RemoveLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID) error {
-	_, err := s.LessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": id, "startDate": bson.M{"$gte": date1, "$lt": date2}})
+	_, err := s.lessons.DeleteMany(ctx, bson.M{"studyPlaceId": id, "startDate": bson.M{"$gte": date1, "$lt": date2}})
 	return err
 }
 
 func (s *repository) RemoveGroupLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID, group string) error {
-	_, err := s.LessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": id, "group": group, "startDate": bson.M{"$gte": date1, "$lt": date2}})
+	_, err := s.lessons.DeleteMany(ctx, bson.M{"studyPlaceId": id, "group": group, "startDate": bson.M{"$gte": date1, "$lt": date2}})
 	return err
 }
 
 func (s *repository) RemoveGeneralLessonsByType(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typename string) error {
-	_, err := s.GeneralLessonsCollection.DeleteMany(ctx, bson.M{"studyPlaceId": studyPlaceID, type_: typename})
+	_, err := s.generalLessons.DeleteMany(ctx, bson.M{"studyPlaceId": studyPlaceID, type_: typename})
 	return err
 }
 
 func (s *repository) FilterLessonMarks(ctx context.Context, lessonID primitive.ObjectID, marks []string) error {
-	_, err := s.LessonsCollection.UpdateByID(ctx, lessonID, bson.M{"$pull": bson.M{"marks": bson.M{"mark": bson.M{"$nin": marks}}}})
+	_, err := s.lessons.UpdateByID(ctx, lessonID, bson.M{"$pull": bson.M{"marks": bson.M{"mark": bson.M{"$nin": marks}}}})
 	if err != nil && err.Error() == "write exception: write errors: [Cannot apply $pull to a non-array value]" {
 		return nil
 	}
@@ -390,7 +393,7 @@ func (s *repository) FilterLessonMarks(ctx context.Context, lessonID primitive.O
 }
 
 func (s *repository) GetFullLessonsByIDAndDate(ctx context.Context, userID primitive.ObjectID, id primitive.ObjectID) (lessons []Lesson, err error) {
-	cursor, err := s.LessonsCollection.Aggregate(ctx, bson.A{
+	cursor, err := s.lessons.Aggregate(ctx, bson.A{
 		bson.M{
 			"$match": bson.M{"_id": id},
 		},

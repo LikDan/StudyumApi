@@ -5,7 +5,8 @@ import (
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	auth "studyum/internal/auth/entities"
-	"studyum/internal/general"
+	"studyum/internal/general/controllers"
+	general "studyum/internal/general/entities"
 	"studyum/internal/global"
 	"studyum/internal/journal/entities"
 	"studyum/internal/parser/dto"
@@ -43,10 +44,10 @@ type controller struct {
 	validator Validator
 
 	repository        Repository
-	generalController general.Controller
+	generalController controllers.Controller
 }
 
-func NewScheduleController(parser parser.Handler, validator Validator, repository Repository, generalController general.Controller) Controller {
+func NewScheduleController(parser parser.Handler, validator Validator, repository Repository, generalController controllers.Controller) Controller {
 	return &controller{parser: parser, validator: validator, repository: repository, generalController: generalController}
 }
 
@@ -264,7 +265,7 @@ func (s *controller) UpdateLesson(ctx context.Context, updateDTO UpdateLessonDTO
 		return err
 	}
 
-	var lessonType global.LessonType
+	var lessonType general.LessonType
 	for _, lessonType_ := range studyPlace.LessonTypes {
 		if lessonType_.Type == lesson.Type {
 			lessonType = lessonType_

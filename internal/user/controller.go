@@ -14,13 +14,7 @@ import (
 type Controller interface {
 	UpdateUser(ctx context.Context, user entities.User, token, ip string, data Edit) (entities.User, jwt.TokenPair, error)
 
-	SignOut(ctx context.Context, refreshToken string) error
-
-	CreateCode(ctx context.Context, user entities.User, data UserCreateCodeDTO) (SignUpCode, error)
-
-	RevokeToken(ctx context.Context, token string) error
-	TerminateSession(ctx context.Context, user entities.User, ip string) error
-
+	CreateCode(ctx context.Context, user entities.User, data CreateCode) (SignUpCode, error)
 	PutFirebaseTokenByUserID(ctx context.Context, id primitive.ObjectID, firebaseToken string) error
 
 	GetAccept(ctx context.Context, user entities.User) ([]AcceptUser, error)
@@ -42,10 +36,6 @@ type controller struct {
 
 func NewUserController(repository Repository, sessionsController controllers.Sessions, encrypt encryption.Encryption, parser parser.Handler) Controller {
 	return &controller{repository: repository, sessionsController: sessionsController, encrypt: encrypt, parser: parser}
-}
-
-func (u *controller) SignOut(ctx context.Context, refreshToken string) error {
-	return u.repository.DeleteSessionByRefreshToken(ctx, refreshToken)
 }
 
 func (u *controller) UpdateUser(ctx context.Context, user entities.User, token, ip string, data Edit) (entities.User, jwt.TokenPair, error) {
@@ -80,19 +70,11 @@ func (u *controller) UpdateUser(ctx context.Context, user entities.User, token, 
 	return user, pair, nil
 }
 
-func (u *controller) RevokeToken(ctx context.Context, token string) error {
-	return u.repository.RevokeToken(ctx, token)
-}
-
-func (u *controller) TerminateSession(ctx context.Context, user entities.User, ip string) error {
-	return u.repository.DeleteSessionByIP(ctx, user.Id, ip)
-}
-
 func (u *controller) PutFirebaseTokenByUserID(ctx context.Context, token primitive.ObjectID, firebaseToken string) error {
 	return u.repository.PutFirebaseTokenByUserID(ctx, token, firebaseToken)
 }
 
-func (u *controller) CreateCode(ctx context.Context, user entities.User, data UserCreateCodeDTO) (SignUpCode, error) {
+func (u *controller) CreateCode(ctx context.Context, user entities.User, data CreateCode) (SignUpCode, error) {
 	code := SignUpCode{
 		Id:           primitive.NewObjectID(),
 		Code:         data.Code,

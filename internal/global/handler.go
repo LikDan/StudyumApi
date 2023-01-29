@@ -17,12 +17,17 @@ type Handler interface {
 	Error(ctx *gin.Context, err error)
 }
 
+var (
+	NotValidParams  = errors.New("not valid params")
+	NoPermission    = errors.New("no permission")
+	ValidationError = errors.New("validation error")
+)
+
 type handler struct {
-	controller Controller
 }
 
-func NewHandler(controller Controller) Handler {
-	return &handler{controller: controller}
+func NewHandler() Handler {
+	return &handler{}
 }
 
 func (h *handler) GetUser(ctx *gin.Context) entities.User {
@@ -52,12 +57,10 @@ func (h *handler) Error(ctx *gin.Context, err error) {
 		errors.Is(err, datetime.DurationError),
 		errors.Is(err, auth.BadClaimsErr):
 		code = http.StatusBadRequest
-	case errors.Is(err, NotAuthorizationError),
-		errors.Is(err, j.ErrSignatureInvalid),
+	case errors.Is(err, j.ErrSignatureInvalid),
 		errors.Is(err, http.ErrNoCookie):
 		code = http.StatusUnauthorized
 	case errors.Is(err, NoPermission),
-		errors.Is(err, ForbiddenError),
 		errors.Is(err, auth.ForbiddenErr):
 		code = http.StatusForbidden
 	default:

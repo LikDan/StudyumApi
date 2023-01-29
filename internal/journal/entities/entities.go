@@ -2,7 +2,7 @@ package entities
 
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"studyum/internal/global"
+	general "studyum/internal/general/entities"
 	parser "studyum/internal/parser/entities"
 	"time"
 )
@@ -14,11 +14,11 @@ type Journal struct {
 }
 
 type Info struct {
-	Editable   bool              `json:"editable" bson:"editable"`
-	StudyPlace global.StudyPlace `json:"studyPlace" bson:"studyPlace"`
-	Group      string            `json:"group" bson:"group"`
-	Teacher    string            `json:"teacher" bson:"teacher"`
-	Subject    string            `json:"subject" bson:"subject"`
+	Editable   bool               `json:"editable" bson:"editable"`
+	StudyPlace general.StudyPlace `json:"studyPlace" bson:"studyPlace"`
+	Group      string             `json:"group" bson:"group"`
+	Teacher    string             `json:"teacher" bson:"teacher"`
+	Subject    string             `json:"subject" bson:"subject"`
 }
 
 type Row struct {

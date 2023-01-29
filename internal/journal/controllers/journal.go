@@ -6,6 +6,7 @@ import (
 	"golang.org/x/exp/slices"
 	"strconv"
 	auth "studyum/internal/auth/entities"
+	general "studyum/internal/general/entities"
 	"studyum/internal/global"
 	"studyum/internal/journal/entities"
 	"studyum/internal/journal/repositories"
@@ -54,8 +55,8 @@ func (c *journal) rowAverageMark(row entities.Row) float32 {
 	return float32(sum) / float32(amount)
 }
 
-func (c *journal) markColor(colorSet global.JournalColors, date time.Time, type_ global.LessonType, mark entities.Mark) string {
-	var markType global.MarkType
+func (c *journal) markColor(colorSet general.JournalColors, date time.Time, type_ general.LessonType, mark entities.Mark) string {
+	var markType general.MarkType
 	for _, markType_ := range type_.Marks {
 		if markType_.Mark == mark.Mark {
 			markType = markType_
@@ -86,7 +87,7 @@ func (c *journal) markColor(colorSet global.JournalColors, date time.Time, type_
 	return colorSet.Danger
 }
 
-func (c *journal) absenceColor(colorSet global.JournalColors, date time.Time, type_ global.LessonType, absence entities.Absence) string {
+func (c *journal) absenceColor(colorSet general.JournalColors, date time.Time, type_ general.LessonType, absence entities.Absence) string {
 	if absence.Time != nil {
 		return colorSet.General
 	}
@@ -99,9 +100,9 @@ func (c *journal) absenceColor(colorSet global.JournalColors, date time.Time, ty
 	return colorSet.Danger
 }
 
-func (c *journal) cellColor(studyPlace global.StudyPlace, date time.Time, cell entities.Cell) string {
+func (c *journal) cellColor(studyPlace general.StudyPlace, date time.Time, cell entities.Cell) string {
 	cellType := cell.Type[0]
-	var type_ = global.LessonType{}
+	var type_ = general.LessonType{}
 	for _, t := range studyPlace.LessonTypes {
 		if cellType == t.Type {
 			type_ = t
@@ -136,7 +137,7 @@ func (c *journal) cellColor(studyPlace global.StudyPlace, date time.Time, cell e
 	return color
 }
 
-func (c *journal) rowColor(studyPlace global.StudyPlace, row entities.Row) string {
+func (c *journal) rowColor(studyPlace general.StudyPlace, row entities.Row) string {
 	color := studyPlace.JournalColors.General
 	for _, cell := range row.Cells {
 		if cell == nil {
