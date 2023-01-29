@@ -44,13 +44,13 @@ func (c *middleware) Recover(ctx context.Context, oldToken, newToken jwt.TokenPa
 func (c *middleware) Auth(ctx context.Context, pair jwt.TokenPair, ip string, permissions ...string) (jwt.TokenPair, bool, entities.User, error) {
 	newPair := jwt.TokenPair{}
 
-	claims, ok := c.jwt.Validate(pair.Access)
+	claims, ok, update := c.jwt.Validate(pair.Access)
 	if !ok {
 		access, err := c.jwt.Refresh(ctx, pair.Refresh)
 		if err != nil {
 			return jwt.TokenPair{}, false, entities.User{}, err
 		}
-		claims, ok = c.jwt.Validate(access)
+		claims, ok, _ = c.jwt.Validate(access)
 		if !ok {
 			return jwt.TokenPair{}, false, entities.User{}, BadClaimsErr
 		}
@@ -68,6 +68,12 @@ func (c *middleware) Auth(ctx context.Context, pair jwt.TokenPair, ip string, pe
 
 		if err = c.repository.AddSession(ctx, session, claims.Claims.ID); err != nil {
 			return jwt.TokenPair{}, false, entities.User{}, err
+		}
+	}
+	if update {
+		updatedPair, err := c.jwt.GeneratePair(claims.Claims)
+		if err == nil {
+			newPair = updatedPair
 		}
 	}
 

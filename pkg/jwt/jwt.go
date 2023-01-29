@@ -9,7 +9,7 @@ import (
 )
 
 type JWT[C any] interface {
-	Validate(token string) (Claims[C], bool)
+	Validate(token string) (Claims[C], bool, bool)
 
 	GeneratePair(claims C) (TokenPair, error)
 	GenerateAccess(claims C) (string, error)
@@ -34,17 +34,18 @@ func New[C any](validTime time.Duration, secret string) JWT[C] {
 	return &controller[C]{validTime: validTime, secret: secret}
 }
 
-func (c *controller[C]) Validate(token string) (Claims[C], bool) {
+func (c *controller[C]) Validate(token string) (Claims[C], bool, bool) {
 	claims := Claims[C]{}
 
 	_, err := jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte(c.secret), nil
 	})
 	if err != nil {
-		return Claims[C]{}, false
+		return Claims[C]{}, false, false
 	}
 
-	return claims, true
+	update := time.Unix(claims.ExpiresAt, 0).Before(time.Now().UTC().Add(-time.Minute))
+	return claims, true, update
 }
 
 func (c *controller[C]) GeneratePair(claims C) (TokenPair, error) {
