@@ -7,7 +7,6 @@ import (
 	"strconv"
 	auth "studyum/internal/auth/entities"
 	general "studyum/internal/general/entities"
-	"studyum/internal/global"
 	"studyum/internal/journal/entities"
 	"studyum/internal/journal/repositories"
 	"studyum/pkg/encryption"
@@ -309,7 +308,7 @@ func (c *journal) BuildAvailableOptions(ctx context.Context, user auth.User) ([]
 
 func (c *journal) BuildSubjectsJournal(ctx context.Context, group string, subject string, teacher string, user auth.User) (entities.Journal, error) {
 	if group == "" || subject == "" || teacher == "" {
-		return entities.Journal{}, global.NotValidParams
+		return entities.Journal{}, NotValidParams
 	}
 
 	options, err := c.BuildAvailableOptions(ctx, user)
@@ -331,7 +330,7 @@ func (c *journal) BuildSubjectsJournal(ctx context.Context, group string, subjec
 	}
 
 	if option == nil {
-		return entities.Journal{}, global.NoPermission
+		return entities.Journal{}, ErrNoPermission
 	}
 
 	journal, err := c.repository.GetJournal(ctx, *option, user.StudyPlaceID)

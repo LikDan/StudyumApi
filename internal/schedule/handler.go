@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	auth "studyum/internal/auth/handlers"
-	"studyum/internal/global"
 	"time"
 )
 
@@ -32,7 +31,6 @@ type Handler interface {
 }
 
 type handler struct {
-	global.Handler
 	auth.Middleware
 
 	controller Controller
@@ -40,8 +38,8 @@ type handler struct {
 	Group *gin.RouterGroup
 }
 
-func NewScheduleHandler(authHandler global.Handler, middleware auth.Middleware, controller Controller, group *gin.RouterGroup) Handler {
-	h := &handler{Handler: authHandler, Middleware: middleware, controller: controller, Group: group}
+func NewScheduleHandler(middleware auth.Middleware, controller Controller, group *gin.RouterGroup) Handler {
+	h := &handler{Middleware: middleware, controller: controller, Group: group}
 
 	group.GET("getTypes", h.TryAuth(), h.GetScheduleTypes)
 	group.GET(":type/:name", h.TryAuth(), h.GetSchedule)
@@ -75,7 +73,7 @@ func (s *handler) GetSchedule(ctx *gin.Context) {
 
 	schedule, err := s.controller.GetSchedule(ctx, studyPlaceID, type_, typeName, user)
 	if err != nil {
-		s.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -87,7 +85,7 @@ func (s *handler) GetUserSchedule(ctx *gin.Context) {
 
 	schedule, err := s.controller.GetUserSchedule(ctx, user)
 	if err != nil {
-		s.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -104,7 +102,7 @@ func (s *handler) GetGeneralSchedule(ctx *gin.Context) {
 
 	schedule, err := s.controller.GetGeneralSchedule(ctx, studyPlaceID, type_, typeName, user)
 	if err != nil {
-		s.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -116,7 +114,7 @@ func (s *handler) GetGeneralUserSchedule(ctx *gin.Context) {
 
 	schedule, err := s.controller.GetGeneralUserSchedule(ctx, user)
 	if err != nil {
-		s.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -139,7 +137,7 @@ func (s *handler) GetLessonByID(ctx *gin.Context) {
 	if ctx.Query("type") == "date" {
 		lesson, err := s.controller.GetLessonsByDateAndID(ctx, user, id)
 		if err != nil {
-			s.Error(ctx, err)
+			_ = ctx.Error(err)
 			return
 		}
 
@@ -149,7 +147,7 @@ func (s *handler) GetLessonByID(ctx *gin.Context) {
 
 	lesson, err := s.controller.GetLessonByID(ctx, user, id)
 	if err != nil {
-		s.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -167,7 +165,7 @@ func (s *handler) AddLesson(ctx *gin.Context) {
 
 	lesson, err := s.controller.AddLesson(ctx, lessonDTO, user)
 	if err != nil {
-		s.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -185,7 +183,7 @@ func (s *handler) AddLessons(ctx *gin.Context) {
 
 	lessons, err := s.controller.AddLessons(ctx, user, lessonsDTO)
 	if err != nil {
-		s.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -203,7 +201,7 @@ func (s *handler) AddGeneralLessons(ctx *gin.Context) {
 
 	lessons, err := s.controller.AddGeneralLessons(ctx, user, lessonsDTO)
 	if err != nil {
-		s.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -221,7 +219,7 @@ func (s *handler) UpdateLesson(ctx *gin.Context) {
 
 	err := s.controller.UpdateLesson(ctx, lesson, user)
 	if err != nil {
-		s.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -234,7 +232,7 @@ func (s *handler) DeleteLesson(ctx *gin.Context) {
 
 	err := s.controller.DeleteLesson(ctx, id, user)
 	if err != nil {
-		s.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -249,7 +247,7 @@ func (s *handler) SaveCurrentScheduleAsGeneral(ctx *gin.Context) {
 
 	err := s.controller.SaveCurrentScheduleAsGeneral(ctx, user, type_, typeName)
 	if err != nil {
-		s.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -267,7 +265,7 @@ func (s *handler) SaveGeneralScheduleAsCurrent(ctx *gin.Context) {
 	}
 
 	if err = s.controller.SaveGeneralScheduleAsCurrent(ctx, user, date); err != nil {
-		s.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -290,7 +288,7 @@ func (s *handler) RemoveLessonsBetweenDates(ctx *gin.Context) {
 	}
 
 	if err = s.controller.RemoveLessonBetweenDates(ctx, user, startDate, endDate); err != nil {
-		s.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 

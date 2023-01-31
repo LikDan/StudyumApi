@@ -1,4 +1,4 @@
-package global
+package middlewares
 
 import (
 	"github.com/gin-gonic/gin"
@@ -7,34 +7,24 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 	auth "studyum/internal/auth/controllers"
-	"studyum/internal/auth/entities"
-	"studyum/internal/utils"
+	"studyum/internal/journal/controllers"
+	"studyum/internal/schedule"
 	"studyum/pkg/datetime"
 )
 
-type Handler interface {
-	GetUser(ctx *gin.Context) entities.User
-	Error(ctx *gin.Context, err error)
+func ErrorMiddleware() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		ctx.Next()
+		if len(ctx.Errors) == 0 {
+			return
+		}
+
+		code := GetHttpCodeByError(ctx.Errors[0])
+		ctx.JSON(code, ctx.Errors[0].Error())
+	}
 }
 
-var (
-	NotValidParams  = errors.New("not valid params")
-	NoPermission    = errors.New("no permission")
-	ValidationError = errors.New("validation error")
-)
-
-type handler struct {
-}
-
-func NewHandler() Handler {
-	return &handler{}
-}
-
-func (h *handler) GetUser(ctx *gin.Context) entities.User {
-	return utils.GetViaCtx[entities.User](ctx, "user")
-}
-
-func (h *handler) Error(ctx *gin.Context, err error) {
+func GetHttpCodeByError(err error) int {
 	var code int
 
 	switch {
@@ -51,23 +41,22 @@ func (h *handler) Error(ctx *gin.Context, err error) {
 		errors.Is(err, mongo.ErrNilValue),
 		errors.Is(err, mongo.ErrEmptySlice),
 		errors.Is(err, mongo.ErrNilCursor),
-		errors.Is(err, NotValidParams),
-		errors.Is(err, ValidationError),
 		errors.Is(err, auth.ValidationError),
 		errors.Is(err, datetime.DurationError),
-		errors.Is(err, auth.BadClaimsErr):
+		errors.Is(err, auth.BadClaimsErr),
+		errors.Is(err, controllers.NotValidParams),
+		errors.Is(err, schedule.NotValidParams),
+		errors.Is(err, schedule.ValidationError):
 		code = http.StatusBadRequest
 	case errors.Is(err, j.ErrSignatureInvalid),
 		errors.Is(err, http.ErrNoCookie):
 		code = http.StatusUnauthorized
-	case errors.Is(err, NoPermission),
-		errors.Is(err, auth.ForbiddenErr):
+	case errors.Is(err, auth.ForbiddenErr),
+		errors.Is(err, controllers.ErrNoPermission):
 		code = http.StatusForbidden
 	default:
 		code = http.StatusInternalServerError
 	}
 
-	ctx.JSON(code, err.Error())
-	_ = ctx.Error(err)
-	ctx.Abort()
+	return code
 }

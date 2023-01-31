@@ -7,12 +7,14 @@ import (
 	auth "studyum/internal/auth/entities"
 	"studyum/internal/general/controllers"
 	general "studyum/internal/general/entities"
-	"studyum/internal/global"
 	"studyum/internal/journal/entities"
 	"studyum/internal/parser/dto"
 	parser "studyum/internal/parser/handler"
 	"time"
 )
+
+var NotValidParams = errors.New("not valid params")
+var ValidationError = errors.New("validation error")
 
 type Controller interface {
 	GetSchedule(ctx context.Context, studyPlaceID string, type_ string, typeName string, user auth.User) (Schedule, error)
@@ -53,7 +55,7 @@ func NewScheduleController(parser parser.Handler, validator Validator, repositor
 
 func (s *controller) GetSchedule(ctx context.Context, studyPlaceIDHex string, type_ string, typeName string, user auth.User) (Schedule, error) {
 	if type_ == "" || typeName == "" {
-		return Schedule{}, global.NotValidParams
+		return Schedule{}, NotValidParams
 	}
 
 	studyPlaceID := user.StudyPlaceID
@@ -72,7 +74,7 @@ func (s *controller) GetUserSchedule(ctx context.Context, user auth.User) (Sched
 
 func (s *controller) GetGeneralSchedule(ctx context.Context, studyPlaceIDHex string, type_ string, typeName string, user auth.User) (Schedule, error) {
 	if type_ == "" || typeName == "" {
-		return Schedule{}, global.NotValidParams
+		return Schedule{}, NotValidParams
 	}
 
 	studyPlaceID := user.StudyPlaceID
@@ -291,7 +293,7 @@ func (s *controller) UpdateLesson(ctx context.Context, updateDTO UpdateLessonDTO
 func (s *controller) DeleteLesson(ctx context.Context, idHex string, user auth.User) error {
 	id, err := primitive.ObjectIDFromHex(idHex)
 	if err != nil {
-		return errors.Wrap(global.NotValidParams, "id")
+		return errors.Wrap(NotValidParams, "id")
 	}
 
 	lesson, err := s.repository.FindAndDeleteLesson(ctx, id, user.StudyPlaceID)
@@ -320,7 +322,7 @@ func (s *controller) DeleteLesson(ctx context.Context, idHex string, user auth.U
 func (s *controller) GetLessonsByDateAndID(ctx context.Context, user auth.User, idHex string) ([]Lesson, error) {
 	id, err := primitive.ObjectIDFromHex(idHex)
 	if err != nil {
-		return nil, errors.Wrap(global.NotValidParams, "id")
+		return nil, errors.Wrap(NotValidParams, "id")
 	}
 
 	if user.Type == "group" {
@@ -333,7 +335,7 @@ func (s *controller) GetLessonsByDateAndID(ctx context.Context, user auth.User, 
 func (s *controller) GetLessonByID(ctx context.Context, user auth.User, idHex string) (Lesson, error) {
 	id, err := primitive.ObjectIDFromHex(idHex)
 	if err != nil {
-		return Lesson{}, errors.Wrap(global.NotValidParams, "id")
+		return Lesson{}, errors.Wrap(NotValidParams, "id")
 	}
 
 	if user.Type == "group" {
@@ -363,7 +365,7 @@ func (s *controller) GetLessonByID(ctx context.Context, user auth.User, idHex st
 
 func (s *controller) RemoveLessonBetweenDates(ctx context.Context, user auth.User, date1, date2 time.Time) error {
 	if !date1.Before(date2) {
-		return errors.Wrap(global.ValidationError, "start time is after end time")
+		return errors.Wrap(ValidationError, "start time is after end time")
 	}
 
 	return s.repository.RemoveLessonBetweenDates(ctx, date1, date2, user.StudyPlaceID)

@@ -3,7 +3,8 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"studyum/internal/auth/controllers"
-	"studyum/internal/global"
+	"studyum/internal/auth/entities"
+	"studyum/internal/utils"
 	"studyum/pkg/jwt"
 )
 
@@ -14,16 +15,16 @@ type Middleware interface {
 
 	SetTokenPairCookie(ctx *gin.Context, pair jwt.TokenPair)
 	DeleteTokenPairCookie(ctx *gin.Context)
+
+	GetUser(ctx *gin.Context) entities.User
 }
 
 type middleware struct {
-	global.Handler
-
 	controller controllers.Middleware
 }
 
-func NewMiddleware(handler global.Handler, controller controllers.Middleware) Middleware {
-	return &middleware{Handler: handler, controller: controller}
+func NewMiddleware(controller controllers.Middleware) Middleware {
+	return &middleware{controller: controller}
 }
 
 func (h *middleware) SetTokenPairCookie(ctx *gin.Context, pair jwt.TokenPair) {
@@ -54,7 +55,8 @@ func (h *middleware) authViaApiToken(ctx *gin.Context) bool {
 
 	user, err := h.controller.AuthViaApiToken(ctx, apiToken)
 	if err != nil {
-		h.Error(ctx, err)
+		_ = ctx.Error(err)
+		ctx.Abort()
 		return true
 	}
 
@@ -71,7 +73,8 @@ func (h *middleware) Auth() gin.HandlerFunc {
 		pair := h.tokenPair(ctx)
 		newPair, update, user, err := h.controller.Auth(ctx, pair, ctx.ClientIP())
 		if err != nil {
-			h.Error(ctx, err)
+			_ = ctx.Error(err)
+			ctx.Abort()
 			return
 		}
 		if update {
@@ -83,7 +86,8 @@ func (h *middleware) Auth() gin.HandlerFunc {
 		ctx.Next()
 		if ctx.Request.Context().Err() != nil && update {
 			if err = h.controller.Recover(ctx, pair, newPair, ctx.ClientIP(), user.Id); err != nil {
-				h.Error(ctx, err)
+				_ = ctx.Error(err)
+				ctx.Abort()
 				return
 			}
 		}
@@ -106,7 +110,8 @@ func (h *middleware) TryAuth() gin.HandlerFunc {
 		ctx.Next()
 		if ctx.Request.Context().Err() != nil && update {
 			if err = h.controller.Recover(ctx, pair, newPair, ctx.ClientIP(), user.Id); err != nil {
-				h.Error(ctx, err)
+				_ = ctx.Error(err)
+				ctx.Abort()
 				return
 			}
 		}
@@ -118,7 +123,8 @@ func (h *middleware) MemberAuth(permissions ...string) gin.HandlerFunc {
 		pair := h.tokenPair(ctx)
 		newPair, update, user, err := h.controller.Auth(ctx, pair, ctx.ClientIP(), permissions...)
 		if err != nil {
-			h.Error(ctx, err)
+			_ = ctx.Error(err)
+			ctx.Abort()
 			return
 		}
 		if update {
@@ -130,9 +136,14 @@ func (h *middleware) MemberAuth(permissions ...string) gin.HandlerFunc {
 		ctx.Next()
 		if ctx.Request.Context().Err() != nil && update {
 			if err = h.controller.Recover(ctx, pair, newPair, ctx.ClientIP(), user.Id); err != nil {
-				h.Error(ctx, err)
+				_ = ctx.Error(err)
+				ctx.Abort()
 				return
 			}
 		}
 	}
+}
+
+func (h *middleware) GetUser(ctx *gin.Context) entities.User {
+	return utils.GetViaCtx[entities.User](ctx, "user")
 }

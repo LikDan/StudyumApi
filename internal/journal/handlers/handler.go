@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	auth "studyum/internal/auth/handlers"
-	"studyum/internal/global"
 	"studyum/internal/journal/controllers"
 	"studyum/internal/journal/dtos"
 )
@@ -30,7 +29,6 @@ type Handler interface {
 }
 
 type handler struct {
-	global.Handler
 	auth.Middleware
 
 	controller        controllers.Controller
@@ -39,8 +37,8 @@ type handler struct {
 	Group *gin.RouterGroup
 }
 
-func NewJournalHandler(authHandler global.Handler, middleware auth.Middleware, controller controllers.Controller, journal controllers.Journal, group *gin.RouterGroup) Handler {
-	h := &handler{Handler: authHandler, Middleware: middleware, controller: controller, journalController: journal, Group: group}
+func NewJournalHandler(middleware auth.Middleware, controller controllers.Controller, journal controllers.Journal, group *gin.RouterGroup) Handler {
+	h := &handler{Middleware: middleware, controller: controller, journalController: journal, Group: group}
 
 	group.GET("/options", h.MemberAuth(), h.GetJournalAvailableOptions)
 	group.GET("/:group/:subject/:teacher", h.MemberAuth(), h.GetJournal)
@@ -72,7 +70,7 @@ func NewJournalHandler(authHandler global.Handler, middleware auth.Middleware, c
 }
 
 func (j *handler) GenerateMarks(ctx *gin.Context) {
-	user := j.Handler.GetUser(ctx)
+	user := j.GetUser(ctx)
 
 	var config dtos.MarksReport
 	if err := ctx.BindJSON(&config); err != nil {
@@ -82,7 +80,7 @@ func (j *handler) GenerateMarks(ctx *gin.Context) {
 
 	file, err := j.controller.GenerateMarksReport(ctx, config, user)
 	if err != nil {
-		j.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -100,7 +98,7 @@ func (j *handler) GenerateAbsences(ctx *gin.Context) {
 
 	file, err := j.controller.GenerateAbsencesReport(ctx, config, user)
 	if err != nil {
-		j.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -112,7 +110,7 @@ func (j *handler) GetJournalAvailableOptions(ctx *gin.Context) {
 
 	options, err := j.journalController.BuildAvailableOptions(ctx, user)
 	if err != nil {
-		j.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -128,7 +126,7 @@ func (j *handler) GetJournal(ctx *gin.Context) {
 
 	journal, err := j.journalController.BuildSubjectsJournal(ctx, group, subject, teacher, user)
 	if err != nil {
-		j.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -140,7 +138,7 @@ func (j *handler) GetUserJournal(ctx *gin.Context) {
 
 	journal, err := j.journalController.BuildStudentsJournal(ctx, user)
 	if err != nil {
-		j.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -158,7 +156,7 @@ func (j *handler) AddMarks(ctx *gin.Context) {
 
 	lesson, err := j.controller.AddMarks(ctx, marks, user)
 	if err != nil {
-		j.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -176,7 +174,7 @@ func (j *handler) AddMark(ctx *gin.Context) {
 
 	cellResponse, err := j.controller.AddMark(ctx, mark, user)
 	if err != nil {
-		j.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -194,7 +192,7 @@ func (j *handler) UpdateMark(ctx *gin.Context) {
 
 	cellResponse, err := j.controller.UpdateMark(ctx, user, mark)
 	if err != nil {
-		j.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -208,7 +206,7 @@ func (j *handler) DeleteMark(ctx *gin.Context) {
 
 	cellResponse, err := j.controller.DeleteMark(ctx, user, markId)
 	if err != nil {
-		j.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -226,7 +224,7 @@ func (j *handler) AddAbsences(ctx *gin.Context) {
 
 	absences, err := j.controller.AddAbsences(ctx, absencesDTO, user)
 	if err != nil {
-		j.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -244,7 +242,7 @@ func (j *handler) AddAbsence(ctx *gin.Context) {
 
 	cellResponse, err := j.controller.AddAbsence(ctx, absencesDTO, user)
 	if err != nil {
-		j.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -262,7 +260,7 @@ func (j *handler) UpdateAbsence(ctx *gin.Context) {
 
 	cellResponse, err := j.controller.UpdateAbsence(ctx, user, absences)
 	if err != nil {
-		j.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -275,7 +273,7 @@ func (j *handler) DeleteAbsence(ctx *gin.Context) {
 	absencesID := ctx.Param("id")
 	cellResponse, err := j.controller.DeleteAbsence(ctx, user, absencesID)
 	if err != nil {
-		j.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 

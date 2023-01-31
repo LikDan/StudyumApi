@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"studyum/internal/general/controllers"
-	"studyum/internal/global"
 )
 
 type Handler interface {
@@ -20,15 +19,13 @@ type Handler interface {
 }
 
 type handler struct {
-	global.Handler
-
 	controller controllers.Controller
 
 	Group *gin.RouterGroup
 }
 
-func NewGeneralHandler(globalHandler global.Handler, controller controllers.Controller, group *gin.RouterGroup) Handler {
-	h := &handler{Handler: globalHandler, controller: controller, Group: group}
+func NewGeneralHandler(controller controllers.Controller, group *gin.RouterGroup) Handler {
+	h := &handler{controller: controller, Group: group}
 
 	group.GET("/studyPlaces", h.GetStudyPlaces)
 	group.GET("/studyPlaces/:id", h.GetStudyPlaceByID)
@@ -52,7 +49,7 @@ func (g *handler) GetStudyPlaces(ctx *gin.Context) {
 
 	err, studyPlaces := g.controller.GetStudyPlaces(ctx, restricted)
 	if err != nil {
-		g.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -75,7 +72,7 @@ func (g *handler) GetStudyPlaceByID(ctx *gin.Context) {
 
 	err, studyPlace := g.controller.GetStudyPlaceByID(ctx, id, restricted)
 	if err != nil {
-		g.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 

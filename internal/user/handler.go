@@ -5,7 +5,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	auth "studyum/internal/auth/handlers"
-	"studyum/internal/global"
 )
 
 type Handler interface {
@@ -20,7 +19,6 @@ type Handler interface {
 }
 
 type handler struct {
-	global.Handler
 	auth.Middleware
 
 	controller Controller
@@ -28,8 +26,8 @@ type handler struct {
 	Group *gin.RouterGroup
 }
 
-func NewUserHandler(authHandler global.Handler, middleware auth.Middleware, controller Controller, group *gin.RouterGroup) Handler {
-	h := &handler{Handler: authHandler, Middleware: middleware, controller: controller, Group: group}
+func NewUserHandler(middleware auth.Middleware, controller Controller, group *gin.RouterGroup) Handler {
+	h := &handler{Middleware: middleware, controller: controller, Group: group}
 
 	group.GET("", h.Auth(), h.GetUser)
 	group.PUT("", h.Auth(), h.UpdateUser)
@@ -44,14 +42,14 @@ func NewUserHandler(authHandler global.Handler, middleware auth.Middleware, cont
 }
 
 func (h *handler) GetUser(ctx *gin.Context) {
-	user := h.Handler.GetUser(ctx)
+	user := h.Middleware.GetUser(ctx)
 	user = h.controller.DecryptUser(ctx, user)
 
 	ctx.JSON(http.StatusOK, user)
 }
 
 func (h *handler) UpdateUser(ctx *gin.Context) {
-	user := h.Handler.GetUser(ctx)
+	user := h.Middleware.GetUser(ctx)
 
 	var data Edit
 	if err := ctx.BindJSON(&data); err != nil {
@@ -62,7 +60,7 @@ func (h *handler) UpdateUser(ctx *gin.Context) {
 	token, _ := ctx.Cookie("refresh")
 	user, pair, err := h.controller.UpdateUser(ctx, user, token, ctx.ClientIP(), data)
 	if err != nil {
-		h.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -71,7 +69,7 @@ func (h *handler) UpdateUser(ctx *gin.Context) {
 }
 
 func (h *handler) PutFirebaseToken(ctx *gin.Context) {
-	user := h.Handler.GetUser(ctx)
+	user := h.Middleware.GetUser(ctx)
 
 	var token string
 	if err := ctx.BindJSON(&token); err != nil {
@@ -80,7 +78,7 @@ func (h *handler) PutFirebaseToken(ctx *gin.Context) {
 	}
 
 	if err := h.controller.PutFirebaseTokenByUserID(ctx, user.Id, token); err != nil {
-		h.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -88,18 +86,18 @@ func (h *handler) PutFirebaseToken(ctx *gin.Context) {
 }
 
 func (h *handler) GetAccept(ctx *gin.Context) {
-	user := h.Handler.GetUser(ctx)
+	user := h.Middleware.GetUser(ctx)
 
 	users, err := h.controller.GetAccept(ctx, user)
 	if err != nil {
-		h.Error(ctx, err)
+		_ = ctx.Error(err)
 	}
 
 	ctx.JSON(http.StatusOK, users)
 }
 
 func (h *handler) Accept(ctx *gin.Context) {
-	user := h.Handler.GetUser(ctx)
+	user := h.Middleware.GetUser(ctx)
 
 	var idHex string
 	if err := ctx.BindJSON(&idHex); err != nil {
@@ -114,14 +112,14 @@ func (h *handler) Accept(ctx *gin.Context) {
 	}
 
 	if err = h.controller.Accept(ctx, user, id); err != nil {
-		h.Error(ctx, err)
+		_ = ctx.Error(err)
 	}
 
 	ctx.JSON(http.StatusOK, id)
 }
 
 func (h *handler) Block(ctx *gin.Context) {
-	user := h.Handler.GetUser(ctx)
+	user := h.Middleware.GetUser(ctx)
 
 	var idHex string
 	if err := ctx.BindJSON(&idHex); err != nil {
@@ -136,7 +134,7 @@ func (h *handler) Block(ctx *gin.Context) {
 	}
 
 	if err = h.controller.Block(ctx, user, id); err != nil {
-		h.Error(ctx, err)
+		_ = ctx.Error(err)
 	}
 
 	ctx.JSON(http.StatusOK, id)

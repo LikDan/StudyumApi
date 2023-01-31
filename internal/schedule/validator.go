@@ -3,7 +3,6 @@ package schedule
 import (
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
-	"studyum/internal/global"
 	"studyum/pkg/datetime"
 )
 
@@ -34,7 +33,7 @@ func (s *schedule) AddGeneralLesson(dto AddGeneralLessonDTO) error {
 	}
 
 	if endDuration <= startDuration {
-		return errors.Wrap(global.ValidationError, "start time is after end time")
+		return errors.Wrap(ValidationError, "start time is after end time")
 	}
 
 	return nil
@@ -42,7 +41,7 @@ func (s *schedule) AddGeneralLesson(dto AddGeneralLessonDTO) error {
 
 func (s *schedule) AddLesson(dto AddLessonDTO) error {
 	if !dto.StartDate.Before(dto.EndDate) {
-		return errors.Wrap(global.ValidationError, "start date is after end date")
+		return errors.Wrap(ValidationError, "start date is after end date")
 	}
 
 	return nil
@@ -54,7 +53,7 @@ func (s *schedule) UpdateLesson(dto UpdateLessonDTO) error {
 	}
 
 	if dto.Id.IsZero() {
-		return errors.Wrap(global.ValidationError, "not valid id")
+		return errors.Wrap(ValidationError, "not valid id")
 	}
 
 	return nil

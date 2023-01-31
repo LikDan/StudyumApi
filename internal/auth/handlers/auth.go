@@ -6,11 +6,9 @@ import (
 	"net/http"
 	"studyum/internal/auth/controllers"
 	"studyum/internal/auth/dto"
-	"studyum/internal/global"
 )
 
 type Auth struct {
-	global.Handler
 	Middleware
 
 	controller controllers.Auth
@@ -18,8 +16,8 @@ type Auth struct {
 	Group *gin.RouterGroup
 }
 
-func NewAuth(handler global.Handler, middleware Middleware, controller controllers.Auth, group *gin.RouterGroup) *Auth {
-	h := &Auth{Handler: handler, Middleware: middleware, controller: controller, Group: group}
+func NewAuth(middleware Middleware, controller controllers.Auth, group *gin.RouterGroup) *Auth {
+	h := &Auth{Middleware: middleware, controller: controller, Group: group}
 
 	group.PUT("login", h.Login)
 
@@ -42,7 +40,7 @@ func (h *Auth) Login(ctx *gin.Context) {
 
 	user, pair, err := h.controller.Login(ctx, ctx.ClientIP(), data)
 	if err != nil {
-		h.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -60,7 +58,7 @@ func (h *Auth) SignUp(ctx *gin.Context) {
 
 	user, pair, err := h.controller.SignUp(ctx, ctx.ClientIP(), data)
 	if err != nil {
-		h.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -79,7 +77,7 @@ func (h *Auth) SignUpStage1ViaCode(ctx *gin.Context) {
 
 	user, err := h.controller.SignUpStage1ViaCode(ctx, user, data.Code)
 	if err != nil {
-		h.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -97,7 +95,7 @@ func (h *Auth) SignUpUserStage1(ctx *gin.Context) {
 
 	user, err := h.controller.SignUpStage1(ctx, user, data)
 	if err != nil {
-		h.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
@@ -109,7 +107,7 @@ func (h *Auth) SignOut(ctx *gin.Context) {
 	if token != "" {
 		if err := h.controller.SignOut(ctx, token); err != nil {
 			if err != mongo.ErrNoDocuments {
-				h.Error(ctx, err)
+				_ = ctx.Error(err)
 				return
 			}
 		}
@@ -122,7 +120,7 @@ func (h *Auth) SignOut(ctx *gin.Context) {
 func (h *Auth) TerminateAllSessions(ctx *gin.Context) {
 	user := h.GetUser(ctx)
 	if err := h.controller.TerminateAll(ctx, user); err != nil {
-		h.Error(ctx, err)
+		_ = ctx.Error(err)
 		return
 	}
 
