@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/internal/auth/controllers"
 	"studyum/internal/auth/entities"
@@ -40,6 +41,10 @@ func NewUserController(repository Repository, sessionsController controllers.Ses
 
 func (u *controller) UpdateUser(ctx context.Context, user entities.User, token, ip string, data Edit) (entities.User, jwt.TokenPair, error) {
 	if data.Password != "" {
+		if !user.VerifiedEmail {
+			return entities.User{}, jwt.TokenPair{}, errors.Wrap(controllers.ForbiddenErr, "confirm email")
+		}
+
 		password, err := hash.Hash(data.Password)
 		if err != nil {
 			return entities.User{}, jwt.TokenPair{}, err

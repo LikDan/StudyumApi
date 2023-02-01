@@ -13,7 +13,6 @@ import (
 	controllers2 "studyum/internal/general/controllers"
 	handlers2 "studyum/internal/general/handlers"
 	repositories2 "studyum/internal/general/repositories"
-	"studyum/internal/global"
 	"studyum/internal/journal/controllers"
 	"studyum/internal/journal/handlers"
 	"studyum/internal/journal/repositories"
@@ -22,9 +21,11 @@ import (
 	pRepository "studyum/internal/parser/repository"
 	"studyum/internal/schedule"
 	"studyum/internal/user"
+	"studyum/internal/utils/middlewares"
 	"studyum/pkg/encryption"
 	fb "studyum/pkg/firebase"
 	"studyum/pkg/jwt"
+	"studyum/pkg/mail"
 	"time"
 )
 
@@ -41,7 +42,18 @@ func main() {
 		logrus.Fatalf("Can't connect to database, error: %s", err.Error())
 	}
 
+	id := os.Getenv("GMAIL_CLIENT_ID")
+	secret := os.Getenv("GMAIL_CLIENT_SECRET")
+	access := os.Getenv("GMAIL_ACCESS_TOKEN")
+	refresh := os.Getenv("GMAIL_REFRESH_TOKEN")
+	m := mail.NewMail(context.Background(), id, secret, access, refresh, "email-templates")
+	//if err = m.Send("likdan.official@gmail.com", "Application started", "Studyum app has been started"); err != nil {
+	//	logrus.Warning(err)
+	//	return
+	//}
+
 	defer logrus.Warning("Studyum is stopping at", time.Now().Format("2006-01-02 15:04"))
+	defer m.Send("likdan.official@gmail.com", "Application stopped", "Studyum app has been stopped at"+time.Now().Format("2006-01-02 15:04"))
 
 	firebaseCredentials := []byte(os.Getenv("FIREBASE_CREDENTIALS"))
 	firebase := fb.NewFirebase(firebaseCredentials)
@@ -51,13 +63,12 @@ func main() {
 	parserController := pController.NewParserController(parserRepository, encrypt, firebase)
 	parserHandler := pHandler.NewParserHandler(parserController)
 
-	secret := os.Getenv("JWT_SECRET")
+	secret = os.Getenv("JWT_SECRET")
 	expTime := time.Minute * 10
 	jwtController := jwt.New[authEntries.JWTClaims](expTime, secret)
 
-	handler := global.NewHandler()
-
 	engine := gin.Default()
+	engine.Use(middlewares.ErrorMiddleware())
 	api := engine.Group("/api")
 
 	db := client.Database("Studyum")
@@ -69,7 +80,7 @@ func main() {
 
 	scheduleValidator := schedule.NewSchedule(validator.New())
 
-	authMiddleware, _, _, sessionsController := auth.New(api.Group("/user"), handler, encrypt, jwtController, db)
+	authMiddleware, _, _, sessionsController := auth.New(api.Group("/user"), encrypt, jwtController, m, db)
 
 	userController := user.NewUserController(userRepository, sessionsController, encrypt, parserHandler)
 	generalController := controllers2.NewGeneralController(generalRepository)
@@ -77,10 +88,10 @@ func main() {
 	mainJournalController := controllers.NewController(parserHandler, journalController, journalRepository, encrypt)
 	scheduleController := schedule.NewScheduleController(parserHandler, scheduleValidator, scheduleRepository, generalController)
 
-	handlers2.NewGeneralHandler(handler, generalController, api)
-	user.NewUserHandler(handler, authMiddleware, userController, api.Group("/user"))
-	handlers.NewJournalHandler(handler, authMiddleware, mainJournalController, journalController, api.Group("/journal"))
-	schedule.NewScheduleHandler(handler, authMiddleware, scheduleController, api.Group("/schedule"))
+	handlers2.NewGeneralHandler(generalController, api)
+	user.NewUserHandler(authMiddleware, userController, api.Group("/user"))
+	handlers.NewJournalHandler(authMiddleware, mainJournalController, journalController, api.Group("/journal"))
+	schedule.NewScheduleHandler(authMiddleware, scheduleController, api.Group("/schedule"))
 
 	logrus.Fatalf("Error launching server %s", engine.Run().Error())
 }

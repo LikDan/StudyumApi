@@ -26,6 +26,9 @@ func NewAuth(middleware Middleware, controller controllers.Auth, group *gin.Rout
 	group.POST("signup/code", h.Auth(), h.SignUpStage1ViaCode)
 	group.DELETE("signout", h.Auth(), h.SignOut)
 
+	group.POST("email/confirm", h.Auth(), h.ConfirmEmail)
+	group.POST("email/resendCode", h.Auth(), h.ResendEmailCode)
+
 	group.DELETE("sessions", h.Auth(), h.TerminateAllSessions)
 
 	return h
@@ -114,6 +117,33 @@ func (h *Auth) SignOut(ctx *gin.Context) {
 	}
 
 	h.DeleteTokenPairCookie(ctx)
+	ctx.Status(http.StatusNoContent)
+}
+
+func (h *Auth) ConfirmEmail(ctx *gin.Context) {
+	user := h.GetUser(ctx)
+
+	var data dto.VerificationCode
+	if err := ctx.BindJSON(&data); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := h.controller.ConfirmEmail(ctx, user, data); err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+func (h *Auth) ResendEmailCode(ctx *gin.Context) {
+	user := h.GetUser(ctx)
+	if err := h.controller.ResendEmailCode(ctx, user); err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
 	ctx.Status(http.StatusNoContent)
 }
 

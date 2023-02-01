@@ -42,8 +42,9 @@ func GetHttpCodeByError(err error) int {
 		errors.Is(err, mongo.ErrEmptySlice),
 		errors.Is(err, mongo.ErrNilCursor),
 		errors.Is(err, auth.ValidationError),
-		errors.Is(err, datetime.DurationError),
 		errors.Is(err, auth.BadClaimsErr),
+		errors.Is(err, auth.ErrExpired),
+		errors.Is(err, datetime.DurationError),
 		errors.Is(err, controllers.NotValidParams),
 		errors.Is(err, schedule.NotValidParams),
 		errors.Is(err, schedule.ValidationError):
