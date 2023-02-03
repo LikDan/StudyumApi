@@ -53,6 +53,8 @@ func (u *controller) UpdateUser(ctx context.Context, user entities.User, token, 
 		user.Password = password
 	}
 
+	u.encrypt.Decrypt(&user)
+
 	user.Login = data.Login
 	user.Email = data.Email
 	user.PictureUrl = data.Picture

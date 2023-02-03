@@ -3,4 +3,4 @@ To verify your email please enter code
 
 {code}
 
-https://studyum.net/auth/signup/code
+https://studyum.net/auth/email/verification

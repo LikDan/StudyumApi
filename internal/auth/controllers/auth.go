@@ -199,7 +199,7 @@ func (c *auth) ConfirmEmail(ctx context.Context, user entities.User, code dto.Ve
 		return errors.Wrap(ErrExpired, "code")
 	}
 
-	if user.VerifiedEmail || user.Email != verificationCode.Email {
+	if user.VerifiedEmail || user.Email != verificationCode.Email || user.Id != verificationCode.UserID {
 		return ValidationError
 	}
 
