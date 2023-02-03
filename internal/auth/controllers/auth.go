@@ -77,11 +77,12 @@ func (c *auth) sendCodeEmail(_ context.Context, code entities.VerificationCode) 
 	return c.mail.SendFile(code.Email, "Authorization code", "code.txt", emailData)
 }
 
-func (c *auth) generateCode(ctx context.Context, email string) (entities.VerificationCode, error) {
+func (c *auth) generateCode(ctx context.Context, userID primitive.ObjectID, email string) (entities.VerificationCode, error) {
 	code := entities.VerificationCode{
 		Code:      utils.RandomCode(6),
 		Email:     email,
 		CreatedAt: time.Now(),
+		UserID:    userID,
 	}
 
 	if err := c.verificationsCodeRepository.Create(ctx, code); err != nil {
@@ -124,7 +125,7 @@ func (c *auth) SignUp(ctx context.Context, ip string, data dto.SignUp) (entities
 			Login:    data.Login,
 		}
 
-		code, err := c.generateCode(ctx, data.Email)
+		code, err := c.generateCode(ctx, user.Id, data.Email)
 		if err != nil {
 			return entities.User{}, jwt.TokenPair{}, err
 		}
@@ -208,7 +209,7 @@ func (c *auth) ConfirmEmail(ctx context.Context, user entities.User, code dto.Ve
 func (c *auth) ResendEmailCode(ctx context.Context, user entities.User) error {
 	code, err := c.verificationsCodeRepository.GetCodeByEmail(ctx, user.Email)
 	if err == nil {
-		if code.CreatedAt.Add(time.Minute).After(time.Now()) {
+		if code.CreatedAt.Add(time.Minute).After(time.Now()) || code.UserID == user.Id {
 			return errors.Wrap(ForbiddenErr, "too many requests")
 		}
 	}
@@ -217,7 +218,7 @@ func (c *auth) ResendEmailCode(ctx context.Context, user entities.User) error {
 		return err
 	}
 
-	code, err = c.generateCode(ctx, user.Email)
+	code, err = c.generateCode(ctx, user.Id, user.Email)
 	if err != nil {
 		return err
 	}
