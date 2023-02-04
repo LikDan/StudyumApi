@@ -159,7 +159,7 @@ func (u *controller) RecoverPassword(ctx context.Context, email string) error {
 }
 
 func (u *controller) ResetPasswordViaCode(ctx context.Context, resetPassword dto.ResetPassword) error {
-	code, err := u.codesController.Receive(ctx, resetPassword.Code)
+	code, err := u.codesController.Receive(ctx, codesEntities.PasswordReset, resetPassword.Code)
 	if err != nil {
 		return err
 	}

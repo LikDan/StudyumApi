@@ -15,7 +15,7 @@ var ErrForbidden = errors.New("forbidden")
 
 type Controller interface {
 	Send(ctx context.Context, code entities.Code) error
-	Receive(ctx context.Context, code string) (entities.Code, error)
+	Receive(ctx context.Context, codeType entities.CodeType, code string) (entities.Code, error)
 }
 
 type controller struct {
@@ -79,8 +79,8 @@ func (c *controller) Send(ctx context.Context, code entities.Code) error {
 	return c.sendEmail(ctx, code)
 }
 
-func (c *controller) Receive(ctx context.Context, rawCode string) (entities.Code, error) {
-	code, err := c.repository.GetCodeAndDelete(ctx, rawCode)
+func (c *controller) Receive(ctx context.Context, codeType entities.CodeType, rawCode string) (entities.Code, error) {
+	code, err := c.repository.GetCodeAndDelete(ctx, codeType, rawCode)
 	if err != nil {
 		return entities.Code{}, err
 	}

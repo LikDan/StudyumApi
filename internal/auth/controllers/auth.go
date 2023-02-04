@@ -175,7 +175,7 @@ func (c *auth) SignOut(ctx context.Context, token string) error {
 }
 
 func (c *auth) ConfirmEmail(ctx context.Context, user entities.User, dto dto.VerificationCode) error {
-	code, err := c.codes.Receive(ctx, dto.Code)
+	code, err := c.codes.Receive(ctx, codesEntities.Verification, dto.Code)
 	if err != nil {
 		return err
 	}

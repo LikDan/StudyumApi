@@ -12,7 +12,7 @@ type Repository interface {
 	Create(ctx context.Context, code entities.Code) error
 	GetCodeByEmail(ctx context.Context, email string) (entities.Code, error)
 	GetCodeByUserID(ctx context.Context, id primitive.ObjectID) (entities.Code, error)
-	GetCodeAndDelete(ctx context.Context, code string) (entities.Code, error)
+	GetCodeAndDelete(ctx context.Context, codeType entities.CodeType, rawCode string) (entities.Code, error)
 	DeleteAllByEmail(ctx context.Context, email string) error
 	DeleteAllByUserID(ctx context.Context, id primitive.ObjectID) error
 }
@@ -40,8 +40,8 @@ func (r *repository) GetCodeByUserID(ctx context.Context, userID primitive.Objec
 	return
 }
 
-func (r *repository) GetCodeAndDelete(ctx context.Context, code string) (codeData entities.Code, err error) {
-	err = r.codes.FindOneAndDelete(ctx, bson.M{"code": code}).Decode(&codeData)
+func (r *repository) GetCodeAndDelete(ctx context.Context, codeType entities.CodeType, rawCode string) (codeData entities.Code, err error) {
+	err = r.codes.FindOneAndDelete(ctx, bson.M{"code": rawCode, "type": codeType}).Decode(&codeData)
 	return
 }
 
