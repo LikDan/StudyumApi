@@ -1,4 +1,4 @@
-package user
+package controllers
 
 import (
 	"context"
@@ -6,40 +6,49 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"studyum/internal/auth/controllers"
 	"studyum/internal/auth/entities"
+	codes "studyum/internal/codes/controllers"
+	codesEntities "studyum/internal/codes/entities"
 	parser "studyum/internal/parser/handler"
+	"studyum/internal/user/dto"
+	entities2 "studyum/internal/user/entities"
+	"studyum/internal/user/repositories"
 	"studyum/pkg/encryption"
 	"studyum/pkg/hash"
 	"studyum/pkg/jwt"
 )
 
 type Controller interface {
-	UpdateUser(ctx context.Context, user entities.User, token, ip string, data Edit) (entities.User, jwt.TokenPair, error)
+	UpdateUser(ctx context.Context, user entities.User, token, ip string, data dto.Edit) (entities.User, jwt.TokenPair, error)
 
-	CreateCode(ctx context.Context, user entities.User, data CreateCode) (SignUpCode, error)
+	CreateCode(ctx context.Context, user entities.User, data dto.CreateCode) (entities2.SignUpCode, error)
 	PutFirebaseTokenByUserID(ctx context.Context, id primitive.ObjectID, firebaseToken string) error
 
-	GetAccept(ctx context.Context, user entities.User) ([]AcceptUser, error)
+	GetAccept(ctx context.Context, user entities.User) ([]entities2.AcceptUser, error)
 	Accept(ctx context.Context, user entities.User, acceptUserID primitive.ObjectID) error
 	Block(ctx context.Context, user entities.User, blockUserID primitive.ObjectID) error
 
-	GetDataByCode(ctx context.Context, code string) (SignUpCode, error)
+	GetDataByCode(ctx context.Context, code string) (entities2.SignUpCode, error)
 	RemoveCodeByID(ctx context.Context, id primitive.ObjectID) error
 	DecryptUser(ctx context.Context, user entities.User) entities.User
+
+	RecoverPassword(ctx context.Context, email string) error
+	ResetPasswordViaCode(ctx context.Context, resetPassword dto.ResetPassword) error
 }
 
 type controller struct {
-	repository         Repository
+	repository         repositories.Repository
+	codesController    codes.Controller
 	sessionsController controllers.Sessions
 
 	encrypt encryption.Encryption
 	parser  parser.Handler
 }
 
-func NewUserController(repository Repository, sessionsController controllers.Sessions, encrypt encryption.Encryption, parser parser.Handler) Controller {
-	return &controller{repository: repository, sessionsController: sessionsController, encrypt: encrypt, parser: parser}
+func NewUserController(repository repositories.Repository, codesController codes.Controller, sessionsController controllers.Sessions, encrypt encryption.Encryption, parser parser.Handler) Controller {
+	return &controller{repository: repository, codesController: codesController, sessionsController: sessionsController, encrypt: encrypt, parser: parser}
 }
 
-func (u *controller) UpdateUser(ctx context.Context, user entities.User, token, ip string, data Edit) (entities.User, jwt.TokenPair, error) {
+func (u *controller) UpdateUser(ctx context.Context, user entities.User, token, ip string, data dto.Edit) (entities.User, jwt.TokenPair, error) {
 	if data.Password != "" {
 		if !user.VerifiedEmail {
 			return entities.User{}, jwt.TokenPair{}, errors.Wrap(controllers.ForbiddenErr, "confirm email")
@@ -81,8 +90,8 @@ func (u *controller) PutFirebaseTokenByUserID(ctx context.Context, token primiti
 	return u.repository.PutFirebaseTokenByUserID(ctx, token, firebaseToken)
 }
 
-func (u *controller) CreateCode(ctx context.Context, user entities.User, data CreateCode) (SignUpCode, error) {
-	code := SignUpCode{
+func (u *controller) CreateCode(ctx context.Context, user entities.User, data dto.CreateCode) (entities2.SignUpCode, error) {
+	code := entities2.SignUpCode{
 		Id:           primitive.NewObjectID(),
 		Code:         data.Code,
 		Name:         data.Name,
@@ -93,14 +102,14 @@ func (u *controller) CreateCode(ctx context.Context, user entities.User, data Cr
 
 	u.encrypt.Encrypt(&code)
 	if err := u.repository.CreateCode(ctx, code); err != nil {
-		return SignUpCode{}, nil
+		return entities2.SignUpCode{}, nil
 	}
 
 	u.encrypt.Decrypt(&code)
 	return code, nil
 }
 
-func (u *controller) GetAccept(ctx context.Context, user entities.User) ([]AcceptUser, error) {
+func (u *controller) GetAccept(ctx context.Context, user entities.User) ([]entities2.AcceptUser, error) {
 	users, err := u.repository.GetAccept(ctx, user.StudyPlaceID)
 	if err != nil {
 		return nil, err
@@ -118,7 +127,7 @@ func (u *controller) Block(ctx context.Context, user entities.User, blockUserID 
 	return u.repository.Block(ctx, user.StudyPlaceID, blockUserID)
 }
 
-func (u *controller) GetDataByCode(ctx context.Context, code string) (SignUpCode, error) {
+func (u *controller) GetDataByCode(ctx context.Context, code string) (entities2.SignUpCode, error) {
 	return u.repository.GetDataByCode(ctx, code)
 }
 
@@ -129,4 +138,36 @@ func (u *controller) RemoveCodeByID(ctx context.Context, id primitive.ObjectID) 
 func (u *controller) DecryptUser(_ context.Context, user entities.User) entities.User {
 	u.encrypt.Decrypt(&user)
 	return user
+}
+
+func (u *controller) RecoverPassword(ctx context.Context, email string) error {
+	user, err := u.repository.GetUserByEmail(ctx, email)
+	if err != nil {
+		return err
+	}
+
+	code := codesEntities.Code{
+		Type:     codesEntities.PasswordReset,
+		Email:    user.Email,
+		UserID:   user.Id,
+		Subject:  "Password recovery",
+		To:       user.Login,
+		Filename: "password-reset.html",
+	}
+
+	return u.codesController.Send(ctx, code)
+}
+
+func (u *controller) ResetPasswordViaCode(ctx context.Context, resetPassword dto.ResetPassword) error {
+	code, err := u.codesController.Receive(ctx, resetPassword.Code)
+	if err != nil {
+		return err
+	}
+
+	password, err := hash.Hash(resetPassword.NewPassword)
+	if err != nil {
+		return err
+	}
+
+	return u.repository.SetPasswordByUserID(ctx, code.UserID, password)
 }

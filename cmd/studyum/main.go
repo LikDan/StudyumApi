@@ -10,6 +10,7 @@ import (
 	"os"
 	"studyum/internal/auth"
 	authEntries "studyum/internal/auth/entities"
+	"studyum/internal/codes"
 	controllers2 "studyum/internal/general/controllers"
 	handlers2 "studyum/internal/general/handlers"
 	repositories2 "studyum/internal/general/repositories"
@@ -20,7 +21,9 @@ import (
 	pHandler "studyum/internal/parser/handler"
 	pRepository "studyum/internal/parser/repository"
 	"studyum/internal/schedule"
-	"studyum/internal/user"
+	controllers3 "studyum/internal/user/controllers"
+	handlers3 "studyum/internal/user/handlers"
+	repositories3 "studyum/internal/user/repositories"
 	"studyum/internal/utils/middlewares"
 	"studyum/pkg/encryption"
 	fb "studyum/pkg/firebase"
@@ -50,10 +53,10 @@ func main() {
 	secret := os.Getenv("GMAIL_CLIENT_SECRET")
 	access := os.Getenv("GMAIL_ACCESS_TOKEN")
 	refresh := os.Getenv("GMAIL_REFRESH_TOKEN")
-	m := mail.NewMail(context.Background(), mail.Mode(gin.Mode()), id, secret, access, refresh, "email-templates")
+	mailer := mail.NewMail(context.Background(), mail.Mode(gin.Mode()), id, secret, access, refresh, "email-templates")
 
-	m.ForceSend("likdan.official@gmail.com", "Application started", "Studyum app has been started")
-	defer m.ForceSend("likdan.official@gmail.com", "Application stopped", "Studyum app has been stopped at"+time.Now().Format("2006-01-02 15:04"))
+	mailer.ForceSend("likdan.official@gmail.com", "Application started", "Studyum app has been started")
+	defer mailer.ForceSend("likdan.official@gmail.com", "Application stopped", "Studyum app has been stopped at"+time.Now().Format("2006-01-02 15:04"))
 
 	defer logrus.Warning("Studyum is stopping at", time.Now().Format("2006-01-02 15:04"))
 
@@ -75,23 +78,24 @@ func main() {
 
 	db := client.Database("Studyum")
 
-	userRepository := user.NewUserRepository(db.Collection("Users"), db.Collection("SignUpCodes"))
+	userRepository := repositories3.NewUserRepository(db.Collection("Users"), db.Collection("SignUpCodes"))
 	generalRepository := repositories2.NewGeneralRepository(db.Collection("StudyPlaces"))
 	journalRepository := repositories.NewJournalRepository(db.Collection("Users"), db.Collection("Lessons"), db.Collection("StudyPlaces"))
 	scheduleRepository := schedule.NewScheduleRepository(db.Collection("StudyPlaces"), db.Collection("Lessons"), db.Collection("GeneralLessons"))
 
 	scheduleValidator := schedule.NewSchedule(validator.New())
 
-	authMiddleware, _, _, sessionsController := auth.New(api.Group("/user"), encrypt, jwtController, m, db)
+	codesController := codes.New(time.Minute*15, time.Minute, mailer, db)
+	authMiddleware, _, _, sessionsController := auth.New(api.Group("/user"), codesController, encrypt, jwtController, db)
 
-	userController := user.NewUserController(userRepository, sessionsController, encrypt, parserHandler)
+	userController := controllers3.NewUserController(userRepository, codesController, sessionsController, encrypt, parserHandler)
 	generalController := controllers2.NewGeneralController(generalRepository)
 	journalController := controllers.NewJournalController(journalRepository, encrypt)
 	mainJournalController := controllers.NewController(parserHandler, journalController, journalRepository, encrypt)
 	scheduleController := schedule.NewScheduleController(parserHandler, scheduleValidator, scheduleRepository, generalController)
 
 	handlers2.NewGeneralHandler(authMiddleware, generalController, api)
-	user.NewUserHandler(authMiddleware, userController, api.Group("/user"))
+	handlers3.NewUserHandler(authMiddleware, userController, api.Group("/user"))
 	handlers.NewJournalHandler(authMiddleware, mainJournalController, journalController, api.Group("/journal"))
 	schedule.NewScheduleHandler(authMiddleware, scheduleController, api.Group("/schedule"))
 

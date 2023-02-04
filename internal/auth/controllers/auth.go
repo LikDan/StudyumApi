@@ -7,12 +7,11 @@ import (
 	"studyum/internal/auth/dto"
 	"studyum/internal/auth/entities"
 	"studyum/internal/auth/repositories"
-	"studyum/internal/utils"
+	codes "studyum/internal/codes/controllers"
+	codesEntities "studyum/internal/codes/entities"
 	"studyum/pkg/encryption"
 	"studyum/pkg/hash"
 	"studyum/pkg/jwt"
-	"studyum/pkg/mail"
-	"time"
 )
 
 var (
@@ -36,17 +35,16 @@ type Auth interface {
 
 type auth struct {
 	sessions Sessions
-	mail     mail.Mail
 
+	codes      codes.Controller
 	encryption encryption.Encryption
 
-	repository                  repositories.Auth
-	codeRepository              repositories.Code
-	verificationsCodeRepository repositories.VerificationCodes
+	repository     repositories.Auth
+	codeRepository repositories.Code
 }
 
-func NewAuth(sessions Sessions, mail mail.Mail, encryption encryption.Encryption, repository repositories.Auth, codeRepository repositories.Code, verificationsCodeRepository repositories.VerificationCodes) Auth {
-	return &auth{sessions: sessions, mail: mail, encryption: encryption, repository: repository, codeRepository: codeRepository, verificationsCodeRepository: verificationsCodeRepository}
+func NewAuth(sessions Sessions, codes codes.Controller, encryption encryption.Encryption, repository repositories.Auth, codeRepository repositories.Code) Auth {
+	return &auth{sessions: sessions, codes: codes, encryption: encryption, repository: repository, codeRepository: codeRepository}
 }
 
 func (c *auth) Login(ctx context.Context, ip string, data dto.Login) (entities.User, jwt.TokenPair, error) {
@@ -72,24 +70,15 @@ func (c *auth) Login(ctx context.Context, ip string, data dto.Login) (entities.U
 	return user, pair, nil
 }
 
-func (c *auth) sendCodeEmail(_ context.Context, name string, code entities.VerificationCode) error {
-	emailData := mail.Data{"code": code.Code, "name": name, "expire": code.CreatedAt.Add(time.Minute * 15).Format("01-02-2006 15:04")}
-	return c.mail.SendFile(code.Email, "Authorization code", "code.html", emailData)
-}
-
-func (c *auth) generateCode(ctx context.Context, userID primitive.ObjectID, email string) (entities.VerificationCode, error) {
-	code := entities.VerificationCode{
-		Code:      utils.RandomCode(6),
-		Email:     email,
-		CreatedAt: time.Now(),
-		UserID:    userID,
+func (c *auth) generateCode(user entities.User) codesEntities.Code {
+	return codesEntities.Code{
+		Type:     codesEntities.Verification,
+		Email:    user.Email,
+		UserID:   user.Id,
+		Subject:  "Confirmation code",
+		To:       user.Login,
+		Filename: "code.html",
 	}
-
-	if err := c.verificationsCodeRepository.Create(ctx, code); err != nil {
-		return entities.VerificationCode{}, err
-	}
-
-	return code, nil
 }
 
 func (c *auth) SignUp(ctx context.Context, ip string, data dto.SignUp) (entities.User, jwt.TokenPair, error) {
@@ -125,12 +114,8 @@ func (c *auth) SignUp(ctx context.Context, ip string, data dto.SignUp) (entities
 			Login:    data.Login,
 		}
 
-		code, err := c.generateCode(ctx, user.Id, data.Email)
-		if err != nil {
-			return entities.User{}, jwt.TokenPair{}, err
-		}
-
-		if err = c.sendCodeEmail(ctx, user.Login, code); err != nil {
+		code := c.generateCode(user)
+		if err = c.codes.Send(ctx, code); err != nil {
 			return entities.User{}, jwt.TokenPair{}, err
 		}
 	}
@@ -189,17 +174,13 @@ func (c *auth) SignOut(ctx context.Context, token string) error {
 	return c.sessions.RemoveByToken(ctx, token)
 }
 
-func (c *auth) ConfirmEmail(ctx context.Context, user entities.User, code dto.VerificationCode) error {
-	verificationCode, err := c.verificationsCodeRepository.GetCodeAndDelete(ctx, code.Code)
+func (c *auth) ConfirmEmail(ctx context.Context, user entities.User, dto dto.VerificationCode) error {
+	code, err := c.codes.Receive(ctx, dto.Code)
 	if err != nil {
 		return err
 	}
 
-	if verificationCode.CreatedAt.Add(time.Minute * 15).Before(time.Now()) {
-		return errors.Wrap(ErrExpired, "code")
-	}
-
-	if user.VerifiedEmail || user.Email != verificationCode.Email || user.Id != verificationCode.UserID {
+	if user.VerifiedEmail || user.Email != code.Email {
 		return ValidationError
 	}
 
@@ -207,25 +188,8 @@ func (c *auth) ConfirmEmail(ctx context.Context, user entities.User, code dto.Ve
 }
 
 func (c *auth) ResendEmailCode(ctx context.Context, user entities.User) error {
-	code, err := c.verificationsCodeRepository.GetCodeByEmail(ctx, user.Email)
-	if err != nil {
-		return err
-	}
-
-	if code.CreatedAt.Add(time.Minute).After(time.Now()) && code.UserID == user.Id {
-		return errors.Wrap(ForbiddenErr, "too many requests")
-	}
-
-	if err = c.verificationsCodeRepository.DeleteAllByEmail(ctx, user.Email); err != nil {
-		return err
-	}
-
-	code, err = c.generateCode(ctx, user.Id, user.Email)
-	if err != nil {
-		return err
-	}
-
-	return c.sendCodeEmail(ctx, user.Login, code)
+	code := c.generateCode(user)
+	return c.codes.Send(ctx, code)
 }
 
 func (c *auth) TerminateAll(ctx context.Context, user entities.User) error {

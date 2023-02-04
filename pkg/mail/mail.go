@@ -78,15 +78,15 @@ func (m *mail) send(message gmail.Message) error {
 }
 
 func (m *mail) Send(to, subject, body string) error {
-	if m.Mode == DebugMode {
-		logrus.Debugln("----------Email----------")
-		logrus.Debugln()
-		logrus.Debugln("Sending email to " + to)
-		logrus.Debugln("Subject: " + subject)
-		logrus.Debugln("Body:")
-		logrus.Debugln(body)
-		logrus.Debugln()
+	logrus.Debugln("----------Email----------")
+	logrus.Debugln()
+	logrus.Debugln("Sending email to " + to)
+	logrus.Debugln("Subject: " + subject)
+	logrus.Debugln("Body:")
+	logrus.Debugln(body)
+	logrus.Debugln()
 
+	if m.Mode == DebugMode {
 		return nil
 	}
 

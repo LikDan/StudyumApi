@@ -1,10 +1,12 @@
-package user
+package handlers
 
 import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	auth "studyum/internal/auth/handlers"
+	"studyum/internal/user/controllers"
+	"studyum/internal/user/dto"
 )
 
 type Handler interface {
@@ -16,17 +18,20 @@ type Handler interface {
 	GetAccept(ctx *gin.Context)
 	Accept(ctx *gin.Context)
 	Block(ctx *gin.Context)
+
+	ResetPassword(ctx *gin.Context)
+	ResetPasswordViaCode(ctx *gin.Context)
 }
 
 type handler struct {
 	auth.Middleware
 
-	controller Controller
+	controller controllers.Controller
 
 	Group *gin.RouterGroup
 }
 
-func NewUserHandler(middleware auth.Middleware, controller Controller, group *gin.RouterGroup) Handler {
+func NewUserHandler(middleware auth.Middleware, controller controllers.Controller, group *gin.RouterGroup) Handler {
 	h := &handler{Middleware: middleware, controller: controller, Group: group}
 
 	group.GET("", h.Auth(), h.GetUser)
@@ -37,6 +42,9 @@ func NewUserHandler(middleware auth.Middleware, controller Controller, group *gi
 	group.POST("block", h.MemberAuth("manageUsers"), h.Block)
 
 	group.PUT("firebase/token", h.Auth(), h.PutFirebaseToken)
+
+	group.POST("password/reset", h.ResetPassword)
+	group.PUT("password/reset", h.ResetPasswordViaCode)
 
 	return h
 }
@@ -51,7 +59,7 @@ func (h *handler) GetUser(ctx *gin.Context) {
 func (h *handler) UpdateUser(ctx *gin.Context) {
 	user := h.Middleware.GetUser(ctx)
 
-	var data Edit
+	var data dto.Edit
 	if err := ctx.BindJSON(&data); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
@@ -138,4 +146,38 @@ func (h *handler) Block(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, id)
+}
+
+func (h *handler) ResetPassword(ctx *gin.Context) {
+	var data struct {
+		Email string `json:"email"`
+	}
+	if err := ctx.BindJSON(&data); err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	err := h.controller.RecoverPassword(ctx, data.Email)
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+func (h *handler) ResetPasswordViaCode(ctx *gin.Context) {
+	var data dto.ResetPassword
+	if err := ctx.BindJSON(&data); err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	err := h.controller.ResetPasswordViaCode(ctx, data)
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }

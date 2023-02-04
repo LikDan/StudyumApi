@@ -1,4 +1,4 @@
-package user
+package dto
 
 type Edit struct {
 	Login    string `json:"login" binding:"excludesall= ,required"`
@@ -12,4 +12,9 @@ type CreateCode struct {
 	Name     string `json:"name" binding:"required"`
 	Type     string `json:"type" binding:"required"`
 	TypeName string `json:"typeName" binding:"required"`
+}
+
+type ResetPassword struct {
+	Code        string `json:"code" binding:"required"`
+	NewPassword string `json:"newPassword" binding:"min=8"`
 }
