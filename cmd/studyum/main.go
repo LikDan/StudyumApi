@@ -47,13 +47,17 @@ func main() {
 	access := os.Getenv("GMAIL_ACCESS_TOKEN")
 	refresh := os.Getenv("GMAIL_REFRESH_TOKEN")
 	m := mail.NewMail(context.Background(), id, secret, access, refresh, "email-templates")
-	//if err = m.Send("likdan.official@gmail.com", "Application started", "Studyum app has been started"); err != nil {
-	//	logrus.Warning(err)
-	//	return
-	//}
+
+	if gin.Mode() == gin.ReleaseMode {
+		if err = m.Send("likdan.official@gmail.com", "Application started", "Studyum app has been started"); err != nil {
+			logrus.Warning(err)
+			return
+		}
+
+		defer m.Send("likdan.official@gmail.com", "Application stopped", "Studyum app has been stopped at"+time.Now().Format("2006-01-02 15:04"))
+	}
 
 	defer logrus.Warning("Studyum is stopping at", time.Now().Format("2006-01-02 15:04"))
-	defer m.Send("likdan.official@gmail.com", "Application stopped", "Studyum app has been stopped at"+time.Now().Format("2006-01-02 15:04"))
 
 	firebaseCredentials := []byte(os.Getenv("FIREBASE_CREDENTIALS"))
 	firebase := fb.NewFirebase(firebaseCredentials)
