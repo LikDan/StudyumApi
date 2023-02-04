@@ -72,9 +72,9 @@ func (c *auth) Login(ctx context.Context, ip string, data dto.Login) (entities.U
 	return user, pair, nil
 }
 
-func (c *auth) sendCodeEmail(_ context.Context, code entities.VerificationCode) error {
-	emailData := mail.Data{"code": code.Code}
-	return c.mail.SendFile(code.Email, "Authorization code", "code.txt", emailData)
+func (c *auth) sendCodeEmail(_ context.Context, name string, code entities.VerificationCode) error {
+	emailData := mail.Data{"code": code.Code, "name": name}
+	return c.mail.SendFile(code.Email, "Authorization code", "code.html", emailData)
 }
 
 func (c *auth) generateCode(ctx context.Context, userID primitive.ObjectID, email string) (entities.VerificationCode, error) {
@@ -130,7 +130,7 @@ func (c *auth) SignUp(ctx context.Context, ip string, data dto.SignUp) (entities
 			return entities.User{}, jwt.TokenPair{}, err
 		}
 
-		if err = c.sendCodeEmail(ctx, code); err != nil {
+		if err = c.sendCodeEmail(ctx, user.Login, code); err != nil {
 			return entities.User{}, jwt.TokenPair{}, err
 		}
 	}
@@ -223,7 +223,7 @@ func (c *auth) ResendEmailCode(ctx context.Context, user entities.User) error {
 		return err
 	}
 
-	return c.sendCodeEmail(ctx, code)
+	return c.sendCodeEmail(ctx, user.Login, code)
 }
 
 func (c *auth) TerminateAll(ctx context.Context, user entities.User) error {
