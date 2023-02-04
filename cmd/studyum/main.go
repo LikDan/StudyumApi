@@ -32,6 +32,10 @@ import (
 func main() {
 	time.Local = time.FixedZone("GMT", 3*3600)
 
+	if gin.Mode() == gin.DebugMode {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+
 	client, err := mongo.NewClient(options.Client().ApplyURI(os.Getenv("DB_URL")))
 	if err != nil {
 		logrus.Fatal(err)
@@ -46,16 +50,10 @@ func main() {
 	secret := os.Getenv("GMAIL_CLIENT_SECRET")
 	access := os.Getenv("GMAIL_ACCESS_TOKEN")
 	refresh := os.Getenv("GMAIL_REFRESH_TOKEN")
-	m := mail.NewMail(context.Background(), id, secret, access, refresh, "email-templates")
+	m := mail.NewMail(context.Background(), mail.Mode(gin.Mode()), id, secret, access, refresh, "email-templates")
 
-	if gin.Mode() == gin.ReleaseMode {
-		if err = m.Send("likdan.official@gmail.com", "Application started", "Studyum app has been started"); err != nil {
-			logrus.Warning(err)
-			return
-		}
-
-		defer m.Send("likdan.official@gmail.com", "Application stopped", "Studyum app has been stopped at"+time.Now().Format("2006-01-02 15:04"))
-	}
+	m.ForceSend("likdan.official@gmail.com", "Application started", "Studyum app has been started")
+	defer m.ForceSend("likdan.official@gmail.com", "Application stopped", "Studyum app has been stopped at"+time.Now().Format("2006-01-02 15:04"))
 
 	defer logrus.Warning("Studyum is stopping at", time.Now().Format("2006-01-02 15:04"))
 
