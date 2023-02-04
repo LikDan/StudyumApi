@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	auth "studyum/internal/auth/handlers"
 	"studyum/internal/general/controllers"
 )
 
@@ -14,21 +15,24 @@ type Handler interface {
 
 	GetStudyPlaces(ctx *gin.Context)
 	GetStudyPlaceByID(ctx *gin.Context)
+	GetSelfStudyPlace(ctx *gin.Context)
 
 	Request(ctx *gin.Context)
 }
 
 type handler struct {
-	controller controllers.Controller
+	auth.Middleware
 
-	Group *gin.RouterGroup
+	controller controllers.Controller
+	Group      *gin.RouterGroup
 }
 
-func NewGeneralHandler(controller controllers.Controller, group *gin.RouterGroup) Handler {
-	h := &handler{controller: controller, Group: group}
+func NewGeneralHandler(middleware auth.Middleware, controller controllers.Controller, group *gin.RouterGroup) Handler {
+	h := &handler{Middleware: middleware, controller: controller, Group: group}
 
 	group.GET("/studyPlaces", h.GetStudyPlaces)
 	group.GET("/studyPlaces/:id", h.GetStudyPlaceByID)
+	group.GET("/studyPlaces/self", h.MemberAuth(), h.GetStudyPlaceByID)
 
 	group.GET("/uptime", h.Uptime)
 	group.GET("/request", h.Request)
@@ -71,6 +75,18 @@ func (g *handler) GetStudyPlaceByID(ctx *gin.Context) {
 	}
 
 	err, studyPlace := g.controller.GetStudyPlaceByID(ctx, id, restricted)
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, studyPlace)
+}
+
+func (g *handler) GetSelfStudyPlace(ctx *gin.Context) {
+	user := g.GetUser(ctx)
+
+	err, studyPlace := g.controller.GetSelfStudyPlace(ctx, user)
 	if err != nil {
 		_ = ctx.Error(err)
 		return

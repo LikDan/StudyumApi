@@ -88,7 +88,7 @@ func main() {
 	mainJournalController := controllers.NewController(parserHandler, journalController, journalRepository, encrypt)
 	scheduleController := schedule.NewScheduleController(parserHandler, scheduleValidator, scheduleRepository, generalController)
 
-	handlers2.NewGeneralHandler(generalController, api)
+	handlers2.NewGeneralHandler(authMiddleware, generalController, api)
 	user.NewUserHandler(authMiddleware, userController, api.Group("/user"))
 	handlers.NewJournalHandler(authMiddleware, mainJournalController, journalController, api.Group("/journal"))
 	schedule.NewScheduleHandler(authMiddleware, scheduleController, api.Group("/schedule"))
