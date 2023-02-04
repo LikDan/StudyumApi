@@ -23,7 +23,7 @@ Content-Type: text/html; charset="UTF-8";
 
 type Mail interface {
 	Send(to, subject, body string) error
-	SendFile(to, subject, filename string, data map[string]string) error
+	SendFile(to, subject, filename string, data Data) error
 }
 
 type mail struct {
@@ -86,7 +86,7 @@ func (m *mail) proceedFile(filename string, data map[string]string) (string, err
 	return text, err
 }
 
-func (m *mail) SendFile(to, subject, filename string, data map[string]string) error {
+func (m *mail) SendFile(to, subject, filename string, data Data) error {
 	body, err := m.proceedFile(filename, data)
 	if err != nil {
 		return err

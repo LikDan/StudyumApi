@@ -33,6 +33,12 @@
         p {
             width: 100%;
             text-align: start;
+
+            font-size: 18px;
+        }
+
+        h1 {
+            font-size: 34px;
         }
 
         p, h1 {
@@ -47,11 +53,16 @@
 
             border-radius: 15px;
 
-            margin: 0 auto 100px;
+            margin: 0 auto;
         }
 
         .code h1 {
             margin: 0;
+        }
+
+        .not-request {
+            margin-top: 15px;
+            margin-bottom: 100px;
         }
 
         a {
@@ -75,9 +86,10 @@
 <body>
 <div class="main">
     <h1 class="logo">Studyum</h1>
-    <p class="welcome-text">Welcome {name}, we are really appreciate you to join Studyum</p>
-    <p>Here is your confirmation code</p>
+    <p class="welcome-text">Welcome {name}, we are really appreciate you to join Studyum!</p>
+    <p>Here is your confirmation code. It will expire at {expire}</p>
     <div class="code"><h1>{code}</h1></div>
+    <p class="not-request">If you do not request this code you can just ignore it or signup on Studyum and enter this code :)</p>
     <a href="https://studyum.net/auth/email/comfirmation?code={code}">Confirm</a>
     <div class="bottom">&nbsp;</div>
 </div>

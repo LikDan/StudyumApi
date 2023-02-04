@@ -73,7 +73,7 @@ func (c *auth) Login(ctx context.Context, ip string, data dto.Login) (entities.U
 }
 
 func (c *auth) sendCodeEmail(_ context.Context, name string, code entities.VerificationCode) error {
-	emailData := mail.Data{"code": code.Code, "name": name}
+	emailData := mail.Data{"code": code.Code, "name": name, "expire": code.CreatedAt.Add(time.Minute * 15).Format("01-02-2006 15:04")}
 	return c.mail.SendFile(code.Email, "Authorization code", "code.html", emailData)
 }
 
