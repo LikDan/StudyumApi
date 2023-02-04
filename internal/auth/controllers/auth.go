@@ -208,10 +208,12 @@ func (c *auth) ConfirmEmail(ctx context.Context, user entities.User, code dto.Ve
 
 func (c *auth) ResendEmailCode(ctx context.Context, user entities.User) error {
 	code, err := c.verificationsCodeRepository.GetCodeByEmail(ctx, user.Email)
-	if err == nil {
-		if code.CreatedAt.Add(time.Minute).After(time.Now()) || code.UserID == user.Id {
-			return errors.Wrap(ForbiddenErr, "too many requests")
-		}
+	if err != nil {
+		return err
+	}
+
+	if code.CreatedAt.Add(time.Minute).After(time.Now()) && code.UserID == user.Id {
+		return errors.Wrap(ForbiddenErr, "too many requests")
 	}
 
 	if err = c.verificationsCodeRepository.DeleteAllByEmail(ctx, user.Email); err != nil {
