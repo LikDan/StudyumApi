@@ -16,5 +16,5 @@ type CreateCode struct {
 
 type ResetPassword struct {
 	Code        string `json:"code" binding:"required"`
-	NewPassword string `json:"newPassword" binding:"min=8"`
+	NewPassword string `json:"password" binding:"min=8"`
 }
