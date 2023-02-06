@@ -10,6 +10,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -mod=readonly -v -o server
 
 FROM scratch
 
+COPY ./email-templates ./email-templates
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /app/server /server
 
