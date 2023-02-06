@@ -96,6 +96,10 @@ func (h *middleware) Auth() gin.HandlerFunc {
 
 func (h *middleware) TryAuth() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		if h.authViaApiToken(ctx) {
+			return
+		}
+
 		pair := h.tokenPair(ctx)
 		newPair, update, user, err := h.controller.Auth(ctx, pair, ctx.ClientIP())
 		if err != nil {
@@ -120,6 +124,10 @@ func (h *middleware) TryAuth() gin.HandlerFunc {
 
 func (h *middleware) MemberAuth(permissions ...string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		if h.authViaApiToken(ctx) {
+			return
+		}
+
 		pair := h.tokenPair(ctx)
 		newPair, update, user, err := h.controller.Auth(ctx, pair, ctx.ClientIP(), permissions...)
 		if err != nil {
