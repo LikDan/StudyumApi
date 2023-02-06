@@ -66,11 +66,26 @@ func (u *controller) UpdateUser(ctx context.Context, user entities.User, token, 
 
 	user.Login = data.Login
 	user.Email = data.Email
+	user.VerifiedEmail = user.Email == data.Email
 	user.PictureUrl = data.Picture
 
 	u.encrypt.Encrypt(&user)
 	if err := u.repository.UpdateUserByID(ctx, user); err != nil {
 		return entities.User{}, jwt.TokenPair{}, err
+	}
+
+	if user.Email != data.Email {
+		code := codesEntities.Code{
+			Type:     codesEntities.Verification,
+			Email:    user.Email,
+			UserID:   user.Id,
+			Subject:  "Confirmation code",
+			To:       user.Login,
+			Filename: "code.html",
+		}
+		if err := u.codesController.Send(ctx, code); err != nil {
+			return entities.User{}, jwt.TokenPair{}, err
+		}
 	}
 
 	if err := u.sessionsController.RemoveByToken(ctx, token); err != nil {

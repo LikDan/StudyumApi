@@ -113,16 +113,18 @@ func (c *auth) SignUp(ctx context.Context, ip string, data dto.SignUp) (entities
 			Email:    data.Email,
 			Login:    data.Login,
 		}
-
-		code := c.generateCode(user)
-		if err = c.codes.Send(ctx, code); err != nil {
-			return entities.User{}, jwt.TokenPair{}, err
-		}
 	}
 
 	c.encryption.Encrypt(&user)
 	if err := c.repository.AddUser(ctx, user); err != nil {
 		return entities.User{}, jwt.TokenPair{}, err
+	}
+
+	if len(data.Password) >= 8 && len(data.Email) >= 5 {
+		code := c.generateCode(user)
+		if err := c.codes.Send(ctx, code); err != nil {
+			return entities.User{}, jwt.TokenPair{}, err
+		}
 	}
 
 	pair, err := c.sessions.New(ctx, user, ip)
