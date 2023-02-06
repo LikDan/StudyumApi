@@ -8,7 +8,8 @@ import (
 	"net/http"
 	auth "studyum/internal/auth/controllers"
 	"studyum/internal/journal/controllers"
-	"studyum/internal/schedule"
+	controllers2 "studyum/internal/schedule/controllers"
+	"studyum/internal/schedule/controllers/validators"
 	"studyum/pkg/datetime"
 )
 
@@ -46,8 +47,8 @@ func GetHttpCodeByError(err error) int {
 		errors.Is(err, auth.ErrExpired),
 		errors.Is(err, datetime.DurationError),
 		errors.Is(err, controllers.NotValidParams),
-		errors.Is(err, schedule.NotValidParams),
-		errors.Is(err, schedule.ValidationError):
+		errors.Is(err, controllers2.NotValidParams),
+		errors.Is(err, validators.ValidationError):
 		code = http.StatusBadRequest
 	case errors.Is(err, j.ErrSignatureInvalid),
 		errors.Is(err, http.ErrNoCookie):

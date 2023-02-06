@@ -1,0 +1,26 @@
+basePath: /api/schedule
+info:
+  contact: {}
+paths:
+  /:
+    get:
+      responses: {}
+    put:
+      responses: {}
+  /accept:
+    get:
+      responses: {}
+    post:
+      responses: {}
+  /block:
+    post:
+      responses: {}
+  /firebase/token:
+    put:
+      responses: {}
+  /password/reset:
+    post:
+      responses: {}
+    put:
+      responses: {}
+swagger: "2.0"

@@ -1,0 +1,70 @@
+basePath: /api/journal
+info:
+  contact: {}
+paths:
+  /:
+    get:
+      responses: {}
+  /{group}/{subject}/{teacher}:
+    get:
+      parameters:
+      - description: Group
+        in: path
+        name: group
+        required: true
+        type: string
+      - description: Subject
+        in: path
+        name: subject
+        required: true
+        type: string
+      - description: Teacher
+        in: path
+        name: teacher
+        required: true
+        type: string
+      responses: {}
+  /absences:
+    post:
+      responses: {}
+    put:
+      responses: {}
+  /absences/{id}:
+    delete:
+      parameters:
+      - description: Absence ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses: {}
+  /absences/list:
+    post:
+      responses: {}
+  /generate/absences:
+    post:
+      responses: {}
+  /generate/marks:
+    post:
+      responses: {}
+  /mark:
+    post:
+      responses: {}
+    put:
+      responses: {}
+  /mark/{id}:
+    delete:
+      parameters:
+      - description: Mark ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses: {}
+  /mark/list:
+    post:
+      responses: {}
+  /options:
+    get:
+      responses: {}
+swagger: "2.0"

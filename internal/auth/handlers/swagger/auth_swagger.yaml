@@ -1,0 +1,50 @@
+basePath: /api/user
+info:
+  contact: {}
+paths:
+  /email/confirm:
+    post:
+      responses: {}
+  /email/resendCode:
+    post:
+      responses: {}
+  /login:
+    put:
+      responses: {}
+  /oauth2/{service}:
+    get:
+      parameters:
+      - description: OAuth2 Server
+        in: path
+        name: service
+        required: true
+        type: string
+      responses: {}
+  /oauth2/callback/{service}:
+    get:
+      parameters:
+      - description: OAuth2 Server
+        in: path
+        name: service
+        required: true
+        type: string
+      responses: {}
+  /sessions:
+    delete:
+      responses: {}
+  /signout:
+    delete:
+      responses: {}
+  /signup:
+    post:
+      responses: {}
+  /signup/code:
+    post:
+      responses: {}
+  /signup/stage1:
+    put:
+      responses: {}
+  /token:
+    post:
+      responses: {}
+swagger: "2.0"

@@ -34,6 +34,8 @@ func NewAuth(middleware Middleware, controller controllers.Auth, group *gin.Rout
 	return h
 }
 
+// Login godoc
+// @Router /login [put]
 func (h *Auth) Login(ctx *gin.Context) {
 	var data dto.Login
 	if err := ctx.BindJSON(&data); err != nil {
@@ -52,6 +54,8 @@ func (h *Auth) Login(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
+// SignUp godoc
+// @Router /signup [post]
 func (h *Auth) SignUp(ctx *gin.Context) {
 	var data dto.SignUp
 	if err := ctx.BindJSON(&data); err != nil {
@@ -69,24 +73,8 @@ func (h *Auth) SignUp(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
-func (h *Auth) SignUpStage1ViaCode(ctx *gin.Context) {
-	user := h.GetUser(ctx)
-
-	var data dto.SignUpWithCode
-	if err := ctx.BindJSON(&data); err != nil {
-		ctx.JSON(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	user, err := h.controller.SignUpStage1ViaCode(ctx, user, data.Code)
-	if err != nil {
-		_ = ctx.Error(err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, user)
-}
-
+// SignUpUserStage1 godoc
+// @Router /signup/stage1 [put]
 func (h *Auth) SignUpUserStage1(ctx *gin.Context) {
 	user := h.GetUser(ctx)
 
@@ -105,6 +93,28 @@ func (h *Auth) SignUpUserStage1(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
+// SignUpStage1ViaCode godoc
+// @Router /signup/code [post]
+func (h *Auth) SignUpStage1ViaCode(ctx *gin.Context) {
+	user := h.GetUser(ctx)
+
+	var data dto.SignUpWithCode
+	if err := ctx.BindJSON(&data); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	user, err := h.controller.SignUpStage1ViaCode(ctx, user, data.Code)
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, user)
+}
+
+// SignOut godoc
+// @Router /signout [delete]
 func (h *Auth) SignOut(ctx *gin.Context) {
 	token, _ := ctx.Cookie("refresh")
 	if token != "" {
@@ -120,6 +130,8 @@ func (h *Auth) SignOut(ctx *gin.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
+// ConfirmEmail godoc
+// @Router /email/confirm [post]
 func (h *Auth) ConfirmEmail(ctx *gin.Context) {
 	user := h.GetUser(ctx)
 
@@ -137,6 +149,8 @@ func (h *Auth) ConfirmEmail(ctx *gin.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
+// ResendEmailCode godoc
+// @Router /email/resendCode [post]
 func (h *Auth) ResendEmailCode(ctx *gin.Context) {
 	user := h.GetUser(ctx)
 	if err := h.controller.ResendEmailCode(ctx, user); err != nil {
@@ -147,6 +161,8 @@ func (h *Auth) ResendEmailCode(ctx *gin.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
+// TerminateAllSessions godoc
+// @Router /sessions [delete]
 func (h *Auth) TerminateAllSessions(ctx *gin.Context) {
 	user := h.GetUser(ctx)
 	if err := h.controller.TerminateAll(ctx, user); err != nil {

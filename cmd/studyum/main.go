@@ -3,27 +3,22 @@ package main
 import (
 	"context"
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
 	"studyum/internal/auth"
 	authEntries "studyum/internal/auth/entities"
 	"studyum/internal/codes"
-	controllers2 "studyum/internal/general/controllers"
-	handlers2 "studyum/internal/general/handlers"
-	repositories2 "studyum/internal/general/repositories"
-	"studyum/internal/journal/controllers"
-	"studyum/internal/journal/handlers"
-	"studyum/internal/journal/repositories"
+	"studyum/internal/general"
+	"studyum/internal/journal"
 	pController "studyum/internal/parser/controller"
 	pHandler "studyum/internal/parser/handler"
 	pRepository "studyum/internal/parser/repository"
 	"studyum/internal/schedule"
-	controllers3 "studyum/internal/user/controllers"
-	handlers3 "studyum/internal/user/handlers"
-	repositories3 "studyum/internal/user/repositories"
+	"studyum/internal/user"
 	"studyum/internal/utils/middlewares"
 	"studyum/pkg/encryption"
 	fb "studyum/pkg/firebase"
@@ -32,6 +27,7 @@ import (
 	"time"
 )
 
+//go:generate go generate studyum/internal/auth
 func main() {
 	time.Local = time.FixedZone("GMT", 3*3600)
 
@@ -78,26 +74,22 @@ func main() {
 
 	db := client.Database("Studyum")
 
-	userRepository := repositories3.NewUserRepository(db.Collection("Users"), db.Collection("SignUpCodes"))
-	generalRepository := repositories2.NewGeneralRepository(db.Collection("StudyPlaces"))
-	journalRepository := repositories.NewJournalRepository(db.Collection("Users"), db.Collection("Lessons"), db.Collection("StudyPlaces"))
-	scheduleRepository := schedule.NewScheduleRepository(db.Collection("StudyPlaces"), db.Collection("Lessons"), db.Collection("GeneralLessons"))
-
-	scheduleValidator := schedule.NewSchedule(validator.New())
-
 	codesController := codes.New(time.Minute*15, time.Minute, mailer, db)
 	authMiddleware, _, _, sessionsController := auth.New(api.Group("/user"), codesController, encrypt, jwtController, db)
 
-	userController := controllers3.NewUserController(userRepository, codesController, sessionsController, encrypt, parserHandler)
-	generalController := controllers2.NewGeneralController(generalRepository)
-	journalController := controllers.NewJournalController(journalRepository, encrypt)
-	mainJournalController := controllers.NewController(parserHandler, journalController, journalRepository, encrypt)
-	scheduleController := schedule.NewScheduleController(parserHandler, scheduleValidator, scheduleRepository, generalController)
+	_, generalController := general.New(api, authMiddleware, db)
+	_ = journal.New(api.Group("/journal"), authMiddleware, parserHandler, encrypt, db)
+	_ = schedule.New(api.Group("/schedule"), authMiddleware, parserHandler, generalController, db)
+	_ = user.New(api.Group("/user"), authMiddleware, encrypt, parserHandler, codesController, sessionsController, db)
 
-	handlers2.NewGeneralHandler(authMiddleware, generalController, api)
-	handlers3.NewUserHandler(authMiddleware, userController, api.Group("/user"))
-	handlers.NewJournalHandler(authMiddleware, mainJournalController, journalController, api.Group("/journal"))
-	schedule.NewScheduleHandler(authMiddleware, scheduleController, api.Group("/schedule"))
+	loadSwagger(engine, "general", "auth", "user", "schedule", "journal")
 
 	logrus.Fatalf("Error launching server %s", engine.Run().Error())
+}
+
+func loadSwagger(e *gin.Engine, names ...string) {
+	for _, name := range names {
+		s := ginSwagger.WrapHandler(swaggerfiles.Handler, ginSwagger.InstanceName(name))
+		e.GET("/swagger/"+name+"/*any", s)
+	}
 }

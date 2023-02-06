@@ -9,6 +9,9 @@ import (
 )
 
 type Handler interface {
+	GenerateMarks(ctx *gin.Context)
+	GenerateAbsences(ctx *gin.Context)
+
 	GetJournalAvailableOptions(ctx *gin.Context)
 
 	GetJournal(ctx *gin.Context)
@@ -23,9 +26,6 @@ type Handler interface {
 	AddAbsence(ctx *gin.Context)
 	UpdateAbsence(ctx *gin.Context)
 	DeleteAbsence(ctx *gin.Context)
-
-	GenerateMarks(ctx *gin.Context)
-	GenerateAbsences(ctx *gin.Context)
 }
 
 type handler struct {
@@ -40,10 +40,17 @@ type handler struct {
 func NewJournalHandler(middleware auth.Middleware, controller controllers.Controller, journal controllers.Journal, group *gin.RouterGroup) Handler {
 	h := &handler{Middleware: middleware, controller: controller, journalController: journal, Group: group}
 
+	generate := group.Group("/generate", h.MemberAuth())
+	{
+		generate.POST("/marks", h.GenerateMarks)
+		generate.POST("/absences", h.GenerateAbsences)
+	}
+
 	group.GET("/options", h.MemberAuth(), h.GetJournalAvailableOptions)
 	group.GET("/:group/:subject/:teacher", h.MemberAuth(), h.GetJournal)
 	group.GET("", h.MemberAuth(), h.GetUserJournal)
 
+	//todo change endpoint to marks
 	mark := group.Group("/mark", h.MemberAuth("editJournal"))
 	{
 		mark.POST("list", h.AddMarks)
@@ -60,15 +67,11 @@ func NewJournalHandler(middleware auth.Middleware, controller controllers.Contro
 		absences.DELETE(":id", h.DeleteAbsence)
 	}
 
-	generate := group.Group("/generate", h.MemberAuth())
-	{
-		generate.POST("/marks", h.GenerateMarks)
-		generate.POST("/absences", h.GenerateAbsences)
-	}
-
 	return h
 }
 
+// GenerateMarks godoc
+// @Router /generate/marks [post]
 func (j *handler) GenerateMarks(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
@@ -87,6 +90,8 @@ func (j *handler) GenerateMarks(ctx *gin.Context) {
 	_, _ = file.WriteTo(ctx.Writer)
 }
 
+// GenerateAbsences godoc
+// @Router /generate/absences [post]
 func (j *handler) GenerateAbsences(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
@@ -105,6 +110,8 @@ func (j *handler) GenerateAbsences(ctx *gin.Context) {
 	_, _ = file.WriteTo(ctx.Writer)
 }
 
+// GetJournalAvailableOptions godoc
+// @Router /options [get]
 func (j *handler) GetJournalAvailableOptions(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
@@ -117,6 +124,11 @@ func (j *handler) GetJournalAvailableOptions(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, options)
 }
 
+// GetJournal godoc
+// @Param group path string true "Group"
+// @Param subject path string true "Subject"
+// @Param teacher path string true "Teacher"
+// @Router /{group}/{subject}/{teacher} [get]
 func (j *handler) GetJournal(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
@@ -133,6 +145,8 @@ func (j *handler) GetJournal(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, journal)
 }
 
+// GetUserJournal godoc
+// @Router / [get]
 func (j *handler) GetUserJournal(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
@@ -145,6 +159,8 @@ func (j *handler) GetUserJournal(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, journal)
 }
 
+// AddMarks godoc
+// @Router /mark/list [post]
 func (j *handler) AddMarks(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
@@ -163,6 +179,8 @@ func (j *handler) AddMarks(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, lesson)
 }
 
+// AddMark godoc
+// @Router /mark [post]
 func (j *handler) AddMark(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
@@ -181,6 +199,8 @@ func (j *handler) AddMark(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, cellResponse)
 }
 
+// UpdateMark godoc
+// @Router /mark [put]
 func (j *handler) UpdateMark(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
@@ -199,6 +219,9 @@ func (j *handler) UpdateMark(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, cellResponse)
 }
 
+// DeleteMark godoc
+// @Param id path string true "Mark ID"
+// @Router /mark/{id} [delete]
 func (j *handler) DeleteMark(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
@@ -213,6 +236,8 @@ func (j *handler) DeleteMark(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, cellResponse)
 }
 
+// AddAbsences godoc
+// @Router /absences/list [post]
 func (j *handler) AddAbsences(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
@@ -231,6 +256,8 @@ func (j *handler) AddAbsences(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, absences)
 }
 
+// AddAbsence godoc
+// @Router /absences [post]
 func (j *handler) AddAbsence(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
@@ -249,6 +276,8 @@ func (j *handler) AddAbsence(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, cellResponse)
 }
 
+// UpdateAbsence godoc
+// @Router /absences [put]
 func (j *handler) UpdateAbsence(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
@@ -267,6 +296,9 @@ func (j *handler) UpdateAbsence(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, cellResponse)
 }
 
+// DeleteAbsence godoc
+// @Param id path string true "Absence ID"
+// @Router /absences/{id} [delete]
 func (j *handler) DeleteAbsence(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 

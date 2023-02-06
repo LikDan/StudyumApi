@@ -1,0 +1,95 @@
+basePath: /api/schedule
+info:
+  contact: {}
+paths:
+  /:
+    delete:
+      parameters:
+      - description: Lesson ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses: {}
+    get:
+      responses: {}
+    post:
+      responses: {}
+    put:
+      responses: {}
+  /{type}/{name}:
+    get:
+      parameters:
+      - description: Type
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: Typename
+        in: path
+        name: name
+        required: true
+        type: string
+      responses: {}
+  /between/{startDate}/{endDate}:
+    delete:
+      parameters:
+      - description: From date
+        in: path
+        name: startDate
+        required: true
+        type: string
+      - description: To date
+        in: path
+        name: endDate
+        required: true
+        type: string
+      responses: {}
+  /general:
+    get:
+      responses: {}
+  /general/{type}/{name}:
+    get:
+      parameters:
+      - description: Type
+        in: path
+        name: type
+        required: true
+        type: string
+      - description: Typename
+        in: path
+        name: name
+        required: true
+        type: string
+      responses: {}
+  /general/list:
+    post:
+      responses: {}
+  /getTypes:
+    get:
+      responses: {}
+  /lessons/{id}:
+    get:
+      parameters:
+      - description: Lesson ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses: {}
+  /list:
+    post:
+      responses: {}
+  /makeCurrent/:date:
+    post:
+      parameters:
+      - description: Date
+        in: path
+        name: date
+        required: true
+        type: string
+      responses: {}
+  /makeGeneral:
+    post:
+      responses: {}
+swagger: "2.0"

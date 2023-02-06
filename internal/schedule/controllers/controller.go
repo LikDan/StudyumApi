@@ -1,4 +1,4 @@
-package schedule
+package controllers
 
 import (
 	"context"
@@ -10,30 +10,33 @@ import (
 	"studyum/internal/journal/entities"
 	"studyum/internal/parser/dto"
 	parser "studyum/internal/parser/handler"
+	"studyum/internal/schedule/controllers/validators"
+	dto2 "studyum/internal/schedule/dto"
+	entities2 "studyum/internal/schedule/entities"
+	"studyum/internal/schedule/repositories"
 	"time"
 )
 
 var NotValidParams = errors.New("not valid params")
-var ValidationError = errors.New("validation error")
 
 type Controller interface {
-	GetSchedule(ctx context.Context, studyPlaceID string, type_ string, typeName string, user auth.User) (Schedule, error)
-	GetUserSchedule(ctx context.Context, user auth.User) (Schedule, error)
+	GetSchedule(ctx context.Context, studyPlaceID string, type_ string, typeName string, user auth.User) (entities2.Schedule, error)
+	GetUserSchedule(ctx context.Context, user auth.User) (entities2.Schedule, error)
 
-	GetGeneralSchedule(ctx context.Context, studyPlaceID string, type_ string, typeName string, user auth.User) (Schedule, error)
-	GetGeneralUserSchedule(ctx context.Context, user auth.User) (Schedule, error)
+	GetGeneralSchedule(ctx context.Context, studyPlaceID string, type_ string, typeName string, user auth.User) (entities2.Schedule, error)
+	GetGeneralUserSchedule(ctx context.Context, user auth.User) (entities2.Schedule, error)
 
-	GetScheduleTypes(ctx context.Context, user auth.User, idHex string) Types
+	GetScheduleTypes(ctx context.Context, user auth.User, idHex string) entities2.Types
 
-	AddGeneralLessons(ctx context.Context, user auth.User, lessonsDTO []AddGeneralLessonDTO) ([]GeneralLesson, error)
-	AddLessons(ctx context.Context, user auth.User, lessonsDTO []AddLessonDTO) ([]Lesson, error)
+	AddGeneralLessons(ctx context.Context, user auth.User, lessonsDTO []dto2.AddGeneralLessonDTO) ([]entities2.GeneralLesson, error)
+	AddLessons(ctx context.Context, user auth.User, lessonsDTO []dto2.AddLessonDTO) ([]entities2.Lesson, error)
 
-	AddLesson(ctx context.Context, lesson AddLessonDTO, user auth.User) (Lesson, error)
-	GetLessonByID(ctx context.Context, user auth.User, idHex string) (Lesson, error)
-	UpdateLesson(ctx context.Context, lesson UpdateLessonDTO, user auth.User) error
+	AddLesson(ctx context.Context, lesson dto2.AddLessonDTO, user auth.User) (entities2.Lesson, error)
+	GetLessonByID(ctx context.Context, user auth.User, idHex string) (entities2.Lesson, error)
+	UpdateLesson(ctx context.Context, lesson dto2.UpdateLessonDTO, user auth.User) error
 	DeleteLesson(ctx context.Context, idHex string, user auth.User) error
 
-	GetLessonsByDateAndID(ctx context.Context, user auth.User, idHex string) ([]Lesson, error)
+	GetLessonsByDateAndID(ctx context.Context, user auth.User, idHex string) ([]entities2.Lesson, error)
 
 	RemoveLessonBetweenDates(ctx context.Context, user auth.User, date1, date2 time.Time) error
 
@@ -43,19 +46,19 @@ type Controller interface {
 
 type controller struct {
 	parser    parser.Handler
-	validator Validator
+	validator validators.Validator
 
-	repository        Repository
+	repository        repositories.Repository
 	generalController controllers.Controller
 }
 
-func NewScheduleController(parser parser.Handler, validator Validator, repository Repository, generalController controllers.Controller) Controller {
+func NewScheduleController(parser parser.Handler, validator validators.Validator, repository repositories.Repository, generalController controllers.Controller) Controller {
 	return &controller{parser: parser, validator: validator, repository: repository, generalController: generalController}
 }
 
-func (s *controller) GetSchedule(ctx context.Context, studyPlaceIDHex string, type_ string, typeName string, user auth.User) (Schedule, error) {
+func (s *controller) GetSchedule(ctx context.Context, studyPlaceIDHex string, type_ string, typeName string, user auth.User) (entities2.Schedule, error) {
 	if type_ == "" || typeName == "" {
-		return Schedule{}, NotValidParams
+		return entities2.Schedule{}, NotValidParams
 	}
 
 	studyPlaceID := user.StudyPlaceID
@@ -68,13 +71,13 @@ func (s *controller) GetSchedule(ctx context.Context, studyPlaceIDHex string, ty
 	return s.repository.GetSchedule(ctx, studyPlaceID, type_, typeName, false, !restricted)
 }
 
-func (s *controller) GetUserSchedule(ctx context.Context, user auth.User) (Schedule, error) {
+func (s *controller) GetUserSchedule(ctx context.Context, user auth.User) (entities2.Schedule, error) {
 	return s.repository.GetSchedule(ctx, user.StudyPlaceID, user.Type, user.TypeName, false, false)
 }
 
-func (s *controller) GetGeneralSchedule(ctx context.Context, studyPlaceIDHex string, type_ string, typeName string, user auth.User) (Schedule, error) {
+func (s *controller) GetGeneralSchedule(ctx context.Context, studyPlaceIDHex string, type_ string, typeName string, user auth.User) (entities2.Schedule, error) {
 	if type_ == "" || typeName == "" {
-		return Schedule{}, NotValidParams
+		return entities2.Schedule{}, NotValidParams
 	}
 
 	studyPlaceID := user.StudyPlaceID
@@ -87,21 +90,21 @@ func (s *controller) GetGeneralSchedule(ctx context.Context, studyPlaceIDHex str
 	return s.repository.GetSchedule(ctx, studyPlaceID, type_, typeName, true, !restricted)
 }
 
-func (s *controller) GetGeneralUserSchedule(ctx context.Context, user auth.User) (Schedule, error) {
+func (s *controller) GetGeneralUserSchedule(ctx context.Context, user auth.User) (entities2.Schedule, error) {
 	return s.repository.GetSchedule(ctx, user.StudyPlaceID, user.Type, user.TypeName, true, false)
 }
 
-func (s *controller) GetScheduleTypes(ctx context.Context, user auth.User, idHex string) Types {
+func (s *controller) GetScheduleTypes(ctx context.Context, user auth.User, idHex string) entities2.Types {
 	studyPlaceID := user.StudyPlaceID
 	if id, err := primitive.ObjectIDFromHex(idHex); err == nil && user.StudyPlaceID != id {
 		if err, _ = s.repository.GetStudyPlaceByID(ctx, id, false); err != nil {
-			return Types{}
+			return entities2.Types{}
 		}
 
 		studyPlaceID = id
 	}
 
-	return Types{
+	return entities2.Types{
 		Groups:   s.repository.GetScheduleType(ctx, studyPlaceID, "group"),
 		Teachers: s.repository.GetScheduleType(ctx, studyPlaceID, "teacher"),
 		Subjects: s.repository.GetScheduleType(ctx, studyPlaceID, "subject"),
@@ -109,14 +112,14 @@ func (s *controller) GetScheduleTypes(ctx context.Context, user auth.User, idHex
 	}
 }
 
-func (s *controller) AddGeneralLessons(ctx context.Context, user auth.User, lessonsDTO []AddGeneralLessonDTO) ([]GeneralLesson, error) {
-	lessons := make([]GeneralLesson, 0, len(lessonsDTO))
+func (s *controller) AddGeneralLessons(ctx context.Context, user auth.User, lessonsDTO []dto2.AddGeneralLessonDTO) ([]entities2.GeneralLesson, error) {
+	lessons := make([]entities2.GeneralLesson, 0, len(lessonsDTO))
 	for _, lessonDTO := range lessonsDTO {
 		if err := s.validator.AddGeneralLesson(lessonDTO); err != nil {
 			return nil, err
 		}
 
-		lesson := GeneralLesson{
+		lesson := entities2.GeneralLesson{
 			Id:             primitive.NewObjectID(),
 			StudyPlaceId:   user.StudyPlaceID,
 			PrimaryColor:   lessonDTO.PrimaryColor,
@@ -141,14 +144,14 @@ func (s *controller) AddGeneralLessons(ctx context.Context, user auth.User, less
 	return lessons, nil
 }
 
-func (s *controller) AddLessons(ctx context.Context, user auth.User, lessonsDTO []AddLessonDTO) ([]Lesson, error) {
-	lessons := make([]Lesson, 0, len(lessonsDTO))
+func (s *controller) AddLessons(ctx context.Context, user auth.User, lessonsDTO []dto2.AddLessonDTO) ([]entities2.Lesson, error) {
+	lessons := make([]entities2.Lesson, 0, len(lessonsDTO))
 	for _, lessonDTO := range lessonsDTO {
 		if err := s.validator.AddLesson(lessonDTO); err != nil {
 			return nil, err
 		}
 
-		lesson := Lesson{
+		lesson := entities2.Lesson{
 			Id:             primitive.NewObjectID(),
 			StudyPlaceId:   user.StudyPlaceID,
 			PrimaryColor:   lessonDTO.PrimaryColor,
@@ -181,12 +184,12 @@ func (s *controller) AddLessons(ctx context.Context, user auth.User, lessonsDTO 
 	return lessons, nil
 }
 
-func (s *controller) AddLesson(ctx context.Context, addDTO AddLessonDTO, user auth.User) (Lesson, error) {
+func (s *controller) AddLesson(ctx context.Context, addDTO dto2.AddLessonDTO, user auth.User) (entities2.Lesson, error) {
 	if err := s.validator.AddLesson(addDTO); err != nil {
-		return Lesson{}, err
+		return entities2.Lesson{}, err
 	}
 
-	lesson := Lesson{
+	lesson := entities2.Lesson{
 		StudyPlaceId:   user.StudyPlaceID,
 		PrimaryColor:   addDTO.PrimaryColor,
 		SecondaryColor: addDTO.SecondaryColor,
@@ -201,7 +204,7 @@ func (s *controller) AddLesson(ctx context.Context, addDTO AddLessonDTO, user au
 
 	id, err := s.repository.AddLesson(ctx, lesson)
 	if err != nil {
-		return Lesson{}, err
+		return entities2.Lesson{}, err
 	}
 
 	lesson.Id = id
@@ -224,12 +227,12 @@ func (s *controller) AddLesson(ctx context.Context, addDTO AddLessonDTO, user au
 	return lesson, err
 }
 
-func (s *controller) UpdateLesson(ctx context.Context, updateDTO UpdateLessonDTO, user auth.User) error {
+func (s *controller) UpdateLesson(ctx context.Context, updateDTO dto2.UpdateLessonDTO, user auth.User) error {
 	if err := s.validator.UpdateLesson(updateDTO); err != nil {
 		return err
 	}
 
-	lesson := Lesson{
+	lesson := entities2.Lesson{
 		Id:             updateDTO.Id,
 		StudyPlaceId:   user.StudyPlaceID,
 		PrimaryColor:   updateDTO.PrimaryColor,
@@ -319,7 +322,7 @@ func (s *controller) DeleteLesson(ctx context.Context, idHex string, user auth.U
 	return nil
 }
 
-func (s *controller) GetLessonsByDateAndID(ctx context.Context, user auth.User, idHex string) ([]Lesson, error) {
+func (s *controller) GetLessonsByDateAndID(ctx context.Context, user auth.User, idHex string) ([]entities2.Lesson, error) {
 	id, err := primitive.ObjectIDFromHex(idHex)
 	if err != nil {
 		return nil, errors.Wrap(NotValidParams, "id")
@@ -332,10 +335,10 @@ func (s *controller) GetLessonsByDateAndID(ctx context.Context, user auth.User, 
 	return s.repository.GetFullLessonsByIDAndDate(ctx, user.Id, id)
 }
 
-func (s *controller) GetLessonByID(ctx context.Context, user auth.User, idHex string) (Lesson, error) {
+func (s *controller) GetLessonByID(ctx context.Context, user auth.User, idHex string) (entities2.Lesson, error) {
 	id, err := primitive.ObjectIDFromHex(idHex)
 	if err != nil {
-		return Lesson{}, errors.Wrap(NotValidParams, "id")
+		return entities2.Lesson{}, errors.Wrap(NotValidParams, "id")
 	}
 
 	if user.Type == "group" {
@@ -349,7 +352,7 @@ func (s *controller) GetLessonByID(ctx context.Context, user auth.User, idHex st
 		lesson.Marks = marks
 
 		if err != nil {
-			return Lesson{}, err
+			return entities2.Lesson{}, err
 		}
 
 		return lesson, nil
@@ -357,7 +360,7 @@ func (s *controller) GetLessonByID(ctx context.Context, user auth.User, idHex st
 
 	lesson, err := s.repository.GetLessonByID(ctx, id)
 	if err != nil {
-		return Lesson{}, err
+		return entities2.Lesson{}, err
 	}
 
 	return lesson, nil
@@ -365,7 +368,7 @@ func (s *controller) GetLessonByID(ctx context.Context, user auth.User, idHex st
 
 func (s *controller) RemoveLessonBetweenDates(ctx context.Context, user auth.User, date1, date2 time.Time) error {
 	if !date1.Before(date2) {
-		return errors.Wrap(ValidationError, "start time is after end time")
+		return errors.Wrap(validators.ValidationError, "start time is after end time")
 	}
 
 	return s.repository.RemoveLessonBetweenDates(ctx, date1, date2, user.StudyPlaceID)
@@ -377,7 +380,7 @@ func (s *controller) SaveCurrentScheduleAsGeneral(ctx context.Context, user auth
 		return err
 	}
 
-	lessons := make([]GeneralLesson, len(schedule.Lessons))
+	lessons := make([]entities2.GeneralLesson, len(schedule.Lessons))
 	for i, lesson := range schedule.Lessons {
 		_, weekIndex := lesson.StartDate.ISOWeek()
 		dayIndex := int(lesson.StartDate.Weekday()) - 1
@@ -385,7 +388,7 @@ func (s *controller) SaveCurrentScheduleAsGeneral(ctx context.Context, user auth
 			dayIndex = 6
 		}
 
-		gLesson := GeneralLesson{
+		gLesson := entities2.GeneralLesson{
 			Id:             primitive.NewObjectID(),
 			StudyPlaceId:   user.StudyPlaceID,
 			EndTime:        lesson.EndDate.Format("15:04"),
@@ -433,7 +436,7 @@ func (s *controller) SaveGeneralScheduleAsCurrent(ctx context.Context, user auth
 		return err
 	}
 
-	lessons := make([]Lesson, len(generalLessons))
+	lessons := make([]entities2.Lesson, len(generalLessons))
 	for i, generalLesson := range generalLessons {
 		startDate, err := time.Parse("2006-01-02T15:04", date.Format("2006-01-02T")+generalLesson.StartTime)
 		if err != nil {
@@ -445,7 +448,7 @@ func (s *controller) SaveGeneralScheduleAsCurrent(ctx context.Context, user auth
 			return err
 		}
 
-		lesson := Lesson{
+		lesson := entities2.Lesson{
 			Id:             primitive.NewObjectID(),
 			StudyPlaceId:   user.StudyPlaceID,
 			PrimaryColor:   generalLesson.PrimaryColor,

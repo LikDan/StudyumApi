@@ -6,13 +6,19 @@ import (
 	"studyum/internal/auth/controllers"
 	"studyum/internal/auth/entities"
 	"studyum/internal/auth/handlers"
+	"studyum/internal/auth/handlers/swagger"
 	"studyum/internal/auth/repositories"
 	codes "studyum/internal/codes/controllers"
 	"studyum/pkg/encryption"
 	"studyum/pkg/jwt"
 )
 
+// @BasePath /api/user
+
+//go:generate swag init --instanceName auth -o handlers/swagger -g auth.go -ot go,yaml
 func New(core *gin.RouterGroup, codes codes.Controller, encryption encryption.Encryption, jwtController jwt.JWT[entities.JWTClaims], db *mongo.Database) (handlers.Middleware, *handlers.Auth, *handlers.OAuth2, controllers.Sessions) {
+	swagger.SwaggerInfoauth.BasePath = "/api/user"
+
 	usersCollection := db.Collection("Users")
 	codesCollection := db.Collection("SignUpCodes")
 	oauth2Collection := db.Collection("OAuth2Services")

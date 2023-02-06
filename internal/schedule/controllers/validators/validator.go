@@ -1,16 +1,19 @@
-package schedule
+package validators
 
 import (
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
+	"studyum/internal/schedule/dto"
 	"studyum/pkg/datetime"
 )
 
-type Validator interface {
-	AddGeneralLesson(dto AddGeneralLessonDTO) error
+var ValidationError = errors.New("validation error")
 
-	AddLesson(dto AddLessonDTO) error
-	UpdateLesson(lessonDTO UpdateLessonDTO) error
+type Validator interface {
+	AddGeneralLesson(dto dto.AddGeneralLessonDTO) error
+
+	AddLesson(dto dto.AddLessonDTO) error
+	UpdateLesson(lessonDTO dto.UpdateLessonDTO) error
 }
 
 type schedule struct {
@@ -21,7 +24,7 @@ func NewSchedule(validate *validator.Validate) Validator {
 	return &schedule{validate: validate}
 }
 
-func (s *schedule) AddGeneralLesson(dto AddGeneralLessonDTO) error {
+func (s *schedule) AddGeneralLesson(dto dto.AddGeneralLessonDTO) error {
 	startDuration, err := datetime.ParseDuration(dto.StartTime)
 	if err != nil {
 		return err
@@ -39,7 +42,7 @@ func (s *schedule) AddGeneralLesson(dto AddGeneralLessonDTO) error {
 	return nil
 }
 
-func (s *schedule) AddLesson(dto AddLessonDTO) error {
+func (s *schedule) AddLesson(dto dto.AddLessonDTO) error {
 	if !dto.StartDate.Before(dto.EndDate) {
 		return errors.Wrap(ValidationError, "start date is after end date")
 	}
@@ -47,7 +50,7 @@ func (s *schedule) AddLesson(dto AddLessonDTO) error {
 	return nil
 }
 
-func (s *schedule) UpdateLesson(dto UpdateLessonDTO) error {
+func (s *schedule) UpdateLesson(dto dto.UpdateLessonDTO) error {
 	if err := s.AddLesson(dto.AddLessonDTO); err != nil {
 		return err
 	}

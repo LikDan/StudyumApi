@@ -24,6 +24,9 @@ func NewOAuth2(middleware Middleware, controller controllers.OAuth2, group *gin.
 	return h
 }
 
+// Auth godoc
+// @Param service path string true "OAuth2 Server"
+// @Router /oauth2/{service} [get]
 func (h *OAuth2) Auth(ctx *gin.Context) {
 	service := ctx.Param("service")
 	redirectHost := ctx.Query("redirect")
@@ -37,6 +40,9 @@ func (h *OAuth2) Auth(ctx *gin.Context) {
 	ctx.Redirect(307, url)
 }
 
+// Receive godoc
+// @Param service path string true "OAuth2 Server"
+// @Router /oauth2/callback/{service} [get]
 func (h *OAuth2) Receive(ctx *gin.Context) {
 	service := ctx.Param("service")
 	code := ctx.Query("code")
@@ -50,6 +56,8 @@ func (h *OAuth2) Receive(ctx *gin.Context) {
 	ctx.Redirect(http.StatusPermanentRedirect, ctx.Query("state")+"/?token="+pair.Refresh)
 }
 
+// SetToken godoc
+// @Router /token [post]
 func (h *OAuth2) SetToken(ctx *gin.Context) {
 	var data struct {
 		Token string `json:"token"`

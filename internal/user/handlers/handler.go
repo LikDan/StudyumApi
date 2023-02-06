@@ -13,11 +13,11 @@ type Handler interface {
 	GetUser(ctx *gin.Context)
 	UpdateUser(ctx *gin.Context)
 
-	PutFirebaseToken(ctx *gin.Context)
-
 	GetAccept(ctx *gin.Context)
 	Accept(ctx *gin.Context)
 	Block(ctx *gin.Context)
+
+	PutFirebaseToken(ctx *gin.Context)
 
 	ResetPassword(ctx *gin.Context)
 	ResetPasswordViaCode(ctx *gin.Context)
@@ -49,6 +49,8 @@ func NewUserHandler(middleware auth.Middleware, controller controllers.Controlle
 	return h
 }
 
+// GetUser godoc
+// @Router / [get]
 func (h *handler) GetUser(ctx *gin.Context) {
 	user := h.Middleware.GetUser(ctx)
 	user = h.controller.DecryptUser(ctx, user)
@@ -56,6 +58,8 @@ func (h *handler) GetUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
+// UpdateUser godoc
+// @Router / [put]
 func (h *handler) UpdateUser(ctx *gin.Context) {
 	user := h.Middleware.GetUser(ctx)
 
@@ -76,23 +80,8 @@ func (h *handler) UpdateUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
-func (h *handler) PutFirebaseToken(ctx *gin.Context) {
-	user := h.Middleware.GetUser(ctx)
-
-	var token string
-	if err := ctx.BindJSON(&token); err != nil {
-		ctx.JSON(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	if err := h.controller.PutFirebaseTokenByUserID(ctx, user.Id, token); err != nil {
-		_ = ctx.Error(err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, user)
-}
-
+// GetAccept godoc
+// @Router /accept [get]
 func (h *handler) GetAccept(ctx *gin.Context) {
 	user := h.Middleware.GetUser(ctx)
 
@@ -104,6 +93,8 @@ func (h *handler) GetAccept(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, users)
 }
 
+// Accept godoc
+// @Router /accept [post]
 func (h *handler) Accept(ctx *gin.Context) {
 	user := h.Middleware.GetUser(ctx)
 
@@ -126,6 +117,8 @@ func (h *handler) Accept(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, id)
 }
 
+// Block godoc
+// @Router /block [post]
 func (h *handler) Block(ctx *gin.Context) {
 	user := h.Middleware.GetUser(ctx)
 
@@ -148,6 +141,27 @@ func (h *handler) Block(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, id)
 }
 
+// PutFirebaseToken godoc
+// @Router /firebase/token [put]
+func (h *handler) PutFirebaseToken(ctx *gin.Context) {
+	user := h.Middleware.GetUser(ctx)
+
+	var token string
+	if err := ctx.BindJSON(&token); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := h.controller.PutFirebaseTokenByUserID(ctx, user.Id, token); err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, user)
+}
+
+// ResetPassword godoc
+// @Router /password/reset [post]
 func (h *handler) ResetPassword(ctx *gin.Context) {
 	var data struct {
 		Email string `json:"email"`
@@ -166,6 +180,8 @@ func (h *handler) ResetPassword(ctx *gin.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
+// ResetPasswordViaCode godoc
+// @Router /password/reset [put]
 func (h *handler) ResetPasswordViaCode(ctx *gin.Context) {
 	var data dto.ResetPassword
 	if err := ctx.BindJSON(&data); err != nil {

@@ -1,30 +1,31 @@
-package schedule
+package handlers
 
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	auth "studyum/internal/auth/handlers"
+	"studyum/internal/schedule/controllers"
+	"studyum/internal/schedule/dto"
 	"time"
 )
 
 type Handler interface {
-	GetScheduleTypes(ctx *gin.Context)
-
 	GetSchedule(ctx *gin.Context)
 	GetUserSchedule(ctx *gin.Context)
 
 	GetGeneralSchedule(ctx *gin.Context)
 	GetGeneralUserSchedule(ctx *gin.Context)
 
+	GetScheduleTypes(ctx *gin.Context)
+
+	GetLessonByID(ctx *gin.Context)
+	AddLessons(ctx *gin.Context)
 	AddLesson(ctx *gin.Context)
 	UpdateLesson(ctx *gin.Context)
 	DeleteLesson(ctx *gin.Context)
-	GetLessonByID(ctx *gin.Context)
+	RemoveLessonsBetweenDates(ctx *gin.Context)
 
 	AddGeneralLessons(ctx *gin.Context)
-
-	AddLessons(ctx *gin.Context)
-	RemoveLessonsBetweenDates(ctx *gin.Context)
 
 	SaveCurrentScheduleAsGeneral(ctx *gin.Context)
 	SaveGeneralScheduleAsCurrent(ctx *gin.Context)
@@ -33,28 +34,29 @@ type Handler interface {
 type handler struct {
 	auth.Middleware
 
-	controller Controller
+	controller controllers.Controller
 
 	Group *gin.RouterGroup
 }
 
-func NewScheduleHandler(middleware auth.Middleware, controller Controller, group *gin.RouterGroup) Handler {
+func NewScheduleHandler(middleware auth.Middleware, controller controllers.Controller, group *gin.RouterGroup) Handler {
 	h := &handler{Middleware: middleware, controller: controller, Group: group}
 
-	group.GET("getTypes", h.TryAuth(), h.GetScheduleTypes)
 	group.GET(":type/:name", h.TryAuth(), h.GetSchedule)
 	group.GET("", h.MemberAuth(), h.GetUserSchedule)
 
 	group.GET("general/:type/:name", h.MemberAuth(), h.GetGeneralSchedule)
 	group.GET("general", h.MemberAuth(), h.GetGeneralUserSchedule)
 
+	group.GET("getTypes", h.TryAuth(), h.GetScheduleTypes) //todo change endpoint to types
+
+	group.GET("lessons/:id", h.MemberAuth(), h.GetLessonByID) //todo change endpoint to :id
+	group.POST("/list", h.MemberAuth("editSchedule"), h.AddLessons)
 	group.POST("", h.MemberAuth("editSchedule"), h.AddLesson)
 	group.PUT("", h.MemberAuth("editJournal"), h.UpdateLesson)
 	group.DELETE(":id", h.MemberAuth("editSchedule"), h.DeleteLesson)
-	group.GET("lessons/:id", h.MemberAuth(), h.GetLessonByID)
 	group.DELETE("between/:startDate/:endDate", h.MemberAuth("editSchedule"), h.RemoveLessonsBetweenDates)
 
-	group.POST("/list", h.MemberAuth("editSchedule"), h.AddLessons)
 	group.POST("/general/list", h.MemberAuth("editSchedule"), h.AddGeneralLessons)
 
 	group.POST("/makeGeneral", h.MemberAuth("editSchedule"), h.SaveCurrentScheduleAsGeneral)
@@ -63,6 +65,10 @@ func NewScheduleHandler(middleware auth.Middleware, controller Controller, group
 	return h
 }
 
+// GetSchedule godoc
+// @Param type path string true "Type"
+// @Param name path string true "Typename"
+// @Router /{type}/{name} [get]
 func (s *handler) GetSchedule(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
@@ -80,6 +86,8 @@ func (s *handler) GetSchedule(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, schedule)
 }
 
+// GetUserSchedule godoc
+// @Router / [get]
 func (s *handler) GetUserSchedule(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
@@ -92,6 +100,10 @@ func (s *handler) GetUserSchedule(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, schedule)
 }
 
+// GetGeneralSchedule godoc
+// @Param type path string true "Type"
+// @Param name path string true "Typename"
+// @Router /general/{type}/{name} [get]
 func (s *handler) GetGeneralSchedule(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
@@ -109,6 +121,8 @@ func (s *handler) GetGeneralSchedule(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, schedule)
 }
 
+// GetGeneralUserSchedule godoc
+// @Router /general [get]
 func (s *handler) GetGeneralUserSchedule(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
@@ -121,6 +135,8 @@ func (s *handler) GetGeneralUserSchedule(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, schedule)
 }
 
+// GetScheduleTypes godoc
+// @Router /getTypes [get]
 func (s *handler) GetScheduleTypes(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
@@ -130,6 +146,9 @@ func (s *handler) GetScheduleTypes(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, types)
 }
 
+// GetLessonByID godoc
+// @Param id path string true "Lesson ID"
+// @Router /lessons/{id} [get]
 func (s *handler) GetLessonByID(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
@@ -154,28 +173,12 @@ func (s *handler) GetLessonByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, lesson)
 }
 
-func (s *handler) AddLesson(ctx *gin.Context) {
-	user := s.GetUser(ctx)
-
-	var lessonDTO AddLessonDTO
-	if err := ctx.BindJSON(&lessonDTO); err != nil {
-		ctx.JSON(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	lesson, err := s.controller.AddLesson(ctx, lessonDTO, user)
-	if err != nil {
-		_ = ctx.Error(err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, lesson)
-}
-
+// AddLessons godoc
+// @Router /list [post]
 func (s *handler) AddLessons(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
-	var lessonsDTO []AddLessonDTO
+	var lessonsDTO []dto.AddLessonDTO
 	if err := ctx.BindJSON(&lessonsDTO); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
@@ -190,28 +193,32 @@ func (s *handler) AddLessons(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, lessons)
 }
 
-func (s *handler) AddGeneralLessons(ctx *gin.Context) {
+// AddLesson godoc
+// @Router / [post]
+func (s *handler) AddLesson(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
-	var lessonsDTO []AddGeneralLessonDTO
-	if err := ctx.BindJSON(&lessonsDTO); err != nil {
+	var lessonDTO dto.AddLessonDTO
+	if err := ctx.BindJSON(&lessonDTO); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	lessons, err := s.controller.AddGeneralLessons(ctx, user, lessonsDTO)
+	lesson, err := s.controller.AddLesson(ctx, lessonDTO, user)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, lessons)
+	ctx.JSON(http.StatusOK, lesson)
 }
 
+// UpdateLesson godoc
+// @Router / [put]
 func (s *handler) UpdateLesson(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
-	var lesson UpdateLessonDTO
+	var lesson dto.UpdateLessonDTO
 	if err := ctx.BindJSON(&lesson); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
@@ -226,6 +233,9 @@ func (s *handler) UpdateLesson(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, lesson)
 }
 
+// DeleteLesson godoc
+// @Param id path string true "Lesson ID"
+// @Router / [delete]
 func (s *handler) DeleteLesson(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 	id := ctx.Param("id")
@@ -239,39 +249,10 @@ func (s *handler) DeleteLesson(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, id)
 }
 
-func (s *handler) SaveCurrentScheduleAsGeneral(ctx *gin.Context) {
-	user := s.GetUser(ctx)
-
-	type_ := ctx.Query("type")
-	typeName := ctx.Query("typeName")
-
-	err := s.controller.SaveCurrentScheduleAsGeneral(ctx, user, type_, typeName)
-	if err != nil {
-		_ = ctx.Error(err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, "successful")
-}
-
-func (s *handler) SaveGeneralScheduleAsCurrent(ctx *gin.Context) {
-	user := s.GetUser(ctx)
-
-	date_ := ctx.Param("date")
-	date, err := time.Parse(time.RFC3339, date_)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	if err = s.controller.SaveGeneralScheduleAsCurrent(ctx, user, date); err != nil {
-		_ = ctx.Error(err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, "successful")
-}
-
+// RemoveLessonsBetweenDates godoc
+// @Param startDate path string true "From date"
+// @Param endDate path string true "To date"
+// @Router /between/{startDate}/{endDate} [delete]
 func (s *handler) RemoveLessonsBetweenDates(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
@@ -293,4 +274,62 @@ func (s *handler) RemoveLessonsBetweenDates(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, "removed")
+}
+
+// AddGeneralLessons godoc
+// @Router /general/list [post]
+func (s *handler) AddGeneralLessons(ctx *gin.Context) {
+	user := s.GetUser(ctx)
+
+	var lessonsDTO []dto.AddGeneralLessonDTO
+	if err := ctx.BindJSON(&lessonsDTO); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	lessons, err := s.controller.AddGeneralLessons(ctx, user, lessonsDTO)
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, lessons)
+}
+
+// SaveCurrentScheduleAsGeneral godoc
+// @Router /makeGeneral [post]
+func (s *handler) SaveCurrentScheduleAsGeneral(ctx *gin.Context) {
+	user := s.GetUser(ctx)
+
+	type_ := ctx.Query("type")
+	typeName := ctx.Query("typeName")
+
+	err := s.controller.SaveCurrentScheduleAsGeneral(ctx, user, type_, typeName)
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, "successful")
+}
+
+// SaveGeneralScheduleAsCurrent godoc
+// @Param date path string true "Date"
+// @Router /makeCurrent/:date [post]
+func (s *handler) SaveGeneralScheduleAsCurrent(ctx *gin.Context) {
+	user := s.GetUser(ctx)
+
+	date_ := ctx.Param("date")
+	date, err := time.Parse(time.RFC3339, date_)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err = s.controller.SaveGeneralScheduleAsCurrent(ctx, user, date); err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, "successful")
 }

@@ -1,0 +1,32 @@
+basePath: /api
+info:
+  contact: { }
+paths:
+  /request:
+    get:
+      parameters:
+        - description: Host
+          in: query
+          name: host
+          required: true
+          type: string
+      responses: { }
+  /studyPlaces:
+    get:
+      responses: { }
+  /studyPlaces/{id}:
+    get:
+      parameters:
+        - description: Study Place ID
+          in: path
+          name: id
+          required: true
+          type: string
+      responses: { }
+  /studyPlaces/self:
+    get:
+      responses: { }
+  /uptime:
+    get:
+      responses: { }
+swagger: "2.0"

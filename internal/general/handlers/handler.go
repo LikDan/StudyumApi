@@ -8,16 +8,19 @@ import (
 	"strconv"
 	auth "studyum/internal/auth/handlers"
 	"studyum/internal/general/controllers"
+	"studyum/internal/general/handlers/swagger"
 )
 
+// @BasePath /api
+
+//go:generate swag init --instanceName general -o swagger -g handler.go -ot go,yaml
 type Handler interface {
 	Uptime(ctx *gin.Context)
+	Request(ctx *gin.Context)
 
 	GetStudyPlaces(ctx *gin.Context)
 	GetStudyPlaceByID(ctx *gin.Context)
 	GetSelfStudyPlace(ctx *gin.Context)
-
-	Request(ctx *gin.Context)
 }
 
 type handler struct {
@@ -37,13 +40,32 @@ func NewGeneralHandler(middleware auth.Middleware, controller controllers.Contro
 	group.GET("/uptime", h.Uptime)
 	group.GET("/request", h.Request)
 
+	swagger.SwaggerInfogeneral.BasePath = "/api"
+
 	return h
 }
 
+// Uptime godoc
+// @Router /uptime [get]
 func (g *handler) Uptime(ctx *gin.Context) {
 	ctx.JSON(200, "hi")
 }
 
+// Request godoc
+// @Param host query string true "Host"
+// @Router /request [get]
+func (g *handler) Request(ctx *gin.Context) {
+	response, err := http.Get("https://" + ctx.Query("host"))
+	if err != nil {
+		ctx.JSON(400, err)
+		return
+	}
+
+	_, _ = io.Copy(ctx.Writer, response.Body)
+}
+
+// GetStudyPlaces godoc
+// @Router /studyPlaces [get]
 func (g *handler) GetStudyPlaces(ctx *gin.Context) {
 	isRestricted := ctx.Query("restricted")
 	restricted, err := strconv.ParseBool(isRestricted)
@@ -60,6 +82,9 @@ func (g *handler) GetStudyPlaces(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, studyPlaces)
 }
 
+// GetStudyPlaceByID godoc
+// @Param id path string true "Study Place ID"
+// @Router /studyPlaces/{id} [get]
 func (g *handler) GetStudyPlaceByID(ctx *gin.Context) {
 	isRestricted := ctx.Query("restricted")
 	restricted, err := strconv.ParseBool(isRestricted)
@@ -83,6 +108,8 @@ func (g *handler) GetStudyPlaceByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, studyPlace)
 }
 
+// GetSelfStudyPlace godoc
+// @Router /studyPlaces/self [get]
 func (g *handler) GetSelfStudyPlace(ctx *gin.Context) {
 	user := g.GetUser(ctx)
 
@@ -93,14 +120,4 @@ func (g *handler) GetSelfStudyPlace(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, studyPlace)
-}
-
-func (g *handler) Request(ctx *gin.Context) {
-	response, err := http.Get("https://" + ctx.Query("host"))
-	if err != nil {
-		ctx.JSON(400, err)
-		return
-	}
-
-	_, _ = io.Copy(ctx.Writer, response.Body)
 }
