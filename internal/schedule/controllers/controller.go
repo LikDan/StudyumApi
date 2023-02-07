@@ -460,9 +460,7 @@ func (s *controller) SaveGeneralScheduleAsCurrent(ctx context.Context, user auth
 			Group:          generalLesson.Group,
 			Teacher:        generalLesson.Teacher,
 			Room:           generalLesson.Room,
-			Title:          "",
-			Homework:       "",
-			Description:    "",
+			LessonIndex:    generalLesson.LessonIndex,
 		}
 
 		lessons[i] = lesson
