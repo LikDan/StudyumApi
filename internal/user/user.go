@@ -14,11 +14,11 @@ import (
 	"studyum/pkg/encryption"
 )
 
-// @BasePath /api/schedule
+// @BasePath /api/user
 
 //go:generate swag init --instanceName user -o handlers/swagger -g user.go -ot go,yaml
 func New(core *gin.RouterGroup, auth auth.Middleware, encrypt encryption.Encryption, apps parser.Handler, codesController codes.Controller, sessionsController authControllers.Sessions, db *mongo.Database) handlers.Handler {
-	swagger.SwaggerInfouser.BasePath = "/api/schedule"
+	swagger.SwaggerInfouser.BasePath = "/api/user"
 
 	users := db.Collection("Users")
 	signUpCodes := db.Collection("SignUpCodes")

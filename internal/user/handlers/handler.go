@@ -46,6 +46,8 @@ func NewUserHandler(middleware auth.Middleware, controller controllers.Controlle
 	group.POST("password/reset", h.ResetPassword)
 	group.PUT("password/reset", h.ResetPasswordViaCode)
 
+	group.POST("code", h.MemberAuth("manageUsers"), h.CreateCode)
+
 	return h
 }
 
@@ -196,4 +198,24 @@ func (h *handler) ResetPasswordViaCode(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+// CreateCode godoc
+// @Router /code [post]
+func (h *handler) CreateCode(ctx *gin.Context) {
+	user := h.Middleware.GetUser(ctx)
+
+	var data dto.CreateCode
+	if err := ctx.BindJSON(&data); err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	code, err := h.controller.CreateCode(ctx, user, data)
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, code)
 }

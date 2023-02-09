@@ -12,6 +12,7 @@ type CreateCode struct {
 	Name     string `json:"name" binding:"required"`
 	Type     string `json:"type" binding:"required"`
 	TypeName string `json:"typeName" binding:"required"`
+	Password string `json:"password" binding:"min=8"`
 }
 
 type ResetPassword struct {

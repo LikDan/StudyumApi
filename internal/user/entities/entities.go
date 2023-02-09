@@ -18,4 +18,5 @@ type SignUpCode struct {
 	StudyPlaceID primitive.ObjectID `json:"studyPlaceID" bson:"studyPlaceID"`
 	Type         string             `json:"type" bson:"type"`
 	Typename     string             `json:"typename" bson:"typename"`
+	Password     string             `json:"-" bson:"defaultPassword"`
 }

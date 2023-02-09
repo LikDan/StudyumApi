@@ -106,6 +106,11 @@ func (u *controller) PutFirebaseTokenByUserID(ctx context.Context, token primiti
 }
 
 func (u *controller) CreateCode(ctx context.Context, user entities.User, data dto.CreateCode) (entities2.SignUpCode, error) {
+	password, err := hash.Hash(data.Password)
+	if err != nil {
+		return entities2.SignUpCode{}, err
+	}
+
 	code := entities2.SignUpCode{
 		Id:           primitive.NewObjectID(),
 		Code:         data.Code,
@@ -113,6 +118,7 @@ func (u *controller) CreateCode(ctx context.Context, user entities.User, data dt
 		StudyPlaceID: user.StudyPlaceID,
 		Type:         data.Type,
 		Typename:     data.TypeName,
+		Password:     password,
 	}
 
 	u.encrypt.Encrypt(&code)
