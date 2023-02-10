@@ -69,7 +69,6 @@ func (c *oauth2) ReceiveUser(ctx context.Context, serviceName string, code strin
 			Login:         callbackUser.Name,
 			Name:          callbackUser.Name,
 			PictureUrl:    callbackUser.PictureUrl,
-			Sessions:      make([]entities.Session, 0, 1),
 		}
 
 		c.encryption.Encrypt(&user)

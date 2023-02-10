@@ -29,10 +29,6 @@ func (r *auth) GetUserByLogin(ctx context.Context, login string) (user entities.
 }
 
 func (r *auth) AddUser(ctx context.Context, user entities.User) error {
-	if user.Sessions == nil {
-		user.Sessions = make([]entities.Session, 0, 1)
-	}
-
 	_, err := r.users.InsertOne(ctx, user)
 	return err
 }

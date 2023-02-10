@@ -2,7 +2,6 @@ package entities
 
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"time"
 )
 
 type User struct {
@@ -21,17 +20,4 @@ type User struct {
 	Permissions   []string           `json:"permissions" bson:"permissions"`
 	Accepted      bool               `json:"accepted" bson:"accepted"`
 	Blocked       bool               `json:"blocked" bson:"blocked"`
-	Sessions      []Session          `json:"sessions" bson:"sessions"`
-}
-
-type Session struct {
-	RefreshToken string    `json:"-" bson:"token"`
-	IP           string    `json:"ip" bson:"ip"`
-	LastOnline   time.Time `json:"lastOnline" bson:"lastOnline"`
-}
-
-type JWTClaims struct {
-	ID          primitive.ObjectID `json:"id" bson:"_id"`
-	Login       string             `json:"login" bson:"login"`
-	Permissions []string           `json:"permissions" bson:"permissions"`
 }
