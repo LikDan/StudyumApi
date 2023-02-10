@@ -11,7 +11,8 @@ import (
 	codesEntities "studyum/internal/codes/entities"
 	"studyum/pkg/encryption"
 	"studyum/pkg/hash"
-	"studyum/pkg/jwt"
+	"studyum/pkg/jwt/controllers"
+	entities2 "studyum/pkg/jwt/entities"
 )
 
 var (
@@ -20,9 +21,9 @@ var (
 )
 
 type Auth interface {
-	Login(ctx context.Context, ip string, data dto.Login) (entities.User, jwt.TokenPair, error)
+	Login(ctx context.Context, ip string, data dto.Login) (entities.User, entities2.TokenPair, error)
 
-	SignUp(ctx context.Context, ip string, data dto.SignUp) (entities.User, jwt.TokenPair, error)
+	SignUp(ctx context.Context, ip string, data dto.SignUp) (entities.User, entities2.TokenPair, error)
 	SignUpStage1(ctx context.Context, user entities.User, data dto.SignUpStage1) (entities.User, error)
 	SignUpStage1ViaCode(ctx context.Context, user entities.User, code string) (entities.User, error)
 	SignOut(ctx context.Context, token string) error
@@ -34,7 +35,7 @@ type Auth interface {
 }
 
 type auth struct {
-	sessions Sessions
+	sessions controllers.Controller
 
 	codes      codes.Controller
 	encryption encryption.Encryption
@@ -43,27 +44,27 @@ type auth struct {
 	codeRepository repositories.Code
 }
 
-func NewAuth(sessions Sessions, codes codes.Controller, encryption encryption.Encryption, repository repositories.Auth, codeRepository repositories.Code) Auth {
+func NewAuth(sessions controllers.Controller, codes codes.Controller, encryption encryption.Encryption, repository repositories.Auth, codeRepository repositories.Code) Auth {
 	return &auth{sessions: sessions, codes: codes, encryption: encryption, repository: repository, codeRepository: codeRepository}
 }
 
-func (c *auth) Login(ctx context.Context, ip string, data dto.Login) (entities.User, jwt.TokenPair, error) {
+func (c *auth) Login(ctx context.Context, ip string, data dto.Login) (entities.User, entities2.TokenPair, error) {
 	if len(data.Password) < 8 {
-		return entities.User{}, jwt.TokenPair{}, errors.Wrap(ValidationError, "password")
+		return entities.User{}, entities2.TokenPair{}, errors.Wrap(ValidationError, "password")
 	}
 
 	user, err := c.repository.GetUserByLogin(ctx, data.Login)
 	if err != nil {
-		return entities.User{}, jwt.TokenPair{}, err
+		return entities.User{}, entities2.TokenPair{}, err
 	}
 
 	if !hash.CompareHashAndPassword(user.Password, data.Password) {
-		return entities.User{}, jwt.TokenPair{}, ForbiddenErr
+		return entities.User{}, entities2.TokenPair{}, ForbiddenErr
 	}
 
-	pair, err := c.sessions.New(ctx, user, ip)
+	pair, err := c.sessions.Create(ctx, ip, user.Id.Hex())
 	if err != nil {
-		return entities.User{}, jwt.TokenPair{}, err
+		return entities.User{}, entities2.TokenPair{}, err
 	}
 
 	c.encryption.Decrypt(&user)
@@ -81,12 +82,12 @@ func (c *auth) generateCode(user entities.User) codesEntities.Code {
 	}
 }
 
-func (c *auth) SignUp(ctx context.Context, ip string, data dto.SignUp) (entities.User, jwt.TokenPair, error) {
+func (c *auth) SignUp(ctx context.Context, ip string, data dto.SignUp) (entities.User, entities2.TokenPair, error) {
 	var user entities.User
 	if len(data.Password) < 8 || len(data.Email) < 5 {
 		code, err := c.codeRepository.GetUserByCodeAndDelete(ctx, data.Code)
 		if err != nil {
-			return entities.User{}, jwt.TokenPair{}, err
+			return entities.User{}, entities2.TokenPair{}, err
 		}
 
 		c.encryption.Decrypt(&code)
@@ -104,7 +105,7 @@ func (c *auth) SignUp(ctx context.Context, ip string, data dto.SignUp) (entities
 	} else {
 		password, err := hash.Hash(data.Password)
 		if err != nil {
-			return entities.User{}, jwt.TokenPair{}, err
+			return entities.User{}, entities2.TokenPair{}, err
 		}
 
 		user = entities.User{
@@ -117,19 +118,19 @@ func (c *auth) SignUp(ctx context.Context, ip string, data dto.SignUp) (entities
 
 	c.encryption.Encrypt(&user)
 	if err := c.repository.AddUser(ctx, user); err != nil {
-		return entities.User{}, jwt.TokenPair{}, err
+		return entities.User{}, entities2.TokenPair{}, err
 	}
 
 	if len(data.Password) >= 8 && len(data.Email) >= 5 {
 		code := c.generateCode(user)
 		if err := c.codes.Send(ctx, code); err != nil {
-			return entities.User{}, jwt.TokenPair{}, err
+			return entities.User{}, entities2.TokenPair{}, err
 		}
 	}
 
-	pair, err := c.sessions.New(ctx, user, ip)
+	pair, err := c.sessions.Create(ctx, ip, user.Id.Hex())
 	if err != nil {
-		return entities.User{}, jwt.TokenPair{}, err
+		return entities.User{}, entities2.TokenPair{}, err
 	}
 
 	c.encryption.Decrypt(&user)
@@ -194,6 +195,6 @@ func (c *auth) ResendEmailCode(ctx context.Context, user entities.User) error {
 	return c.codes.Send(ctx, code)
 }
 
-func (c *auth) TerminateAll(ctx context.Context, user entities.User) error {
-	return c.sessions.TerminateAll(ctx, user)
+func (c *auth) TerminateAll(context.Context, entities.User) error {
+	return nil
 }

@@ -6,8 +6,8 @@ import (
 	"golang.org/x/net/context"
 	"studyum/internal/auth/entities"
 	"studyum/internal/auth/repositories"
-	"studyum/pkg/jwt"
-	"time"
+	"studyum/pkg/jwt/controllers"
+	entities2 "studyum/pkg/jwt/entities"
 )
 
 var (
@@ -16,89 +16,58 @@ var (
 )
 
 type Middleware interface {
-	Auth(ctx context.Context, pair jwt.TokenPair, ip string, permissions ...string) (jwt.TokenPair, bool, entities.User, error)
-	MemberAuth(ctx context.Context, pair jwt.TokenPair, ip string, permissions ...string) (jwt.TokenPair, bool, entities.User, error)
-	Recover(ctx context.Context, oldPair, newPair jwt.TokenPair, ip string, userID primitive.ObjectID) error
+	Auth(ctx context.Context, pair entities2.TokenPair, ip string, permissions ...string) (entities2.TokenPair, bool, entities.User, error)
+	MemberAuth(ctx context.Context, pair entities2.TokenPair, ip string, permissions ...string) (entities2.TokenPair, bool, entities.User, error)
 
 	AuthViaApiToken(ctx context.Context, token string) (entities.User, error)
 }
 
 type middleware struct {
-	jwt        jwt.JWT[entities.JWTClaims]
+	jwt        controllers.Controller
 	repository repositories.Middleware
 }
 
-func NewMiddleware(jwt jwt.JWT[entities.JWTClaims], repository repositories.Middleware) Middleware {
+func NewMiddleware(jwt controllers.Controller, repository repositories.Middleware) Middleware {
 	return &middleware{jwt: jwt, repository: repository}
 }
 
-func (c *middleware) Recover(ctx context.Context, oldToken, newToken jwt.TokenPair, ip string, userID primitive.ObjectID) error {
-	_ = c.repository.DeleteSessionByToken(ctx, newToken.Refresh)
-	session := entities.Session{
-		RefreshToken: oldToken.Refresh,
-		IP:           ip,
-		LastOnline:   time.Now(),
-	}
-
-	return c.repository.AddSession(ctx, session, userID)
-}
-
-func (c *middleware) Auth(ctx context.Context, pair jwt.TokenPair, ip string, permissions ...string) (jwt.TokenPair, bool, entities.User, error) {
-	newPair := jwt.TokenPair{}
-
-	claims, ok, update := c.jwt.Validate(pair.Access)
-	if !ok {
-		access, err := c.jwt.Refresh(ctx, pair.Refresh)
-		if err != nil {
-			return jwt.TokenPair{}, false, entities.User{}, err
-		}
-		claims, ok, _ = c.jwt.Validate(access)
-		if !ok {
-			return jwt.TokenPair{}, false, entities.User{}, BadClaimsErr
-		}
-		newPair.Access = access
-		newPair.Refresh, err = c.jwt.GenerateRefresh()
-		if err != nil {
-			return jwt.TokenPair{}, false, entities.User{}, err
-		}
-
-		session := entities.Session{
-			RefreshToken: newPair.Refresh,
-			IP:           ip,
-			LastOnline:   time.Now(),
-		}
-
-		if err = c.repository.AddSession(ctx, session, claims.Claims.ID); err != nil {
-			return jwt.TokenPair{}, false, entities.User{}, err
-		}
-	}
-	if update {
-		updatedPair, err := c.jwt.GeneratePair(claims.Claims)
-		if err == nil {
-			newPair = updatedPair
-		}
-	}
-
-	user, err := c.repository.GetUserByID(ctx, claims.Claims.ID)
+func (c *middleware) Auth(ctx context.Context, pair entities2.TokenPair, ip string, permissions ...string) (entities2.TokenPair, bool, entities.User, error) {
+	userID, update, err := c.jwt.Auth(ctx, pair)
 	if err != nil {
-		return jwt.TokenPair{}, false, entities.User{}, err
+		return entities2.TokenPair{}, false, entities.User{}, err
+	}
+
+	id, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return entities2.TokenPair{}, false, entities.User{}, err
+	}
+	user, err := c.repository.GetUserByID(ctx, id)
+	if err != nil {
+		return entities2.TokenPair{}, false, entities.User{}, err
+	}
+
+	if update {
+		pair, err = c.jwt.Create(ctx, ip, user.Id.Hex())
+		if err != nil {
+			return entities2.TokenPair{}, false, entities.User{}, err
+		}
 	}
 
 	if !c.hasPermission(user, permissions) {
-		return jwt.TokenPair{}, false, entities.User{}, ForbiddenErr
+		return entities2.TokenPair{}, false, entities.User{}, ForbiddenErr
 	}
 
-	return newPair, newPair.Access != "", user, nil
+	return pair, update, user, nil
 }
 
-func (c *middleware) MemberAuth(ctx context.Context, pair jwt.TokenPair, ip string, permissions ...string) (jwt.TokenPair, bool, entities.User, error) {
+func (c *middleware) MemberAuth(ctx context.Context, pair entities2.TokenPair, ip string, permissions ...string) (entities2.TokenPair, bool, entities.User, error) {
 	tokenPair, shouldUpdate, user, err := c.Auth(ctx, pair, ip, permissions...)
 	if err != nil {
-		return jwt.TokenPair{}, false, entities.User{}, err
+		return entities2.TokenPair{}, false, entities.User{}, err
 	}
 
 	if !user.Accepted || user.Blocked {
-		return jwt.TokenPair{}, false, entities.User{}, ForbiddenErr
+		return entities2.TokenPair{}, false, entities.User{}, ForbiddenErr
 	}
 
 	return tokenPair, shouldUpdate, user, err

@@ -1,116 +1,30 @@
 package jwt
 
 import (
-	"context"
-	"crypto/rand"
-	"fmt"
-	"github.com/golang-jwt/jwt"
+	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/mongo"
+	"studyum/pkg/jwt/base"
+	"studyum/pkg/jwt/controllers"
+	"studyum/pkg/jwt/repositories"
 	"time"
 )
 
-type JWT[C any] interface {
-	Validate(token string) (Claims[C], bool, bool)
-
-	GeneratePair(claims C) (TokenPair, error)
-	GenerateAccess(claims C) (string, error)
-	GenerateRefresh() (string, error)
-
-	RefreshPair(ctx context.Context, token string) (TokenPair, error)
-	Refresh(ctx context.Context, token string) (string, error)
-
-	SetGetClaimsFunc(fn GetClaimsByRefreshToken[C])
+func NewWithMongo(cronPattern string, expire time.Duration, refreshExpire time.Duration, timeout time.Duration, secret string, sessions *mongo.Collection) controllers.Controller {
+	r := repositories.NewMongo(sessions)
+	return NewWithRepository(cronPattern, expire, refreshExpire, timeout, secret, r)
 }
 
-type GetClaimsByRefreshToken[C any] func(ctx context.Context, refresh string) (C, error)
-
-type controller[C any] struct {
-	validTime time.Duration
-	secret    string
-
-	getClaims GetClaimsByRefreshToken[C]
+func NewWithRedis(cronPattern string, expire time.Duration, refreshExpire time.Duration, timeout time.Duration, secret string, client *redis.Client) controllers.Controller {
+	r := repositories.NewRedis(client)
+	return NewWithRepository(cronPattern, expire, refreshExpire, timeout, secret, r)
 }
 
-func New[C any](validTime time.Duration, secret string) JWT[C] {
-	return &controller[C]{validTime: validTime, secret: secret}
+func NewWithRepository(cronPattern string, expire time.Duration, refreshExpire time.Duration, timeout time.Duration, secret string, repo repositories.Repository) controllers.Controller {
+	c := controllers.NewController(cronPattern, expire, refreshExpire, timeout, secret, repo)
+	return c
 }
 
-func (c *controller[C]) Validate(token string) (Claims[C], bool, bool) {
-	claims := Claims[C]{}
-
-	_, err := jwt.ParseWithClaims(token, &claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(c.secret), nil
-	})
-	if err != nil {
-		return Claims[C]{}, false, false
-	}
-
-	update := time.Unix(claims.ExpiresAt, 0).Before(time.Now().UTC().Add(-time.Minute))
-	return claims, true, update
-}
-
-func (c *controller[C]) GeneratePair(claims C) (TokenPair, error) {
-	access, err := c.GenerateAccess(claims)
-	if err != nil {
-		return TokenPair{}, err
-	}
-
-	refresh, err := c.GenerateRefresh()
-	if err != nil {
-		return TokenPair{}, err
-	}
-
-	return TokenPair{
-		Access:  access,
-		Refresh: refresh,
-	}, nil
-}
-
-func (c *controller[C]) GenerateAccess(claims C) (string, error) {
-	cl := Claims[C]{
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(c.validTime).Unix(),
-		},
-		Claims: claims,
-	}
-	str, err := jwt.NewWithClaims(jwt.SigningMethodHS256, cl).SignedString([]byte(c.secret))
-	return str, err
-}
-
-func (c *controller[C]) GenerateRefresh() (string, error) {
-	bytes := make([]byte, 128)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%x", bytes), nil
-}
-
-func (c *controller[C]) RefreshPair(ctx context.Context, token string) (TokenPair, error) {
-	access, err := c.Refresh(ctx, token)
-	if err != nil {
-		return TokenPair{}, err
-	}
-
-	refresh, err := c.GenerateRefresh()
-	if err != nil {
-		return TokenPair{}, err
-	}
-
-	return TokenPair{
-		Access:  access,
-		Refresh: refresh,
-	}, nil
-}
-
-func (c *controller[C]) Refresh(ctx context.Context, token string) (string, error) {
-	claims, err := c.getClaims(ctx, token)
-	if err != nil {
-		return "", err
-	}
-
-	return c.GenerateAccess(claims)
-}
-
-func (c *controller[C]) SetGetClaimsFunc(fn GetClaimsByRefreshToken[C]) {
-	c.getClaims = fn
+func NewBase[C any](validTime time.Duration, secret string) base.JWT[C] {
+	c := base.NewJWT[C](validTime, secret)
+	return c
 }

@@ -5,7 +5,7 @@ import (
 	"studyum/internal/auth/controllers"
 	"studyum/internal/auth/entities"
 	"studyum/internal/utils"
-	"studyum/pkg/jwt"
+	entities2 "studyum/pkg/jwt/entities"
 )
 
 type Middleware interface {
@@ -13,7 +13,7 @@ type Middleware interface {
 	TryAuth() gin.HandlerFunc
 	MemberAuth(permissions ...string) gin.HandlerFunc
 
-	SetTokenPairCookie(ctx *gin.Context, pair jwt.TokenPair)
+	SetTokenPairCookie(ctx *gin.Context, pair entities2.TokenPair)
 	DeleteTokenPairCookie(ctx *gin.Context)
 
 	GetUser(ctx *gin.Context) entities.User
@@ -27,7 +27,7 @@ func NewMiddleware(controller controllers.Middleware) Middleware {
 	return &middleware{controller: controller}
 }
 
-func (h *middleware) SetTokenPairCookie(ctx *gin.Context, pair jwt.TokenPair) {
+func (h *middleware) SetTokenPairCookie(ctx *gin.Context, pair entities2.TokenPair) {
 	ctx.SetCookie("refresh", pair.Refresh, 60*60*24*30, "/", "", false, true)
 	ctx.SetCookie("access", pair.Access, 60*15, "/", "", false, true)
 }
@@ -37,14 +37,14 @@ func (h *middleware) DeleteTokenPairCookie(ctx *gin.Context) {
 	ctx.SetCookie("access", "", 0, "/", "", false, true)
 }
 
-func (h *middleware) tokenPair(ctx *gin.Context) jwt.TokenPair {
+func (h *middleware) tokenPair(ctx *gin.Context) entities2.TokenPair {
 	refresh := ctx.GetString("refresh") //proceed on oauth2
 	if refresh == "" {
 		refresh, _ = ctx.Cookie("refresh")
 	}
 
 	access, _ := ctx.Cookie("access")
-	return jwt.TokenPair{Access: access, Refresh: refresh}
+	return entities2.TokenPair{Access: access, Refresh: refresh}
 }
 
 func (h *middleware) authViaApiToken(ctx *gin.Context) bool {
@@ -84,13 +84,13 @@ func (h *middleware) Auth() gin.HandlerFunc {
 		ctx.Set("user", user)
 
 		ctx.Next()
-		if ctx.Request.Context().Err() != nil && update {
-			if err = h.controller.Recover(ctx, pair, newPair, ctx.ClientIP(), user.Id); err != nil {
-				_ = ctx.Error(err)
-				ctx.Abort()
-				return
-			}
-		}
+		//if ctx.Request.Context().Err() != nil && update {
+		//	if err = h.controller.Recover(ctx, pair, newPair, ctx.ClientIP(), user.Id); err != nil {
+		//		_ = ctx.Error(err)
+		//		ctx.Abort()
+		//		return
+		//	}
+		//}
 	}
 }
 
@@ -112,13 +112,13 @@ func (h *middleware) TryAuth() gin.HandlerFunc {
 		ctx.Set("user", user)
 
 		ctx.Next()
-		if ctx.Request.Context().Err() != nil && update {
-			if err = h.controller.Recover(ctx, pair, newPair, ctx.ClientIP(), user.Id); err != nil {
-				_ = ctx.Error(err)
-				ctx.Abort()
-				return
-			}
-		}
+		//if ctx.Request.Context().Err() != nil && update {
+		//	if err = h.controller.Recover(ctx, pair, newPair, ctx.ClientIP(), user.Id); err != nil {
+		//		_ = ctx.Error(err)
+		//		ctx.Abort()
+		//		return
+		//	}
+		//}
 	}
 }
 
@@ -142,13 +142,13 @@ func (h *middleware) MemberAuth(permissions ...string) gin.HandlerFunc {
 		ctx.Set("user", user)
 
 		ctx.Next()
-		if ctx.Request.Context().Err() != nil && update {
-			if err = h.controller.Recover(ctx, pair, newPair, ctx.ClientIP(), user.Id); err != nil {
-				_ = ctx.Error(err)
-				ctx.Abort()
-				return
-			}
-		}
+		//if ctx.Request.Context().Err() != nil && update {
+		//	if err = h.controller.Recover(ctx, pair, newPair, ctx.ClientIP(), user.Id); err != nil {
+		//		_ = ctx.Error(err)
+		//		ctx.Abort()
+		//		return
+		//	}
+		//}
 	}
 }
 

@@ -3,7 +3,6 @@ package user
 import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
-	authControllers "studyum/internal/auth/controllers"
 	auth "studyum/internal/auth/handlers"
 	codes "studyum/internal/codes/controllers"
 	parser "studyum/internal/parser/handler"
@@ -12,12 +11,13 @@ import (
 	"studyum/internal/user/handlers/swagger"
 	"studyum/internal/user/repositories"
 	"studyum/pkg/encryption"
+	jwt "studyum/pkg/jwt/controllers"
 )
 
 // @BasePath /api/user
 
 //go:generate swag init --instanceName user -o handlers/swagger -g user.go -ot go,yaml
-func New(core *gin.RouterGroup, auth auth.Middleware, encrypt encryption.Encryption, apps parser.Handler, codesController codes.Controller, sessionsController authControllers.Sessions, db *mongo.Database) handlers.Handler {
+func New(core *gin.RouterGroup, auth auth.Middleware, encrypt encryption.Encryption, apps parser.Handler, codesController codes.Controller, sessionsController jwt.Controller, db *mongo.Database) handlers.Handler {
 	swagger.SwaggerInfouser.BasePath = "/api/user"
 
 	users := db.Collection("Users")

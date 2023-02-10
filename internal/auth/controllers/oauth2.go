@@ -8,27 +8,26 @@ import (
 	"studyum/internal/auth/entities"
 	"studyum/internal/auth/repositories"
 	"studyum/pkg/encryption"
-	"studyum/pkg/jwt"
-	"time"
+	"studyum/pkg/jwt/controllers"
+	entities2 "studyum/pkg/jwt/entities"
 )
 
 type OAuth2 interface {
 	GetServiceURL(ctx context.Context, service string, redirect string) (string, error)
-	ReceiveUser(ctx context.Context, serviceName string, code string) (jwt.TokenPair, error)
+	ReceiveUser(ctx context.Context, serviceName string, code string) (entities2.TokenPair, error)
 
 	DecryptUser(ctx context.Context, user entities.User) entities.User
 }
 
 type oauth2 struct {
-	repository         repositories.OAuth2
-	sessionsRepository repositories.Sessions
+	repository repositories.OAuth2
 
 	encryption encryption.Encryption
-	jwt        jwt.JWT[entities.JWTClaims]
+	jwt        controllers.Controller
 }
 
-func NewOAuth2(repository repositories.OAuth2, sessionsRepository repositories.Sessions, encryption encryption.Encryption, jwt jwt.JWT[entities.JWTClaims]) OAuth2 {
-	return &oauth2{repository: repository, sessionsRepository: sessionsRepository, encryption: encryption, jwt: jwt}
+func NewOAuth2(repository repositories.OAuth2, encryption encryption.Encryption, jwt controllers.Controller) OAuth2 {
+	return &oauth2{repository: repository, encryption: encryption, jwt: jwt}
 }
 
 func (c *oauth2) GetServiceURL(ctx context.Context, serviceName string, redirect string) (string, error) {
@@ -41,27 +40,27 @@ func (c *oauth2) GetServiceURL(ctx context.Context, serviceName string, redirect
 	return service.AuthCodeURL(redirect), nil
 }
 
-func (c *oauth2) ReceiveUser(ctx context.Context, serviceName string, code string) (jwt.TokenPair, error) {
+func (c *oauth2) ReceiveUser(ctx context.Context, serviceName string, code string) (entities2.TokenPair, error) {
 	serviceRaw, err := c.repository.GetService(ctx, serviceName)
 	if err != nil {
-		return jwt.TokenPair{}, err
+		return entities2.TokenPair{}, err
 	}
 	service := serviceRaw.Get()
 
 	token, err := service.Exchange(ctx, code)
 	if err != nil {
-		return jwt.TokenPair{}, err
+		return entities2.TokenPair{}, err
 	}
 
 	callbackUser, err := c.repository.GetCallbackUser(ctx, service.DataUrl+token.AccessToken)
 	if err != nil {
-		return jwt.TokenPair{}, err
+		return entities2.TokenPair{}, err
 	}
 
 	user, err := c.repository.GetUserByEmail(ctx, callbackUser.Email)
 	if err != nil {
 		if !errors.Is(mongo.ErrNoDocuments, err) {
-			return jwt.TokenPair{}, err
+			return entities2.TokenPair{}, err
 		}
 		user = entities.User{
 			Id:            primitive.NewObjectID(),
@@ -75,30 +74,11 @@ func (c *oauth2) ReceiveUser(ctx context.Context, serviceName string, code strin
 
 		c.encryption.Encrypt(&user)
 		if err = c.repository.SignUp(ctx, user); err != nil {
-			return jwt.TokenPair{}, err
+			return entities2.TokenPair{}, err
 		}
 	}
 
-	claims := entities.JWTClaims{
-		ID:          user.Id,
-		Login:       user.Login,
-		Permissions: user.Permissions,
-	}
-	pair, err := c.jwt.GeneratePair(claims)
-	if err != nil {
-		return jwt.TokenPair{}, err
-	}
-
-	session := entities.Session{
-		RefreshToken: pair.Refresh,
-		LastOnline:   time.Now(),
-	}
-
-	if err = c.sessionsRepository.Add(ctx, session, user.Id); err != nil {
-		return jwt.TokenPair{}, err
-	}
-
-	return pair, nil
+	return c.jwt.Create(ctx, "0.0.0.0", user.Id.Hex())
 }
 
 func (c *oauth2) DecryptUser(_ context.Context, user entities.User) entities.User {

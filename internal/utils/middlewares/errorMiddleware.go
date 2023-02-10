@@ -11,6 +11,8 @@ import (
 	controllers2 "studyum/internal/schedule/controllers"
 	"studyum/internal/schedule/controllers/validators"
 	"studyum/pkg/datetime"
+	controllers3 "studyum/pkg/jwt/controllers"
+	"studyum/pkg/jwt/repositories"
 )
 
 func ErrorMiddleware() gin.HandlerFunc {
@@ -50,11 +52,17 @@ func GetHttpCodeByError(err error) int {
 		errors.Is(err, controllers2.NotValidParams),
 		errors.Is(err, validators.ValidationError):
 		code = http.StatusBadRequest
-	case errors.Is(err, j.ErrSignatureInvalid),
+	case
+		errors.Is(err, controllers3.ValidationErr):
+		code = http.StatusUnprocessableEntity
+	case
+		errors.Is(err, j.ErrSignatureInvalid),
 		errors.Is(err, http.ErrNoCookie):
 		code = http.StatusUnauthorized
-	case errors.Is(err, auth.ForbiddenErr),
-		errors.Is(err, controllers.ErrNoPermission):
+	case
+		errors.Is(err, auth.ForbiddenErr),
+		errors.Is(err, controllers.ErrNoPermission),
+		errors.Is(err, repositories.ErrNoDocument):
 		code = http.StatusForbidden
 	default:
 		code = http.StatusInternalServerError

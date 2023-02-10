@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -10,7 +11,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"os"
 	"studyum/internal/auth"
-	authEntries "studyum/internal/auth/entities"
 	"studyum/internal/codes"
 	"studyum/internal/general"
 	"studyum/internal/journal"
@@ -64,23 +64,26 @@ func main() {
 	parserController := pController.NewParserController(parserRepository, encrypt, firebase)
 	parserHandler := pHandler.NewParserHandler(parserController)
 
-	secret = os.Getenv("JWT_SECRET")
-	expTime := time.Minute * 10
-	jwtController := jwt.New[authEntries.JWTClaims](expTime, secret)
-
 	engine := gin.Default()
 	engine.Use(middlewares.ErrorMiddleware())
 	api := engine.Group("/api")
 
 	db := client.Database("Studyum")
 
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     os.Getenv("REDIS_DB_URL"),
+		Password: os.Getenv("REDIS_DB_PASSWORD"),
+	})
+
+	j := jwt.NewWithRedis("", time.Minute*15, time.Hour*24*30, time.Second*30, os.Getenv("JWT_SECRET"), redisClient)
+
 	codesController := codes.New(time.Minute*15, time.Minute, mailer, db)
-	authMiddleware, _, _, sessionsController := auth.New(api.Group("/user"), codesController, encrypt, jwtController, db)
+	authMiddleware, _, _ := auth.New(api.Group("/user"), codesController, encrypt, j, db)
 
 	_, generalController := general.New(api, authMiddleware, db)
 	_ = journal.New(api.Group("/journal"), authMiddleware, parserHandler, encrypt, db)
 	_ = schedule.New(api.Group("/schedule"), authMiddleware, parserHandler, generalController, db)
-	_ = user.New(api.Group("/user"), authMiddleware, encrypt, parserHandler, codesController, sessionsController, db)
+	_ = user.New(api.Group("/user"), authMiddleware, encrypt, parserHandler, codesController, j, db)
 
 	loadSwagger(engine, "general", "auth", "user", "schedule", "journal")
 

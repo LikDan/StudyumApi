@@ -4,19 +4,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 	"studyum/internal/auth/controllers"
-	"studyum/internal/auth/entities"
 	"studyum/internal/auth/handlers"
 	"studyum/internal/auth/handlers/swagger"
 	"studyum/internal/auth/repositories"
 	codes "studyum/internal/codes/controllers"
 	"studyum/pkg/encryption"
-	"studyum/pkg/jwt"
+	controllers2 "studyum/pkg/jwt/controllers"
 )
 
 // @BasePath /api/user
 
 //go:generate swag init --instanceName auth -o handlers/swagger -g auth.go -ot go,yaml
-func New(core *gin.RouterGroup, codes codes.Controller, encryption encryption.Encryption, jwtController jwt.JWT[entities.JWTClaims], db *mongo.Database) (handlers.Middleware, *handlers.Auth, *handlers.OAuth2, controllers.Sessions) {
+func New(core *gin.RouterGroup, codes codes.Controller, encryption encryption.Encryption, jwtController controllers2.Controller, db *mongo.Database) (handlers.Middleware, *handlers.Auth, *handlers.OAuth2) {
 	swagger.SwaggerInfoauth.BasePath = "/api/user"
 
 	usersCollection := db.Collection("Users")
@@ -26,17 +25,15 @@ func New(core *gin.RouterGroup, codes codes.Controller, encryption encryption.En
 
 	authRepository := repositories.NewAuth(usersCollection)
 	codesRepository := repositories.NewCode(codesCollection)
-	sessionsRepository := repositories.NewSessions(usersCollection)
 	middlewareRepository := repositories.NewMiddleware(usersCollection, studyPlacesCollection)
 	oauth2Repository := repositories.NewOAuth2(oauth2Collection, usersCollection)
 
-	sessionsController := controllers.NewSessions(jwtController, sessionsRepository)
-	authController := controllers.NewAuth(sessionsController, codes, encryption, authRepository, codesRepository)
+	authController := controllers.NewAuth(jwtController, codes, encryption, authRepository, codesRepository)
 	middlewareController := controllers.NewMiddleware(jwtController, middlewareRepository)
-	oauth2Controller := controllers.NewOAuth2(oauth2Repository, sessionsRepository, encryption, jwtController)
+	oauth2Controller := controllers.NewOAuth2(oauth2Repository, encryption, jwtController)
 
 	authMiddleware := handlers.NewMiddleware(middlewareController)
 	authHandler := handlers.NewAuth(authMiddleware, authController, core)
 	oauthHandler := handlers.NewOAuth2(authMiddleware, oauth2Controller, core.Group("/oauth2"))
-	return authMiddleware, authHandler, oauthHandler, sessionsController
+	return authMiddleware, authHandler, oauthHandler
 }

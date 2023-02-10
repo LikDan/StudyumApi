@@ -14,11 +14,12 @@ import (
 	"studyum/internal/user/repositories"
 	"studyum/pkg/encryption"
 	"studyum/pkg/hash"
-	"studyum/pkg/jwt"
+	jwt "studyum/pkg/jwt/controllers"
+	entities3 "studyum/pkg/jwt/entities"
 )
 
 type Controller interface {
-	UpdateUser(ctx context.Context, user entities.User, token, ip string, data dto.Edit) (entities.User, jwt.TokenPair, error)
+	UpdateUser(ctx context.Context, user entities.User, token, ip string, data dto.Edit) (entities.User, entities3.TokenPair, error)
 
 	CreateCode(ctx context.Context, user entities.User, data dto.CreateCode) (entities2.SignUpCode, error)
 	PutFirebaseTokenByUserID(ctx context.Context, id primitive.ObjectID, firebaseToken string) error
@@ -36,27 +37,27 @@ type Controller interface {
 }
 
 type controller struct {
-	repository         repositories.Repository
-	codesController    codes.Controller
-	sessionsController controllers.Sessions
+	repository      repositories.Repository
+	codesController codes.Controller
+	jwt             jwt.Controller
 
 	encrypt encryption.Encryption
 	parser  parser.Handler
 }
 
-func NewUserController(repository repositories.Repository, codesController codes.Controller, sessionsController controllers.Sessions, encrypt encryption.Encryption, parser parser.Handler) Controller {
-	return &controller{repository: repository, codesController: codesController, sessionsController: sessionsController, encrypt: encrypt, parser: parser}
+func NewUserController(repository repositories.Repository, codesController codes.Controller, sessionsController jwt.Controller, encrypt encryption.Encryption, parser parser.Handler) Controller {
+	return &controller{repository: repository, codesController: codesController, jwt: sessionsController, encrypt: encrypt, parser: parser}
 }
 
-func (u *controller) UpdateUser(ctx context.Context, user entities.User, token, ip string, data dto.Edit) (entities.User, jwt.TokenPair, error) {
+func (u *controller) UpdateUser(ctx context.Context, user entities.User, token, ip string, data dto.Edit) (entities.User, entities3.TokenPair, error) {
 	if data.Password != "" {
 		if !user.VerifiedEmail {
-			return entities.User{}, jwt.TokenPair{}, errors.Wrap(controllers.ForbiddenErr, "confirm email")
+			return entities.User{}, entities3.TokenPair{}, errors.Wrap(controllers.ForbiddenErr, "confirm email")
 		}
 
 		password, err := hash.Hash(data.Password)
 		if err != nil {
-			return entities.User{}, jwt.TokenPair{}, err
+			return entities.User{}, entities3.TokenPair{}, err
 		}
 
 		user.Password = password
@@ -71,7 +72,7 @@ func (u *controller) UpdateUser(ctx context.Context, user entities.User, token, 
 
 	u.encrypt.Encrypt(&user)
 	if err := u.repository.UpdateUserByID(ctx, user); err != nil {
-		return entities.User{}, jwt.TokenPair{}, err
+		return entities.User{}, entities3.TokenPair{}, err
 	}
 
 	if user.Email != data.Email {
@@ -84,17 +85,17 @@ func (u *controller) UpdateUser(ctx context.Context, user entities.User, token, 
 			Filename: "code.html",
 		}
 		if err := u.codesController.Send(ctx, code); err != nil {
-			return entities.User{}, jwt.TokenPair{}, err
+			return entities.User{}, entities3.TokenPair{}, err
 		}
 	}
 
-	if err := u.sessionsController.RemoveByToken(ctx, token); err != nil {
-		return entities.User{}, jwt.TokenPair{}, err
+	if err := u.jwt.RemoveByToken(ctx, token); err != nil {
+		return entities.User{}, entities3.TokenPair{}, err
 	}
 
-	pair, err := u.sessionsController.New(ctx, user, ip)
+	pair, err := u.jwt.Create(ctx, ip, user.Id.Hex())
 	if err != nil {
-		return entities.User{}, jwt.TokenPair{}, err
+		return entities.User{}, entities3.TokenPair{}, err
 	}
 
 	u.encrypt.Decrypt(&user)
