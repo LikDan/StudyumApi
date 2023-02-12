@@ -56,6 +56,7 @@ func (c *controller) Create(ctx context.Context, ip string, userID string) (enti
 }
 
 func (c *controller) CreateWithTime(ctx context.Context, ip string, userID string, d time.Duration) (entities.TokenPair, error) {
+	//839_299_365_868_340_224
 	id := utils.RandomString(10)
 	pair, err := c.jwt.GeneratePairWithExpireTime(BaseClaims{ID: id}, d)
 	if err != nil {

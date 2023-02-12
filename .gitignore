@@ -1,4 +1,5 @@
 firebase_credentials.json
 
 /.idea/
+/.fleet/
 .env

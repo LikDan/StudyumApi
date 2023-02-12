@@ -9,6 +9,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"net/http"
 	"os"
 	"studyum/internal/auth"
 	"studyum/internal/codes"
@@ -64,9 +65,13 @@ func main() {
 	parserController := pController.NewParserController(parserRepository, encrypt, firebase)
 	parserHandler := pHandler.NewParserHandler(parserController)
 
-	engine := gin.Default()
+	engine := gin.New()
 	engine.Use(middlewares.ErrorMiddleware())
-	api := engine.Group("/api")
+
+	engine.Any("", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, "uptime")
+	})
+	loadSwagger(engine.RouterGroup, "general", "auth", "user", "schedule", "journal")
 
 	db := client.Database("Studyum")
 
@@ -76,8 +81,11 @@ func main() {
 	})
 
 	j := jwt.NewWithRedis("", time.Minute*15, time.Hour*24*30, time.Second*30, os.Getenv("JWT_SECRET"), redisClient)
+    codesController := codes.New(time.Minute*15, time.Minute, mailer, db)
 
-	codesController := codes.New(time.Minute*15, time.Minute, mailer, db)
+	api := engine.Group("/api")
+	api.Use(gin.Logger(), gin.Recovery())
+
 	authMiddleware, _, _ := auth.New(api.Group("/user"), codesController, encrypt, j, db)
 
 	_, generalController := general.New(api, authMiddleware, db)
@@ -85,12 +93,10 @@ func main() {
 	_ = schedule.New(api.Group("/schedule"), authMiddleware, parserHandler, generalController, db)
 	_ = user.New(api.Group("/user"), authMiddleware, encrypt, parserHandler, codesController, j, db)
 
-	loadSwagger(engine, "general", "auth", "user", "schedule", "journal")
-
 	logrus.Fatalf("Error launching server %s", engine.Run().Error())
 }
 
-func loadSwagger(e *gin.Engine, names ...string) {
+func loadSwagger(e gin.RouterGroup, names ...string) {
 	for _, name := range names {
 		s := ginSwagger.WrapHandler(swaggerfiles.Handler, ginSwagger.InstanceName(name))
 		e.GET("/swagger/"+name+"/*any", s)
