@@ -7,12 +7,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/exp/slices"
 	"strconv"
+	apps "studyum/internal/apps/controllers"
 	auth "studyum/internal/auth/entities"
 	"studyum/internal/journal/dtos"
 	"studyum/internal/journal/entities"
 	"studyum/internal/journal/repositories"
-	"studyum/internal/parser/dto"
-	parser "studyum/internal/parser/handler"
 	"studyum/internal/utils"
 	"studyum/pkg/encryption"
 )
@@ -38,13 +37,13 @@ type Controller interface {
 type controller struct {
 	journal Journal
 
-	parser     parser.Handler
+	apps       apps.Controller
 	repository repositories.Repository
 	encrypt    encryption.Encryption
 }
 
-func NewController(parser parser.Handler, journal Journal, repository repositories.Repository, encrypt encryption.Encryption) Controller {
-	return &controller{parser: parser, journal: journal, repository: repository, encrypt: encrypt}
+func NewController(journal Journal, repository repositories.Repository, encrypt encryption.Encryption, apps apps.Controller) Controller {
+	return &controller{journal: journal, apps: apps, repository: repository, encrypt: encrypt}
 }
 
 func (j *controller) GenerateMarksReport(ctx context.Context, config dtos.MarksReport, user auth.User) (*excelize.File, error) {
@@ -186,21 +185,11 @@ func (j *controller) AddMarks(ctx context.Context, addDTO []dtos.AddMarkDTO, use
 			StudyPlaceID: user.StudyPlaceID,
 		}
 
-		id, err := j.repository.AddMark(ctx, mark, user.TypeName)
-		if err != nil {
+		if err := j.repository.AddMark(ctx, mark, user.TypeName); err != nil {
 			return nil, err
 		}
-		mark.ID = id
 
-		parserDTO := dto.MarkDTO{
-			Id:           mark.ID,
-			Mark:         mark.Mark,
-			StudentID:    mark.StudentID,
-			LessonId:     mark.LessonID,
-			StudyPlaceId: mark.StudyPlaceID,
-			ParsedInfo:   mark.ParsedInfo,
-		}
-		go j.parser.AddMark(parserDTO)
+		j.apps.AsyncEvent(user.StudyPlaceID, "AddMark", mark)
 
 		marks[i] = mark
 	}
@@ -214,28 +203,18 @@ func (j *controller) AddMark(ctx context.Context, addDTO dtos.AddMarkDTO, user a
 	}
 
 	mark := entities.Mark{
+		ID:           primitive.NewObjectID(),
 		Mark:         addDTO.Mark,
 		StudentID:    addDTO.StudentID,
 		LessonID:     addDTO.LessonID,
 		StudyPlaceID: user.StudyPlaceID,
 	}
 
-	id, err := j.repository.AddMark(ctx, mark, user.TypeName)
-	if err != nil {
+	if err := j.repository.AddMark(ctx, mark, user.TypeName); err != nil {
 		return entities.CellResponse{}, err
 	}
 
-	mark.ID = id
-
-	parserDTO := dto.MarkDTO{
-		Id:           mark.ID,
-		Mark:         mark.Mark,
-		StudentID:    mark.StudentID,
-		LessonId:     mark.LessonID,
-		StudyPlaceId: mark.StudyPlaceID,
-		ParsedInfo:   mark.ParsedInfo,
-	}
-	go j.parser.AddMark(parserDTO)
+	j.apps.AsyncEvent(user.StudyPlaceID, "AddMark", mark)
 
 	return j.journal.GetUpdateInfo(ctx, mark.StudentID, mark.LessonID)
 }
@@ -256,22 +235,14 @@ func (j *controller) UpdateMark(ctx context.Context, user auth.User, updateDTO d
 		return entities.CellResponse{}, err
 	}
 
-	parserDTO := dto.MarkDTO{
-		Id:           mark.ID,
-		Mark:         mark.Mark,
-		StudentID:    mark.StudentID,
-		LessonId:     mark.LessonID,
-		StudyPlaceId: mark.StudyPlaceID,
-		ParsedInfo:   mark.ParsedInfo,
-	}
-	go j.parser.EditMark(parserDTO)
+	j.apps.AsyncEvent(user.StudyPlaceID, "UpdateMark", mark)
 
 	return j.journal.GetUpdateInfo(ctx, mark.StudentID, mark.LessonID)
 }
 
 func (j *controller) DeleteMark(ctx context.Context, user auth.User, markIdHex string) (entities.CellResponse, error) {
 	markId, err := primitive.ObjectIDFromHex(markIdHex)
-	if err != nil {
+	if err != nil || markId == primitive.NilObjectID {
 		return entities.CellResponse{}, errors.Wrap(NotValidParams, "markId")
 	}
 
@@ -280,11 +251,12 @@ func (j *controller) DeleteMark(ctx context.Context, user auth.User, markIdHex s
 		return entities.CellResponse{}, err
 	}
 
+	j.apps.AsyncEvent(user.StudyPlaceID, "RemoveMark", entities.DeleteMarkID{ID: mark.ID})
+
 	if err = j.repository.DeleteMarkByID(ctx, markId, user.TypeName); err != nil {
 		return entities.CellResponse{}, err
 	}
 
-	go j.parser.DeleteMark(markId, user.StudyPlaceID)
 	return j.journal.GetUpdateInfo(ctx, mark.StudentID, mark.LessonID)
 }
 
@@ -303,12 +275,11 @@ func (j *controller) AddAbsences(ctx context.Context, dto []dtos.AddAbsencesDTO,
 			StudyPlaceID: user.StudyPlaceID,
 		}
 
-		id, err := j.repository.AddAbsence(ctx, absence, user.TypeName)
-		if err != nil {
+		if err := j.repository.AddAbsence(ctx, absence, user.TypeName); err != nil {
 			return nil, err
 		}
-		absence.ID = id
-		//TODO notify parser
+
+		j.apps.AsyncEvent(user.StudyPlaceID, "AddAbsence", absence)
 
 		absences[i] = absence
 	}
@@ -322,16 +293,19 @@ func (j *controller) AddAbsence(ctx context.Context, dto dtos.AddAbsencesDTO, us
 	}
 
 	absence := entities.Absence{
+		ID:           primitive.NewObjectID(),
 		Time:         dto.Time,
 		StudentID:    dto.StudentID,
 		LessonID:     dto.LessonID,
 		StudyPlaceID: user.StudyPlaceID,
 	}
 
-	_, err := j.repository.AddAbsence(ctx, absence, user.TypeName)
+	err := j.repository.AddAbsence(ctx, absence, user.TypeName)
 	if err != nil {
 		return entities.CellResponse{}, err
 	}
+
+	j.apps.AsyncEvent(user.StudyPlaceID, "AddAbsence", absence)
 
 	return j.journal.GetUpdateInfo(ctx, absence.StudentID, absence.LessonID)
 }
@@ -352,6 +326,9 @@ func (j *controller) UpdateAbsence(ctx context.Context, user auth.User, dto dtos
 	if err := j.repository.UpdateAbsence(ctx, absence, user.TypeName); err != nil {
 		return entities.CellResponse{}, err
 	}
+
+	j.apps.AsyncEvent(user.StudyPlaceID, "UpdateAbsence", absence)
+
 	return j.journal.GetUpdateInfo(ctx, absence.StudentID, absence.LessonID)
 }
 
@@ -365,6 +342,8 @@ func (j *controller) DeleteAbsence(ctx context.Context, user auth.User, idHex st
 	if err != nil {
 		return entities.CellResponse{}, err
 	}
+
+	j.apps.AsyncEvent(user.StudyPlaceID, "RemoveAbsence", entities.DeleteAbsenceID{ID: absence.ID})
 
 	if err = j.repository.DeleteAbsenceByID(ctx, id, user.TypeName); err != nil {
 		return entities.CellResponse{}, err

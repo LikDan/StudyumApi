@@ -21,7 +21,7 @@ type Repository interface {
 	AddGeneralLessons(ctx context.Context, lessons []entities.GeneralLesson) error
 
 	AddLessons(ctx context.Context, lessons []entities.Lesson) error
-	AddLesson(ctx context.Context, lesson entities.Lesson) (primitive.ObjectID, error)
+	AddLesson(ctx context.Context, lesson entities.Lesson) error
 	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
 	GetFullLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
 	UpdateLesson(ctx context.Context, lesson entities.Lesson) error
@@ -305,10 +305,9 @@ func (s *repository) AddLessons(ctx context.Context, lessons []entities.Lesson) 
 	return err
 }
 
-func (s *repository) AddLesson(ctx context.Context, lesson entities.Lesson) (primitive.ObjectID, error) {
-	lesson.Id = primitive.NewObjectID()
+func (s *repository) AddLesson(ctx context.Context, lesson entities.Lesson) error {
 	_, err := s.lessons.InsertOne(ctx, lesson)
-	return lesson.Id, err
+	return err
 }
 
 func (s *repository) GetLessonByID(ctx context.Context, id primitive.ObjectID) (lesson entities.Lesson, err error) {

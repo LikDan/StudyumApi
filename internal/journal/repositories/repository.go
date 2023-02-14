@@ -14,7 +14,7 @@ import (
 type Repository interface {
 	GetMarkByID(ctx context.Context, id primitive.ObjectID) (entities.Mark, error)
 	AddMarks(ctx context.Context, marks []entities.Mark, teacher string) error
-	AddMark(ctx context.Context, mark entities.Mark, teacher string) (primitive.ObjectID, error)
+	AddMark(ctx context.Context, mark entities.Mark, teacher string) error
 	UpdateMark(ctx context.Context, mark entities.Mark, teacher string) error
 	DeleteMarkByID(ctx context.Context, id primitive.ObjectID, teacher string) error
 
@@ -31,7 +31,7 @@ type Repository interface {
 
 	GetAbsenceByID(ctx context.Context, id primitive.ObjectID) (entities.Absence, error)
 	AddAbsences(ctx context.Context, absences []entities.Absence, teacher string) error
-	AddAbsence(ctx context.Context, absence entities.Absence, teacher string) (primitive.ObjectID, error)
+	AddAbsence(ctx context.Context, absence entities.Absence, teacher string) error
 	UpdateAbsence(ctx context.Context, absence entities.Absence, teacher string) error
 	DeleteAbsenceByID(ctx context.Context, id primitive.ObjectID, teacher string) error
 
@@ -891,13 +891,9 @@ func (j *repository) AddMarks(ctx context.Context, marks []entities.Mark, teache
 	return nil
 }
 
-func (j *repository) AddMark(ctx context.Context, mark entities.Mark, teacher string) (primitive.ObjectID, error) {
-	mark.ID = primitive.NewObjectID()
-	if _, err := j.lessons.UpdateOne(ctx, bson.M{"_id": mark.LessonID, "teacher": teacher}, hMongo.Push("marks", mark)); err != nil {
-		return primitive.NilObjectID, err
-	}
-
-	return mark.ID, nil
+func (j *repository) AddMark(ctx context.Context, mark entities.Mark, teacher string) error {
+	_, err := j.lessons.UpdateOne(ctx, bson.M{"_id": mark.LessonID, "teacher": teacher}, hMongo.Push("marks", mark))
+	return err
 }
 
 func (j *repository) UpdateMark(ctx context.Context, mark entities.Mark, teacher string) error {
@@ -967,19 +963,9 @@ func (j *repository) AddAbsences(ctx context.Context, absences []entities.Absenc
 	return nil
 }
 
-func (j *repository) AddAbsence(ctx context.Context, absence entities.Absence, teacher string) (primitive.ObjectID, error) {
-	absence.ID = primitive.NewObjectID()
-
-	res, err := j.lessons.UpdateOne(ctx, bson.M{"_id": absence.LessonID, "teacher": teacher, "absences.studentID": bson.M{"$nin": bson.A{absence.StudentID}}}, hMongo.Push("absences", absence))
-	if err != nil {
-		return primitive.NilObjectID, err
-	}
-
-	if res.MatchedCount == 0 {
-		return primitive.NilObjectID, mongo.ErrNoDocuments
-	}
-
-	return absence.ID, nil
+func (j *repository) AddAbsence(ctx context.Context, absence entities.Absence, teacher string) error {
+	_, err := j.lessons.UpdateOne(ctx, bson.M{"_id": absence.LessonID, "teacher": teacher, "absences.studentID": bson.M{"$nin": bson.A{absence.StudentID}}}, hMongo.Push("absences", absence))
+	return err
 }
 
 func (j *repository) UpdateAbsence(ctx context.Context, absence entities.Absence, teacher string) error {

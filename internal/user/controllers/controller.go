@@ -8,7 +8,6 @@ import (
 	"studyum/internal/auth/entities"
 	codes "studyum/internal/codes/controllers"
 	codesEntities "studyum/internal/codes/entities"
-	parser "studyum/internal/parser/handler"
 	"studyum/internal/user/dto"
 	entities2 "studyum/internal/user/entities"
 	"studyum/internal/user/repositories"
@@ -42,11 +41,10 @@ type controller struct {
 	jwt             jwt.Controller
 
 	encrypt encryption.Encryption
-	parser  parser.Handler
 }
 
-func NewUserController(repository repositories.Repository, codesController codes.Controller, sessionsController jwt.Controller, encrypt encryption.Encryption, parser parser.Handler) Controller {
-	return &controller{repository: repository, codesController: codesController, jwt: sessionsController, encrypt: encrypt, parser: parser}
+func NewUserController(repository repositories.Repository, codesController codes.Controller, sessionsController jwt.Controller, encrypt encryption.Encryption) Controller {
+	return &controller{repository: repository, codesController: codesController, jwt: sessionsController, encrypt: encrypt}
 }
 
 func (u *controller) UpdateUser(ctx context.Context, user entities.User, token, ip string, data dto.Edit) (entities.User, entities3.TokenPair, error) {

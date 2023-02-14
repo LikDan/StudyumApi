@@ -3,7 +3,6 @@ package entities
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	general "studyum/internal/general/entities"
-	parser "studyum/internal/parser/entities"
 	"time"
 )
 
@@ -49,22 +48,28 @@ type AvailableOption struct {
 	Editable bool   `json:"editable"`
 }
 
+type DeleteMarkID struct {
+	ID primitive.ObjectID `apps:"trackable,collection=Lessons,type=array,nested=marks"`
+}
+
 type Mark struct {
-	ID           primitive.ObjectID    `json:"id" bson:"_id"`
-	Mark         string                `json:"mark" bson:"mark"`
-	StudentID    primitive.ObjectID    `json:"studentID" bson:"studentID"`
-	LessonID     primitive.ObjectID    `json:"lessonID" bson:"lessonID"`
-	StudyPlaceID primitive.ObjectID    `json:"studyPlaceID" bson:"studyPlaceID"`
-	ParsedInfo   parser.ParsedInfoType `json:"-" bson:"parsedInfo"`
+	ID           primitive.ObjectID `json:"id" bson:"_id" apps:"trackable,collection=Lessons,type=array,nested=marks"`
+	Mark         string             `json:"mark" bson:"mark"`
+	StudentID    primitive.ObjectID `json:"studentID" bson:"studentID"`
+	LessonID     primitive.ObjectID `json:"lessonID" bson:"lessonID"`
+	StudyPlaceID primitive.ObjectID `json:"studyPlaceID" bson:"studyPlaceID"`
+}
+
+type DeleteAbsenceID struct {
+	ID primitive.ObjectID `apps:"trackable,collection=Lessons,type=array,nested=absences"`
 }
 
 type Absence struct {
-	ID           primitive.ObjectID    `json:"id" bson:"_id"`
-	Time         *int                  `json:"time" bson:"time"`
-	StudentID    primitive.ObjectID    `json:"studentID" bson:"studentID"`
-	LessonID     primitive.ObjectID    `json:"lessonID" bson:"lessonID"`
-	StudyPlaceID primitive.ObjectID    `json:"studyPlaceID" bson:"studyPlaceID"`
-	ParsedInfo   parser.ParsedInfoType `json:"-" bson:"parsedInfo"`
+	ID           primitive.ObjectID `json:"id" bson:"_id" apps:"trackable,collection=Lessons,type=array,nested=absences"`
+	Time         *int               `json:"time" bson:"time"`
+	StudentID    primitive.ObjectID `json:"studentID" bson:"studentID"`
+	LessonID     primitive.ObjectID `json:"lessonID" bson:"lessonID"`
+	StudyPlaceID primitive.ObjectID `json:"studyPlaceID" bson:"studyPlaceID"`
 }
 
 type MarkAmount struct {
@@ -72,27 +77,30 @@ type MarkAmount struct {
 	Amount int    `json:"amount" bson:"amount"`
 }
 
+type DeleteLessonID struct {
+	ID primitive.ObjectID `apps:"trackable,collection=Lessons"`
+}
+
 type Lesson struct {
-	Id               primitive.ObjectID    `json:"id" bson:"_id"`
-	StudyPlaceId     primitive.ObjectID    `json:"studyPlaceId" bson:"studyPlaceId"`
-	PrimaryColor     string                `json:"primaryColor" bson:"primaryColor"`
-	JournalCellColor string                `json:"journalCellColor" bson:"journalCellColor"`
-	SecondaryColor   string                `json:"secondaryColor" bson:"secondaryColor"`
-	Type             string                `json:"type" bson:"type"`
-	EndDate          time.Time             `json:"endDate" bson:"endDate"`
-	StartDate        time.Time             `json:"startDate" bson:"startDate"`
-	LessonIndex      int                   `json:"lessonIndex" bson:"lessonIndex"`
-	Marks            []Mark                `json:"marks,omitempty" bson:"marks"`
-	Absences         []Absence             `json:"absences,omitempty" bson:"absences"`
-	Subject          string                `json:"subject" bson:"subject"`
-	Group            string                `json:"group" bson:"group"`
-	Teacher          string                `json:"teacher" bson:"teacher"`
-	Room             string                `json:"room" bson:"room"`
-	Title            string                `json:"title" bson:"title"`
-	Homework         string                `json:"homework" bson:"homework"`
-	Description      string                `json:"description" bson:"description"`
-	IsGeneral        bool                  `json:"isGeneral" bson:"isGeneral"`
-	ParsedInfo       parser.ParsedInfoType `json:"-" bson:"parsedInfo"`
+	Id               primitive.ObjectID `json:"id" bson:"_id" apps:"trackable,collection=Lessons"`
+	StudyPlaceId     primitive.ObjectID `json:"studyPlaceId" bson:"studyPlaceId"`
+	PrimaryColor     string             `json:"primaryColor" bson:"primaryColor"`
+	JournalCellColor string             `json:"journalCellColor" bson:"journalCellColor"`
+	SecondaryColor   string             `json:"secondaryColor" bson:"secondaryColor"`
+	Type             string             `json:"type" bson:"type"`
+	EndDate          time.Time          `json:"endDate" bson:"endDate"`
+	StartDate        time.Time          `json:"startDate" bson:"startDate"`
+	LessonIndex      int                `json:"lessonIndex" bson:"lessonIndex"`
+	Marks            []Mark             `json:"marks,omitempty" bson:"marks"`
+	Absences         []Absence          `json:"absences,omitempty" bson:"absences"`
+	Subject          string             `json:"subject" bson:"subject"`
+	Group            string             `json:"group" bson:"group"`
+	Teacher          string             `json:"teacher" bson:"teacher"`
+	Room             string             `json:"room" bson:"room"`
+	Title            string             `json:"title" bson:"title"`
+	Homework         string             `json:"homework" bson:"homework"`
+	Description      string             `json:"description" bson:"description"`
+	IsGeneral        bool               `json:"isGeneral" bson:"isGeneral"`
 }
 
 type GeneratedTable struct {

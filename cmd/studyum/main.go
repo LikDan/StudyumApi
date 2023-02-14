@@ -11,18 +11,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
 	"os"
+	applications "studyum/internal/apps"
 	"studyum/internal/auth"
 	"studyum/internal/codes"
 	"studyum/internal/general"
 	"studyum/internal/journal"
-	pController "studyum/internal/parser/controller"
-	pHandler "studyum/internal/parser/handler"
-	pRepository "studyum/internal/parser/repository"
 	"studyum/internal/schedule"
 	"studyum/internal/user"
 	"studyum/internal/utils/middlewares"
 	"studyum/pkg/encryption"
-	fb "studyum/pkg/firebase"
 	"studyum/pkg/jwt"
 	"studyum/pkg/mail"
 	"time"
@@ -57,13 +54,9 @@ func main() {
 
 	defer logrus.Warning("Studyum is stopping at", time.Now().Format("2006-01-02 15:04"))
 
-	firebaseCredentials := []byte(os.Getenv("FIREBASE_CREDENTIALS"))
-	firebase := fb.NewFirebase(firebaseCredentials)
+	//firebaseCredentials := []byte(os.Getenv("FIREBASE_CREDENTIALS"))
+	//firebase := fb.NewFirebase(firebaseCredentials)
 	encrypt := encryption.NewEncryption(os.Getenv("ENCRYPTION_SECRET"))
-
-	parserRepository := pRepository.NewParserRepository(client)
-	parserController := pController.NewParserController(parserRepository, encrypt, firebase)
-	parserHandler := pHandler.NewParserHandler(parserController)
 
 	engine := gin.New()
 	engine.Use(middlewares.ErrorMiddleware())
@@ -81,17 +74,19 @@ func main() {
 	})
 
 	j := jwt.NewWithRedis("", time.Minute*15, time.Hour*24*30, time.Second*30, os.Getenv("JWT_SECRET"), redisClient)
-    codesController := codes.New(time.Minute*15, time.Minute, mailer, db)
+	codesController := codes.New(time.Minute*15, time.Minute, mailer, db)
 
 	api := engine.Group("/api")
 	api.Use(gin.Logger(), gin.Recovery())
 
+	apps := applications.New(db)
+
 	authMiddleware, _, _ := auth.New(api.Group("/user"), codesController, encrypt, j, db)
 
 	_, generalController := general.New(api, authMiddleware, db)
-	_ = journal.New(api.Group("/journal"), authMiddleware, parserHandler, encrypt, db)
-	_ = schedule.New(api.Group("/schedule"), authMiddleware, parserHandler, generalController, db)
-	_ = user.New(api.Group("/user"), authMiddleware, encrypt, parserHandler, codesController, j, db)
+	_ = journal.New(api.Group("/journal"), authMiddleware, apps, encrypt, db)
+	_ = schedule.New(api.Group("/schedule"), authMiddleware, apps, generalController, db)
+	_ = user.New(api.Group("/user"), authMiddleware, encrypt, codesController, j, db)
 
 	logrus.Fatalf("Error launching server %s", engine.Run().Error())
 }
