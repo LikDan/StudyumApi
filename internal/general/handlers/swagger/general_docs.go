@@ -15,20 +15,6 @@ const docTemplategeneral = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/request": {
-            "get": {
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Host",
-                        "name": "host",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {}
-            }
-        },
         "/studyPlaces": {
             "get": {
                 "responses": {}
@@ -50,11 +36,6 @@ const docTemplategeneral = `{
                         "required": true
                     }
                 ],
-                "responses": {}
-            }
-        },
-        "/uptime": {
-            "get": {
                 "responses": {}
             }
         }

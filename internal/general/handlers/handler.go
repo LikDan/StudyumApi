@@ -3,7 +3,6 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"io"
 	"net/http"
 	"strconv"
 	auth "studyum/internal/auth/handlers"
@@ -15,9 +14,6 @@ import (
 
 //go:generate swag init --instanceName general -o swagger -g handler.go -ot go,yaml
 type Handler interface {
-	Uptime(ctx *gin.Context)
-	Request(ctx *gin.Context)
-
 	GetStudyPlaces(ctx *gin.Context)
 	GetStudyPlaceByID(ctx *gin.Context)
 	GetSelfStudyPlace(ctx *gin.Context)
@@ -37,31 +33,9 @@ func NewGeneralHandler(middleware auth.Middleware, controller controllers.Contro
 	group.GET("/studyPlaces/:id", h.GetStudyPlaceByID)
 	group.GET("/studyPlaces/self", h.MemberAuth(), h.GetStudyPlaceByID)
 
-	group.GET("/uptime", h.Uptime)
-	group.GET("/request", h.Request)
-
 	swagger.SwaggerInfogeneral.BasePath = "/api"
 
 	return h
-}
-
-// Uptime godoc
-// @Router /uptime [get]
-func (g *handler) Uptime(ctx *gin.Context) {
-	ctx.JSON(200, "hi")
-}
-
-// Request godoc
-// @Param host query string true "Host"
-// @Router /request [get]
-func (g *handler) Request(ctx *gin.Context) {
-	response, err := http.Get("https://" + ctx.Query("host"))
-	if err != nil {
-		ctx.JSON(400, err)
-		return
-	}
-
-	_, _ = io.Copy(ctx.Writer, response.Body)
 }
 
 // GetStudyPlaces godoc
