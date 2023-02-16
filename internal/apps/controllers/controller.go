@@ -30,7 +30,7 @@ func NewController(apps repositories.Apps, data repositories.Data) Controller {
 }
 
 func (c *controller) EventWithContext(ctx context.Context, studyPlaceID primitive.ObjectID, name string, data ...any) {
-	defer c.panicRecovery()
+	defer c.panicRecovery(logrus.Errorf)
 
 	app, err := c.apps.GetByStudyPlaceID(ctx, studyPlaceID)
 	if err != nil {
@@ -64,7 +64,7 @@ func (c *controller) EventWithContext(ctx context.Context, studyPlaceID primitiv
 	}
 
 	go func() {
-		defer c.panicRecovery()
+		defer c.panicRecovery(logrus.Debugf)
 
 		result := method.Func.Call(values)
 		resultData, ok := c.getDataFromReturnValue(result)
@@ -203,9 +203,9 @@ func (c *controller) getTrackable(values []reflect.Value) entities.Trackable {
 	return trackable
 }
 
-func (c *controller) panicRecovery() {
+func (c *controller) panicRecovery(logger func(str string, args ...any)) {
 	if r := recover(); r != nil {
-		logrus.Errorf("Panic recieved: %s", r)
+		logger("Panic recieved: %s", r)
 	}
 }
 
