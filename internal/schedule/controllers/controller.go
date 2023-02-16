@@ -194,6 +194,7 @@ func (s *controller) AddLesson(ctx context.Context, addDTO dto2.AddLessonDTO, us
 		StudyPlaceId:   user.StudyPlaceID,
 		PrimaryColor:   addDTO.PrimaryColor,
 		SecondaryColor: addDTO.SecondaryColor,
+		Type:           addDTO.Type,
 		EndDate:        addDTO.EndDate,
 		StartDate:      addDTO.StartDate,
 		LessonIndex:    addDTO.LessonIndex,
@@ -273,10 +274,14 @@ func (s *controller) DeleteLesson(ctx context.Context, idHex string, user auth.U
 		return errors.Wrap(NotValidParams, "id")
 	}
 
-	s.apps.AsyncEvent(user.StudyPlaceID, "UpdateLesson", entities.DeleteLessonID{ID: id})
-
-	_, err = s.repository.FindAndDeleteLesson(ctx, id, user.StudyPlaceID)
+	lesson, err := s.repository.GetLessonByID(ctx, id)
 	if err != nil {
+		return err
+	}
+
+	s.apps.Event(user.StudyPlaceID, "RemoveLesson", lesson)
+
+	if err = s.repository.DeleteLesson(ctx, id, user.StudyPlaceID); err != nil {
 		return err
 	}
 

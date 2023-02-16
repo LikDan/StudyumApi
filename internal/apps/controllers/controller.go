@@ -10,6 +10,7 @@ import (
 	"strings"
 	"studyum/internal/apps/entities"
 	"studyum/internal/apps/repositories"
+	"studyum/internal/apps/shared"
 )
 
 type Controller interface {
@@ -29,32 +30,15 @@ func NewController(apps repositories.Apps, data repositories.Data) Controller {
 }
 
 func (c *controller) EventWithContext(ctx context.Context, studyPlaceID primitive.ObjectID, name string, data ...any) {
-	defer func() {
-		if r := recover(); r != nil {
-			logrus.Errorf("Panic recieved: %s", recover())
-		}
-	}()
+	defer c.panicRecovery()
 
 	app, err := c.apps.GetByStudyPlaceID(ctx, studyPlaceID)
 	if err != nil {
 		return
 	}
 
-	i, ok := c.findInterface(name)
+	method, ok := c.findMethod(app, name)
 	if !ok {
-		logrus.Warningln("No interface contains function with name " + name)
-		return
-	}
-
-	appType := reflect.TypeOf(app)
-	if !appType.Implements(i) {
-		logrus.Debugln("This app does not implements suitable interface")
-		return
-	}
-
-	method, ok := appType.MethodByName(name)
-	if !ok {
-		logrus.Errorln("No method with name " + name)
 		return
 	}
 
@@ -62,75 +46,34 @@ func (c *controller) EventWithContext(ctx context.Context, studyPlaceID primitiv
 		logrus.Errorf("No enough params. Passed %d, required %d\n", len(data), method.Func.Type().NumIn()-3)
 		return
 	}
-	values := c.toReflect(app, ctx, data)
 
+	values := c.toReflect(app, ctx, data)
 	trackable := c.getTrackable(values[2:])
 
-	var record map[string]any
-	switch trackable.Type {
-	case entities.Field:
-		record, err = c.data.Get(ctx, trackable.Collection, trackable.Property, trackable.Value)
-		if err != nil {
-			logrus.Errorln("Error getting data object: " + err.Error())
-			return
-		}
-	case entities.Array:
-		record, err = c.data.GetNested(ctx, trackable.Collection, trackable.Nested, trackable.Property, trackable.Value)
-		if err != nil {
-			logrus.Errorln("Error getting data object: " + err.Error())
-			return
-		}
-	default:
-		logrus.Errorln("No such trackable type")
+	dataField, ok := c.findDataField(ctx, trackable)
+	if !ok {
 		return
-	}
-
-	dataField := reflect.ValueOf(entities.Data{})
-	if dataMap, ok := record[trackable.DataProperty]; ok {
-		if data, ok := dataMap.(bson.M); ok {
-			dataField = reflect.ValueOf(entities.Data(data))
-		}
 	}
 
 	values = append(values, values[len(values)-1])
 	copy(values[2:], values[2:])
 	values[2] = dataField
 
-	for index := 0; index < method.Func.Type().NumIn(); index++ {
-		if t := method.Func.Type().In(index); !values[index].Type().AssignableTo(t) {
-			logrus.Errorf("Cannot call method with param. Passed %s, required %s\n", values[index].Type().String(), t.String())
-			return
-		}
-	}
-
-	result := method.Func.Call(values)
-	if len(result) == 0 {
+	if !c.checkMethodInput(method, values) {
 		return
 	}
 
-	var resultData entities.Data
-	for _, value := range result {
-		if value.Type().AssignableTo(reflect.TypeOf(entities.Data{})) {
-			resultData = value.Interface().(entities.Data)
-		}
-	}
+	go func() {
+		defer c.panicRecovery()
 
-	if len(resultData) == 0 {
-		return
-	}
-
-	switch trackable.Type {
-	case entities.Field:
-		if err = c.data.Insert(ctx, trackable.Collection, trackable.Property, trackable.Value, trackable.DataProperty, resultData); err != nil {
-			logrus.Errorln("Error getting data object: " + err.Error())
+		result := method.Func.Call(values)
+		resultData, ok := c.getDataFromReturnValue(result)
+		if !ok {
 			return
 		}
-	case entities.Array:
-		if err = c.data.InsertNested(ctx, trackable.Collection, trackable.Nested, trackable.Property, trackable.Value, trackable.DataProperty, resultData); err != nil {
-			logrus.Errorln("Error getting data object: " + err.Error())
-			return
-		}
-	}
+
+		c.insertData(ctx, trackable, resultData)
+	}()
 }
 
 func (c *controller) AsyncEventWithContext(ctx context.Context, studyPlaceID primitive.ObjectID, name string, data ...any) {
@@ -258,4 +201,100 @@ func (c *controller) getTrackable(values []reflect.Value) entities.Trackable {
 
 	trackable.Value = trackable.Field.Interface().(primitive.ObjectID)
 	return trackable
+}
+
+func (c *controller) panicRecovery() {
+	if r := recover(); r != nil {
+		logrus.Errorf("Panic recieved: %s", r)
+	}
+}
+
+func (c *controller) findMethod(app entities.App, name string) (reflect.Method, bool) {
+	i, ok := c.findInterface(name)
+	if !ok {
+		logrus.Warningln("No interface contains function with name " + name)
+		return reflect.Method{}, false
+	}
+
+	appType := reflect.TypeOf(app)
+	if !appType.Implements(i) {
+		logrus.Debugln("This app does not implements suitable interface")
+		return reflect.Method{}, false
+	}
+
+	method, ok := appType.MethodByName(name)
+	if !ok {
+		logrus.Errorln("No method with name " + name)
+		return reflect.Method{}, false
+	}
+
+	return method, true
+}
+
+func (c *controller) findDataField(ctx context.Context, trackable entities.Trackable) (reflect.Value, bool) {
+	var record map[string]any
+	var err error
+	switch trackable.Type {
+	case entities.Field:
+		record, err = c.data.Get(ctx, trackable.Collection, trackable.Property, trackable.Value)
+		if err != nil {
+			logrus.Errorln("Error getting data object: " + err.Error())
+			return reflect.Value{}, false
+		}
+	case entities.Array:
+		record, err = c.data.GetNested(ctx, trackable.Collection, trackable.Nested, trackable.Property, trackable.Value)
+		if err != nil {
+			logrus.Errorln("Error getting data object: " + err.Error())
+			return reflect.Value{}, false
+		}
+	default:
+		logrus.Errorln("No such trackable type")
+		return reflect.Value{}, false
+	}
+
+	dataField := reflect.ValueOf(shared.Data{})
+	if dataMap, ok := record[trackable.DataProperty]; ok {
+		if data, ok := dataMap.(bson.M); ok {
+			dataField = reflect.ValueOf(shared.Data(data))
+		}
+	}
+
+	return dataField, true
+}
+
+func (c *controller) checkMethodInput(method reflect.Method, values []reflect.Value) bool {
+	for index := 0; index < method.Func.Type().NumIn(); index++ {
+		if t := method.Func.Type().In(index); !values[index].Type().AssignableTo(t) {
+			logrus.Errorf("Cannot call method with param. Passed %s, required %s\n", values[index].Type().String(), t.String())
+			return false
+		}
+	}
+
+	return true
+}
+
+func (c *controller) getDataFromReturnValue(result []reflect.Value) (data shared.Data, ok bool) {
+	for _, value := range result {
+		if value.Type().AssignableTo(reflect.TypeOf(shared.Data{})) {
+			data = value.Interface().(shared.Data)
+			ok = true
+		}
+	}
+
+	return
+}
+
+func (c *controller) insertData(ctx context.Context, trackable entities.Trackable, data shared.Data) {
+	switch trackable.Type {
+	case entities.Field:
+		if err := c.data.Insert(ctx, trackable.Collection, trackable.Property, trackable.Value, trackable.DataProperty, data); err != nil {
+			logrus.Errorln("Error getting data object: " + err.Error())
+			return
+		}
+	case entities.Array:
+		if err := c.data.InsertNested(ctx, trackable.Collection, trackable.Nested, trackable.Property, trackable.Value, trackable.DataProperty, data); err != nil {
+			logrus.Errorln("Error getting data object: " + err.Error())
+			return
+		}
+	}
 }

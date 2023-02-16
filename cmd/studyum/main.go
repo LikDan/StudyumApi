@@ -79,7 +79,7 @@ func main() {
 	api := engine.Group("/api")
 	api.Use(gin.Logger(), gin.Recovery())
 
-	apps := applications.New(db)
+	apps := applications.New(db, encrypt)
 
 	authMiddleware, _, _ := auth.New(api.Group("/user"), codesController, encrypt, j, db)
 

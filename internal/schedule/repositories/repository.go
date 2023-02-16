@@ -28,7 +28,7 @@ type Repository interface {
 
 	GetFullLessonsByIDAndDate(ctx context.Context, userID primitive.ObjectID, id primitive.ObjectID) ([]entities.Lesson, error)
 
-	FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId primitive.ObjectID) (entities.Lesson, error)
+	DeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId primitive.ObjectID) error
 	UpdateGeneralSchedule(ctx context.Context, lessons []entities.GeneralLesson) error
 	RemoveLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID) error
 	RemoveGroupLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID, group string) error
@@ -341,10 +341,9 @@ func (s *repository) UpdateLesson(ctx context.Context, lesson entities.Lesson) e
 	return err
 }
 
-func (s *repository) FindAndDeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId primitive.ObjectID) (entities.Lesson, error) {
-	var lesson entities.Lesson
-	err := s.lessons.FindOneAndDelete(ctx, bson.M{"_id": id, "studyPlaceId": studyPlaceId}).Decode(&lesson)
-	return lesson, err
+func (s *repository) DeleteLesson(ctx context.Context, id primitive.ObjectID, studyPlaceId primitive.ObjectID) error {
+	_, err := s.lessons.DeleteMany(ctx, bson.M{"_id": id, "studyPlaceId": studyPlaceId})
+	return err
 }
 
 func (s *repository) UpdateGeneralSchedule(ctx context.Context, lessons []entities.GeneralLesson) error {

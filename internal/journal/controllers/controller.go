@@ -251,7 +251,7 @@ func (j *controller) DeleteMark(ctx context.Context, user auth.User, markIdHex s
 		return entities.CellResponse{}, err
 	}
 
-	j.apps.AsyncEvent(user.StudyPlaceID, "RemoveMark", entities.DeleteMarkID{ID: mark.ID})
+	j.apps.Event(user.StudyPlaceID, "RemoveMark", mark)
 
 	if err = j.repository.DeleteMarkByID(ctx, markId, user.TypeName); err != nil {
 		return entities.CellResponse{}, err

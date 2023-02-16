@@ -31,7 +31,7 @@ func NewGeneralHandler(middleware auth.Middleware, controller controllers.Contro
 
 	group.GET("/studyPlaces", h.GetStudyPlaces)
 	group.GET("/studyPlaces/:id", h.GetStudyPlaceByID)
-	group.GET("/studyPlaces/self", h.MemberAuth(), h.GetStudyPlaceByID)
+	group.GET("/studyPlaces/self", h.MemberAuth(), h.GetSelfStudyPlace)
 
 	swagger.SwaggerInfogeneral.BasePath = "/api"
 

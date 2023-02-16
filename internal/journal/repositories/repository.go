@@ -897,7 +897,14 @@ func (j *repository) AddMark(ctx context.Context, mark entities.Mark, teacher st
 }
 
 func (j *repository) UpdateMark(ctx context.Context, mark entities.Mark, teacher string) error {
-	if _, err := j.lessons.UpdateOne(ctx, bson.M{"_id": mark.LessonID, "teacher": teacher, "marks._id": mark.ID}, bson.M{"$set": bson.M{"marks.$": mark}}); err != nil {
+	if _, err := j.lessons.UpdateOne(ctx,
+		bson.M{"_id": mark.LessonID, "teacher": teacher, "marks._id": mark.ID},
+		bson.M{"$set": bson.M{
+			"marks.$.lessonID":  mark.LessonID,
+			"marks.$.studentID": mark.StudentID,
+			"marks.$.mark":      mark.Mark,
+		}},
+	); err != nil {
 		return err
 	}
 

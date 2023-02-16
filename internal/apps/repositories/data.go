@@ -5,15 +5,15 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"studyum/internal/apps/entities"
+	"studyum/internal/apps/shared"
 )
 
 type Data interface {
 	Get(ctx context.Context, collection, property string, value primitive.ObjectID) (data bson.M, err error)
 	GetNested(ctx context.Context, collection, arr, property string, value primitive.ObjectID) (data bson.M, err error)
 
-	Insert(ctx context.Context, collection, property string, value primitive.ObjectID, dataProperty string, resultData entities.Data) error
-	InsertNested(ctx context.Context, collection, arr, property string, value primitive.ObjectID, dataProperty string, resultData entities.Data) error
+	Insert(ctx context.Context, collection, property string, value primitive.ObjectID, dataProperty string, resultData shared.Data) error
+	InsertNested(ctx context.Context, collection, arr, property string, value primitive.ObjectID, dataProperty string, resultData shared.Data) error
 }
 
 type data struct {
@@ -47,12 +47,12 @@ func (r *data) GetNested(ctx context.Context, collection, arr, property string, 
 	return
 }
 
-func (r *data) Insert(ctx context.Context, collection, property string, value primitive.ObjectID, dataProperty string, resultData entities.Data) error {
+func (r *data) Insert(ctx context.Context, collection, property string, value primitive.ObjectID, dataProperty string, resultData shared.Data) error {
 	_, err := r.db.Collection(collection).UpdateOne(ctx, bson.M{property: value}, bson.M{"$set": bson.M{dataProperty: resultData}})
 	return err
 }
 
-func (r *data) InsertNested(ctx context.Context, collection, arr, property string, value primitive.ObjectID, dataProperty string, resultData entities.Data) error {
+func (r *data) InsertNested(ctx context.Context, collection, arr, property string, value primitive.ObjectID, dataProperty string, resultData shared.Data) error {
 	_, err := r.db.Collection(collection).UpdateOne(ctx, bson.M{arr + "." + property: value}, bson.M{"$set": bson.M{arr + ".$." + dataProperty: resultData}})
 	return err
 }
