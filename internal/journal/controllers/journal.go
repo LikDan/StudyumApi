@@ -9,6 +9,7 @@ import (
 	general "studyum/internal/general/entities"
 	"studyum/internal/journal/entities"
 	"studyum/internal/journal/repositories"
+	"studyum/internal/utils"
 	"studyum/pkg/encryption"
 	"time"
 )
@@ -294,13 +295,39 @@ func (c *journal) BuildAvailableOptions(ctx context.Context, user auth.User) ([]
 		}}, nil
 	}
 
-	options, err := c.repository.GetAvailableOptions(ctx, user.TypeName, slices.Contains(user.Permissions, "editJournal"))
+	var options []entities.AvailableOption
+	appendOptions := func(opts []entities.AvailableOption) {
+		for _, opt := range opts {
+			found := false
+			for i, option := range options {
+				if option.Group == opt.Group && option.Subject == opt.Subject && option.Teacher == opt.Teacher {
+					options[i].Editable = option.Editable || opt.Editable
+					found = true
+				}
+			}
+
+			if !found {
+				options = append(options, opt)
+			}
+		}
+	}
+
+	teacherOptions, err := c.repository.GetAvailableOptions(ctx, user.StudyPlaceID, user.TypeName, slices.Contains(user.Permissions, "editJournal"))
 	if err != nil {
 		return nil, err
 	}
 
-	if tuitionOptions, err := c.repository.GetAvailableTuitionOptions(ctx, user.TuitionGroup, false); err == nil {
-		options = append(options, tuitionOptions...)
+	appendOptions(teacherOptions)
+
+	if tuitionOptions, err := c.repository.GetAvailableTuitionOptions(ctx, user.StudyPlaceID, user.TuitionGroup, false); err == nil {
+		appendOptions(tuitionOptions)
+	}
+
+	if utils.HasPermission(user, "viewJournals") {
+		adminOptions, err := c.repository.GetAllAvailableOptions(ctx, user.StudyPlaceID, false)
+		if err == nil {
+			appendOptions(adminOptions)
+		}
 	}
 
 	return options, nil

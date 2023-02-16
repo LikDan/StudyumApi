@@ -18,8 +18,9 @@ type Repository interface {
 	UpdateMark(ctx context.Context, mark entities.Mark, teacher string) error
 	DeleteMarkByID(ctx context.Context, id primitive.ObjectID, teacher string) error
 
-	GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]entities.AvailableOption, error)
-	GetAvailableTuitionOptions(ctx context.Context, name string, editable bool) ([]entities.AvailableOption, error)
+	GetAllAvailableOptions(ctx context.Context, id primitive.ObjectID, editable bool) ([]entities.AvailableOption, error)
+	GetAvailableOptions(ctx context.Context, id primitive.ObjectID, teacher string, editable bool) ([]entities.AvailableOption, error)
+	GetAvailableTuitionOptions(ctx context.Context, id primitive.ObjectID, name string, editable bool) ([]entities.AvailableOption, error)
 
 	GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId primitive.ObjectID) (entities.Journal, error)
 	GetJournal(ctx context.Context, option entities.AvailableOption, studyPlaceId primitive.ObjectID) (entities.Journal, error)
@@ -404,9 +405,9 @@ func (j *repository) GenerateAbsencesReport(ctx context.Context, group string, f
 	return table, nil
 }
 
-func (j *repository) GetAvailableOptions(ctx context.Context, teacher string, editable bool) ([]entities.AvailableOption, error) {
+func (j *repository) getAvailableOptions(ctx context.Context, matcher bson.M, editable bool) ([]entities.AvailableOption, error) {
 	aggregate, err := j.lessons.Aggregate(ctx, bson.A{
-		bson.M{"$match": bson.M{"teacher": teacher}},
+		bson.M{"$match": matcher},
 		bson.M{"$group": bson.M{
 			"_id": bson.M{
 				"teacher": "$teacher",
@@ -475,32 +476,16 @@ func (j *repository) GetAvailableOptions(ctx context.Context, teacher string, ed
 	return options, nil
 }
 
-func (j *repository) GetAvailableTuitionOptions(ctx context.Context, group string, editable bool) ([]entities.AvailableOption, error) {
-	aggregate, err := j.lessons.Aggregate(ctx, bson.A{
-		bson.M{"$match": bson.M{"group": group}},
-		bson.M{"$group": bson.M{
-			"_id": bson.M{
-				"teacher": "$teacher",
-				"subject": "$subject",
-				"group":   "$group",
-			},
-			"teacher": bson.M{"$first": "$teacher"},
-			"subject": bson.M{"$first": "$subject"},
-			"group":   bson.M{"$first": "$group"}},
-		},
-		bson.M{"$addFields": bson.M{"editable": editable}},
-		bson.M{"$sort": bson.M{"group": 1, "subject": 1, "teacher": 1}},
-	})
-	if err != nil {
-		return nil, err
-	}
+func (j *repository) GetAllAvailableOptions(ctx context.Context, id primitive.ObjectID, editable bool) ([]entities.AvailableOption, error) {
+	return j.getAvailableOptions(ctx, bson.M{"studyPlaceId": id}, editable)
+}
 
-	var options []entities.AvailableOption
-	if err = aggregate.All(ctx, &options); err != nil {
-		return nil, err
-	}
+func (j *repository) GetAvailableOptions(ctx context.Context, id primitive.ObjectID, teacher string, editable bool) ([]entities.AvailableOption, error) {
+	return j.getAvailableOptions(ctx, bson.M{"studyPlaceId": id, "teacher": teacher}, editable)
+}
 
-	return options, nil
+func (j *repository) GetAvailableTuitionOptions(ctx context.Context, id primitive.ObjectID, group string, editable bool) ([]entities.AvailableOption, error) {
+	return j.getAvailableOptions(ctx, bson.M{"studyPlaceId": id, "group": group}, editable)
 }
 
 func (j *repository) GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"github.com/gin-gonic/gin"
+	auth "studyum/internal/auth/entities"
 )
 
 func GetViaCtx[G any](ctx *gin.Context, name string) G {
@@ -18,4 +19,14 @@ func GetViaCtx[G any](ctx *gin.Context, name string) G {
 	}
 
 	return g
+}
+
+func HasPermission(user auth.User, permission string) bool {
+	for _, permission_ := range user.Permissions {
+		if permission_ == permission || permission_ == "admin" {
+			return true
+		}
+	}
+
+	return false
 }
