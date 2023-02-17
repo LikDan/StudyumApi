@@ -158,6 +158,8 @@ func (c *auth) SignUpStage1(ctx context.Context, user entities.User, data dto.Si
 }
 
 func (c *auth) SignUpStage1ViaCode(ctx context.Context, user entities.User, code string) (entities.User, error) {
+	appData, err := c.codeRepository.GetAppData(ctx, code)
+
 	data, err := c.codeRepository.GetUserByCodeAndDelete(ctx, code)
 	if err != nil {
 		return entities.User{}, err
@@ -173,6 +175,8 @@ func (c *auth) SignUpStage1ViaCode(ctx context.Context, user entities.User, code
 	if err = c.repository.UpdateUser(ctx, user); err != nil {
 		return entities.User{}, err
 	}
+
+	_ = c.repository.AddAppData(ctx, user.Id, appData)
 
 	c.encryption.Decrypt(&user)
 	return user, nil
