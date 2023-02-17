@@ -80,9 +80,7 @@ func (c *controller) UpdateLesson(ctx context.Context, data appShared.Data, sLes
 	lesson.ID = lessonID.(string)
 
 	token := c.auth.Auth(ctx)
-	if _, err = c.repository.AddLesson(ctx, token, lesson); err != nil {
-		return nil
-	}
+	_, _ = c.repository.UpdateLesson(ctx, token, lesson)
 
 	return data
 }

@@ -13,6 +13,8 @@ type Auth interface {
 	AddUser(ctx context.Context, user entities.User) error
 	UpdateUser(ctx context.Context, user entities.User) error
 	VerifyEmail(ctx context.Context, userID primitive.ObjectID) error
+
+	AddAppData(ctx context.Context, userID primitive.ObjectID, data map[string]any) error
 }
 
 type auth struct {
@@ -40,5 +42,10 @@ func (r *auth) UpdateUser(ctx context.Context, user entities.User) error {
 
 func (r *auth) VerifyEmail(ctx context.Context, userID primitive.ObjectID) error {
 	_, err := r.users.UpdateByID(ctx, userID, bson.M{"$set": bson.M{"verifiedEmail": true}})
+	return err
+}
+
+func (r *auth) AddAppData(ctx context.Context, userID primitive.ObjectID, data map[string]any) error {
+	_, err := r.users.UpdateByID(ctx, userID, bson.M{"$set": bson.M{"appData": data}})
 	return err
 }

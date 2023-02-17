@@ -84,7 +84,10 @@ func (c *auth) generateCode(user entities.User) codesEntities.Code {
 
 func (c *auth) SignUp(ctx context.Context, ip string, data dto.SignUp) (entities.User, entities2.TokenPair, error) {
 	var user entities.User
+	var appData map[string]any
 	if len(data.Password) < 8 || len(data.Email) < 5 {
+		appData, _ = c.codeRepository.GetAppData(ctx, data.Code)
+
 		code, err := c.codeRepository.GetUserByCodeAndDelete(ctx, data.Code)
 		if err != nil {
 			return entities.User{}, entities2.TokenPair{}, err
@@ -126,6 +129,8 @@ func (c *auth) SignUp(ctx context.Context, ip string, data dto.SignUp) (entities
 		if err := c.codes.Send(ctx, code); err != nil {
 			return entities.User{}, entities2.TokenPair{}, err
 		}
+	} else {
+		_ = c.repository.AddAppData(ctx, user.Id, appData)
 	}
 
 	pair, err := c.sessions.Create(ctx, ip, user.Id.Hex())
