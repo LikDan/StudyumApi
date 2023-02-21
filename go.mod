@@ -18,7 +18,7 @@ require (
 	github.com/xuri/excelize/v2 v2.6.1
 	go.mongodb.org/mongo-driver v1.8.1
 	golang.org/x/exp v0.0.0-20220827204233-334a2380cb91
-	golang.org/x/net v0.5.0
+	golang.org/x/net v0.7.0
 	google.golang.org/api v0.40.0
 )
 
@@ -50,7 +50,7 @@ require (
 	github.com/xuri/efp v0.0.0-20220603152613-6918739fd470 // indirect
 	github.com/xuri/nfp v0.0.0-20220409054826-5e722a1d9e22 // indirect
 	golang.org/x/mod v0.7.0 // indirect
-	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
@@ -78,7 +78,7 @@ require (
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect
 	golang.org/x/oauth2 v0.0.0-20210218202405-ba52d332ba99
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/text v0.6.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	golang.org/x/tools v0.5.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20210222152913-aa3ee6e6a81c // indirect
