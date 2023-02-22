@@ -174,6 +174,7 @@ func (s *controller) AddLessons(ctx context.Context, user auth.User, lessonsDTO 
 			continue
 		}
 
+		s.apps.AsyncEvent(user.StudyPlaceID, "AddLesson", lesson)
 		lessons = append(lessons, lesson)
 	}
 

@@ -158,7 +158,7 @@ func (c *auth) SignUpStage1(ctx context.Context, user entities.User, data dto.Si
 }
 
 func (c *auth) SignUpStage1ViaCode(ctx context.Context, user entities.User, code string) (entities.User, error) {
-	appData, err := c.codeRepository.GetAppData(ctx, code)
+	appData, _ := c.codeRepository.GetAppData(ctx, code)
 
 	data, err := c.codeRepository.GetUserByCodeAndDelete(ctx, code)
 	if err != nil {
