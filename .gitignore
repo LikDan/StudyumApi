@@ -3,3 +3,5 @@ firebase_credentials.json
 /.idea/
 /.fleet/
 .env
+/db/data/
+/db/backup/

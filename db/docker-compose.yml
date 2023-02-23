@@ -1,0 +1,29 @@
+version: '3.1'
+
+services:
+  mongo:
+    image: mongo
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "32:27017"
+    volumes:
+      - ./backup/storage/main:/backups:r
+      - ./data:/etc/mongo:rw
+
+  backup:
+    image: stefanprodan/mgob
+    restart: always
+    ports:
+      - "322:8090"
+    volumes:
+      - ./backup/config:/config:r
+      - ./backup/storage:/storage:rw
+      - ./backup/tmp:/tmp:rw
+      - ./backup/data:/data:rw
+
+# to restore:
+# ----------------------------
+# docker compose exec mongo sh
+# mongorestore --username <username> --password <password> --gzip --archive=/backups/<dump> --drop
