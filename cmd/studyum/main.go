@@ -124,7 +124,7 @@ func redirectFunc() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		secureMiddleware := secure.New(secure.Options{
 			SSLRedirect: true,
-			SSLHost:     "localhost",
+			SSLHost:     "api.studyum.net",
 		})
 		if err := secureMiddleware.Process(ctx.Writer, ctx.Request); err != nil {
 			return
