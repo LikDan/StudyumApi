@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
@@ -59,7 +60,7 @@ func main() {
 	encrypt := encryption.NewEncryption(os.Getenv("ENCRYPTION_SECRET"))
 
 	engine := gin.New()
-	engine.Use(middlewares.ErrorMiddleware())
+	engine.Use(middlewares.ErrorMiddleware(), cors.Default())
 
 	engine.Any("", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, "uptime")

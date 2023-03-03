@@ -6,6 +6,7 @@ go 1.18
 require (
 	firebase.google.com/go/v4 v4.7.0
 	github.com/PuerkitoBio/goquery v1.8.0
+	github.com/gin-contrib/cors v1.4.0
 	github.com/go-playground/assert/v2 v2.2.0
 	github.com/go-playground/validator/v10 v10.11.2
 	github.com/golang-jwt/jwt v3.2.2+incompatible
