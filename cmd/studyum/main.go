@@ -26,7 +26,6 @@ import (
 	"time"
 )
 
-//go:generate go generate studyum/internal/auth
 func main() {
 	time.Local = time.FixedZone("GMT", 3*3600)
 
