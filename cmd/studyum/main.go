@@ -65,6 +65,7 @@ func main() {
 		ctx.JSON(http.StatusOK, "uptime")
 	})
 	loadSwagger(engine.RouterGroup, "general", "auth", "user", "schedule", "journal")
+	setupSSL(engine.RouterGroup)
 
 	db := client.Database("Studyum")
 
@@ -96,4 +97,10 @@ func loadSwagger(e gin.RouterGroup, names ...string) {
 		s := ginSwagger.WrapHandler(swaggerfiles.Handler, ginSwagger.InstanceName(name))
 		e.GET("/swagger/"+name+"/*any", s)
 	}
+}
+
+func setupSSL(e gin.RouterGroup) {
+	e.GET(os.Getenv("SSL_DOMAIN_CONFIRMATION_URL"), func(ctx *gin.Context) {
+		ctx.String(http.StatusOK, os.Getenv("SSL_DOMAIN_CONFIRMATION_TEXT"))
+	})
 }
