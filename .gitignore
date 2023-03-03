@@ -5,3 +5,5 @@ firebase_credentials.json
 .env
 /db/data/
 /db/backup/
+
+ssl

@@ -19,6 +19,8 @@ services:
     ports:
       - "80:80"
       - "443:433"
+    volumes:
+      - ./ssl:/ssl:r
     networks:
       - main
 

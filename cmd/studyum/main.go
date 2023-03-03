@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"github.com/unrolled/secure"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"net/http"
@@ -89,7 +90,21 @@ func main() {
 	_ = schedule.New(api.Group("/schedule"), authMiddleware, apps, generalController, db)
 	_ = user.New(api.Group("/user"), authMiddleware, encrypt, codesController, j, db)
 
-	logrus.Fatalf("Error launching server %s", engine.Run().Error())
+	if gin.Mode() == gin.DebugMode {
+		logrus.Fatalf("Error launching server %s", engine.Run().Error())
+		return
+	}
+
+	redirect := gin.New()
+	redirect.Use(redirectFunc())
+
+	go func() {
+		logrus.Fatalf("Error launching redirect server %s", redirect.Run().Error())
+	}()
+
+	cert := "ssl/api_studyum_net.crt"
+	key := "ssl/api_studyum_net.key"
+	logrus.Fatalf("Error launching server %s", engine.RunTLS(":443", cert, key).Error())
 }
 
 func loadSwagger(e gin.RouterGroup, names ...string) {
@@ -103,4 +118,18 @@ func setupSSL(e gin.RouterGroup) {
 	e.GET(os.Getenv("SSL_DOMAIN_CONFIRMATION_URL"), func(ctx *gin.Context) {
 		ctx.String(http.StatusOK, os.Getenv("SSL_DOMAIN_CONFIRMATION_TEXT"))
 	})
+}
+
+func redirectFunc() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		secureMiddleware := secure.New(secure.Options{
+			SSLRedirect: true,
+			SSLHost:     "localhost",
+		})
+		if err := secureMiddleware.Process(ctx.Writer, ctx.Request); err != nil {
+			return
+		}
+
+		ctx.Next()
+	}
 }

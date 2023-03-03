@@ -15,6 +15,7 @@ require (
 	github.com/swaggo/files v1.0.0
 	github.com/swaggo/gin-swagger v1.5.3
 	github.com/swaggo/swag v1.8.10
+	github.com/unrolled/secure v1.13.0
 	github.com/xuri/excelize/v2 v2.6.1
 	go.mongodb.org/mongo-driver v1.8.1
 	golang.org/x/exp v0.0.0-20220827204233-334a2380cb91
