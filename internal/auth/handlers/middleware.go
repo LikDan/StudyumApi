@@ -28,13 +28,13 @@ func NewMiddleware(controller controllers.Middleware) Middleware {
 }
 
 func (h *middleware) SetTokenPairCookie(ctx *gin.Context, pair entities2.TokenPair) {
-	ctx.SetCookie("refresh", pair.Refresh, 60*60*24*30, "/", "", false, true)
-	ctx.SetCookie("access", pair.Access, 60*15, "/", "", false, true)
+	ctx.SetCookie("refresh", pair.Refresh, 60*60*24*30, "/", "", true, true)
+	ctx.SetCookie("access", pair.Access, 60*15, "/", "", true, true)
 }
 
 func (h *middleware) DeleteTokenPairCookie(ctx *gin.Context) {
-	ctx.SetCookie("refresh", "", 0, "/", "", false, true)
-	ctx.SetCookie("access", "", 0, "/", "", false, true)
+	ctx.SetCookie("refresh", "", 0, "/", "", true, true)
+	ctx.SetCookie("access", "", 0, "/", "", true, true)
 }
 
 func (h *middleware) tokenPair(ctx *gin.Context) entities2.TokenPair {

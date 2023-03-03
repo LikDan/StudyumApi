@@ -60,7 +60,11 @@ func main() {
 	encrypt := encryption.NewEncryption(os.Getenv("ENCRYPTION_SECRET"))
 
 	engine := gin.New()
-	engine.Use(middlewares.ErrorMiddleware(), cors.Default())
+	config := cors.DefaultConfig()
+	config.AddAllowHeaders("Access-Control-Allow-Origin", "Access-Control-Allow-Headers")
+	config.AllowAllOrigins = true
+	config.AllowCredentials = true
+	engine.Use(middlewares.ErrorMiddleware(), cors.New(config))
 
 	engine.Any("", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, "uptime")
@@ -90,10 +94,10 @@ func main() {
 	_ = schedule.New(api.Group("/schedule"), authMiddleware, apps, generalController, db)
 	_ = user.New(api.Group("/user"), authMiddleware, encrypt, codesController, j, db)
 
-	if gin.Mode() == gin.DebugMode {
-		logrus.Fatalf("Error launching server %s", engine.Run().Error())
-		return
-	}
+	//if gin.Mode() == gin.DebugMode {
+	//	logrus.Fatalf("Error launching server %s", engine.Run().Error())
+	//	return
+	//}
 
 	redirect := gin.New()
 	redirect.Use(redirectFunc())
