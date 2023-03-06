@@ -94,10 +94,10 @@ func main() {
 	_ = schedule.New(api.Group("/schedule"), authMiddleware, apps, generalController, db)
 	_ = user.New(api.Group("/user"), authMiddleware, encrypt, codesController, j, db)
 
-	//if gin.Mode() == gin.DebugMode {
-	//	logrus.Fatalf("Error launching server %s", engine.Run().Error())
-	//	return
-	//}
+	if gin.Mode() == gin.DebugMode {
+		logrus.Fatalf("Error launching server %s", engine.Run().Error())
+		return
+	}
 
 	redirect := gin.New()
 	redirect.Use(redirectFunc())

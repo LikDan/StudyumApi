@@ -11,7 +11,6 @@ import (
 )
 
 var (
-	BadClaimsErr = errors.New("bad claims")
 	ForbiddenErr = errors.New("forbidden")
 )
 

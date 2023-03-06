@@ -45,17 +45,14 @@ func GetHttpCodeByError(err error) int {
 		errors.Is(err, mongo.ErrEmptySlice),
 		errors.Is(err, mongo.ErrNilCursor),
 		errors.Is(err, auth.ValidationError),
-		errors.Is(err, auth.BadClaimsErr),
 		errors.Is(err, auth.ErrExpired),
 		errors.Is(err, datetime.DurationError),
 		errors.Is(err, controllers.NotValidParams),
 		errors.Is(err, controllers2.NotValidParams),
 		errors.Is(err, validators.ValidationError):
-		code = http.StatusBadRequest
-	case
-		errors.Is(err, controllers3.ValidationErr):
 		code = http.StatusUnprocessableEntity
 	case
+		errors.Is(err, controllers3.ValidationErr),
 		errors.Is(err, j.ErrSignatureInvalid),
 		errors.Is(err, http.ErrNoCookie):
 		code = http.StatusUnauthorized
