@@ -8,14 +8,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	general "studyum/internal/general/entities"
 	"studyum/internal/schedule/entities"
-	"studyum/pkg/datetime"
 	"studyum/pkg/hMongo"
 	"studyum/pkg/slicetools"
 	"time"
 )
 
 type Repository interface {
-	GetSchedule(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string, typeName string, general bool, asPreview bool) (entities.Schedule, error)
+	GetSchedule(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string, typeName string, startDate, endDate time.Time, general bool, asPreview bool) (entities.Schedule, error)
 	GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string) []string
 
 	AddGeneralLessons(ctx context.Context, lessons []entities.GeneralLesson) error
@@ -56,28 +55,21 @@ func (s *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectI
 	return
 }
 
-func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeName string, isGeneral bool, asPreview bool) (entities.Schedule, error) {
+func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeName string, startDate, endDate time.Time, isGeneral bool, asPreview bool) (entities.Schedule, error) {
 	filter := bson.M{"_id": studyPlaceID}
 	if asPreview {
 		filter["restricted"] = false
 	}
 
-	startWeekDate := datetime.Date().AddDate(0, 0, 1-int(time.Now().Weekday()))
 	cursor, err := s.studyPlaces.Aggregate(ctx, bson.A{
 		bson.M{"$match": filter},
 		bson.M{
 			"$addFields": bson.M{
 				"env": bson.M{
 					"studyPlaceID": studyPlaceID,
-					"startDate":    startWeekDate,
-					"endDate": bson.M{
-						"$dateAdd": bson.M{
-							"startDate": startWeekDate,
-							"unit":      "week",
-							"amount":    "$weeksCount",
-						},
-					},
-					"weeksAmount": "$weeksCount",
+					"startDate":    startDate,
+					"endDate":      endDate,
+					"weeksAmount":  "$weeksCount",
 				},
 			},
 		},
@@ -230,7 +222,7 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 					"studyPlace":    "$$ROOT",
 					"type":          type_,
 					"typeName":      typeName,
-					"startWeekDate": startWeekDate,
+					"startWeekDate": startDate,
 					"date":          time.Now(),
 				},
 				"lessons": "$lessons",
@@ -265,7 +257,7 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 				Type:          type_,
 				TypeName:      typeName,
 				StudyPlace:    studyPlace,
-				StartWeekDate: startWeekDate,
+				StartWeekDate: startDate,
 				Date:          time.Now(),
 			},
 		}, nil

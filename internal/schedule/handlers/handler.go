@@ -73,11 +73,15 @@ func (s *handler) GetSchedule(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
 	studyPlaceID := ctx.Query("studyPlaceID")
+	startDateStr := ctx.Query("startDate")
+	startDate, _ := time.Parse(time.RFC3339, startDateStr)
+	endDateStr := ctx.Query("endDate")
+	endDate, _ := time.Parse(time.RFC3339, endDateStr)
 
 	type_ := ctx.Param("type")
 	typeName := ctx.Param("name")
 
-	schedule, err := s.controller.GetSchedule(ctx, studyPlaceID, type_, typeName, user)
+	schedule, err := s.controller.GetSchedule(ctx, user, studyPlaceID, type_, typeName, startDate, endDate)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
@@ -91,7 +95,12 @@ func (s *handler) GetSchedule(ctx *gin.Context) {
 func (s *handler) GetUserSchedule(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
-	schedule, err := s.controller.GetUserSchedule(ctx, user)
+	startDateStr := ctx.Query("startDate")
+	startDate, err := time.Parse(time.RFC3339, startDateStr)
+	endDateStr := ctx.Query("endDate")
+	endDate, _ := time.Parse(time.RFC3339, endDateStr)
+
+	schedule, err := s.controller.GetUserSchedule(ctx, user, startDate, endDate)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
@@ -112,7 +121,12 @@ func (s *handler) GetGeneralSchedule(ctx *gin.Context) {
 	type_ := ctx.Param("type")
 	typeName := ctx.Param("name")
 
-	schedule, err := s.controller.GetGeneralSchedule(ctx, studyPlaceID, type_, typeName, user)
+	startDateStr := ctx.Query("startDate")
+	startDate, _ := time.Parse(time.RFC3339, startDateStr)
+	endDateStr := ctx.Query("endDate")
+	endDate, _ := time.Parse(time.RFC3339, endDateStr)
+
+	schedule, err := s.controller.GetGeneralSchedule(ctx, user, studyPlaceID, type_, typeName, startDate, endDate)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
@@ -126,7 +140,12 @@ func (s *handler) GetGeneralSchedule(ctx *gin.Context) {
 func (s *handler) GetGeneralUserSchedule(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
-	schedule, err := s.controller.GetGeneralUserSchedule(ctx, user)
+	startDateStr := ctx.Query("startDate")
+	startDate, _ := time.Parse(time.RFC3339, startDateStr)
+	endDateStr := ctx.Query("endDate")
+	endDate, _ := time.Parse(time.RFC3339, endDateStr)
+
+	schedule, err := s.controller.GetGeneralUserSchedule(ctx, user, startDate, endDate)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
