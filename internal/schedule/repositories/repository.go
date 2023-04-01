@@ -107,6 +107,11 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 							"isGeneral": false,
 						},
 					},
+					bson.M{
+						"$sort": bson.M{
+							"startDate": 1,
+						},
+					},
 				},
 				"as": "lessons",
 			},
