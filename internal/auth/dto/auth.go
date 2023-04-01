@@ -3,28 +3,28 @@ package dto
 import "go.mongodb.org/mongo-driver/bson/primitive"
 
 type Login struct {
-	Login    string `json:"login" binding:"excludesall= ,required"`
+	Login    string `json:"login" binding:"req"`
 	Password string `json:"password" binding:"min=8"`
 }
 
 type SignUp struct {
-	Login    string `json:"login" binding:"excludesall= ,required"`
+	Login    string `json:"login" binding:"req"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
 	Code     string `json:"code"`
 }
 
 type SignUpWithCode struct {
-	Code string `json:"code" binding:"excludesall= ,required"`
+	Code string `json:"code" binding:"req"`
 }
 
 type VerificationCode struct {
-	Code string `json:"code" binding:"excludesall= ,required"`
+	Code string `json:"code" binding:"req"`
 }
 
 type SignUpStage1 struct {
-	Name         string             `json:"name" binding:"excludesall= ,required"`
-	StudyPlaceID primitive.ObjectID `json:"studyPlaceID" binding:"excludesall= ,required"`
-	Type         string             `json:"type" binding:"excludesall= ,required"`
-	TypeName     string             `json:"typeName" binding:"excludesall= ,required"`
+	Name         string             `json:"name" binding:"req"`
+	StudyPlaceID primitive.ObjectID `json:"studyPlaceID" binding:"req"`
+	Type         string             `json:"type" binding:"req"`
+	TypeName     string             `json:"typeName" binding:"req"`
 }

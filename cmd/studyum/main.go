@@ -24,6 +24,7 @@ import (
 	"studyum/pkg/encryption"
 	"studyum/pkg/jwt"
 	"studyum/pkg/mail"
+	_ "studyum/pkg/validators"
 	"time"
 )
 

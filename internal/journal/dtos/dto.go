@@ -7,23 +7,23 @@ import (
 
 type AddMarkDTO struct {
 	Mark      string             `json:"mark"`
-	StudentID primitive.ObjectID `json:"studentID" binding:"required"`
-	LessonID  primitive.ObjectID `json:"lessonId" binding:"required"`
+	StudentID primitive.ObjectID `json:"studentID" binding:"req"`
+	LessonID  primitive.ObjectID `json:"lessonId" binding:"req"`
 }
 
 type UpdateMarkDTO struct {
-	ID primitive.ObjectID `json:"id" binding:"required"`
+	ID primitive.ObjectID `json:"id" binding:"req"`
 	AddMarkDTO
 }
 
 type AddAbsencesDTO struct {
 	Time      *int               `json:"time"`
-	StudentID primitive.ObjectID `json:"studentID" binding:"required"`
-	LessonID  primitive.ObjectID `json:"lessonID" binding:"required"`
+	StudentID primitive.ObjectID `json:"studentID" binding:"req"`
+	LessonID  primitive.ObjectID `json:"lessonID" binding:"req"`
 }
 
 type UpdateAbsencesDTO struct {
-	ID primitive.ObjectID `json:"id" binding:"required"`
+	ID primitive.ObjectID `json:"id" binding:"req"`
 	AddAbsencesDTO
 }
 
