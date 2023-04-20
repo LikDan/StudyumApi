@@ -63,7 +63,7 @@ func (s *controller) scheduleDated(start, end time.Time) (time.Time, time.Time) 
 		start = datetime.Date().AddDate(0, 0, 1-int(time.Now().Weekday()))
 	}
 	if end == emptyTime {
-		end = datetime.Date().AddDate(0, 0, 6+int(time.Now().Weekday()))
+		end = datetime.Date().AddDate(0, 0, 8-int(time.Now().Weekday()))
 	}
 
 	return start, end

@@ -56,11 +56,11 @@ type GeneralLesson struct {
 }
 
 type Info struct {
-	Type          string             `json:"type" bson:"type"`
-	TypeName      string             `json:"typeName" bson:"typeName"`
-	StudyPlace    general.StudyPlace `json:"studyPlace" bson:"studyPlace"`
-	StartWeekDate time.Time          `json:"startWeekDate" bson:"startWeekDate"`
-	Date          time.Time          `json:"date" bson:"date"`
+	Type       string             `json:"type" bson:"type"`
+	TypeName   string             `json:"typeName" bson:"typeName"`
+	StudyPlace general.StudyPlace `json:"studyPlace" bson:"studyPlace"`
+	StartDate  time.Time          `json:"startDate" bson:"startDate"`
+	Date       time.Time          `json:"date" bson:"date"`
 }
 
 type Types struct {

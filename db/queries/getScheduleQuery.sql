@@ -1,193 +1,97 @@
-let studyPlaceID = new ObjectId("631261e11b8b855cc75cec35")
-let type = "group"
-let typename = "95Т"
-let startWeekDate = new Date(2022, 9, 5)
+db.GeneralLessons.aggregate([
+    {"$match": {group: "95Т"}},
+    {
+        "$group": {
+            "_id": {"dayIndex": "$dayIndex", "weekIndex": "$weekIndex"},
+            "lessons": {"$push": "$$ROOT"},
+        }
+    },
+    {
+        "$sort": {
+            "_id.weekIndex": 1,
+            "_id.dayIndex": 1,
+        }
+    },
+    {
+        "$group": {
+            "_id": null,
+            "days": {"$push": "$$ROOT"},
+        }
+    },
+    {
+        "$addFields": {
+            "days": {
+                "$function": {
+                    "body": `function(templates, start, end) {
+    						const getWeekNumber = (date) => {
+								const yearStart = new Date(date.getFullYear(), 0, 1);
+								return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + yearStart.getDay() + 1) / 7);
+    						}
 
-db.StudyPlaces.aggregate(
-    {
-        $match: {
-            "_id": studyPlaceID
-        }
-    },
-    {
-        $addFields: {
-            "env": {
-                "studyPlaceID": studyPlaceID,
-                "startDate": startWeekDate,
-                "endDate": {
-                    $dateAdd: {
-                        "startDate": startWeekDate,
-                        "unit": "week",
-                        "amount": "$weeksCount",
-                    }
+    						const weekAmount = Math.max(...templates.map(t => t._id.weekIndex)) + 1
+							const currentDate = new Date(start.getTime());
+							const lessons = [];
+							while (currentDate <= end) {
+								const day = currentDate.getUTCDay() === 0 ? 6 : currentDate.getUTCDay() - 1;
+								const week = getWeekNumber(currentDate) % weekAmount;
+                                const template = templates.find(t => t._id.dayIndex === day && t._id.weekIndex === week)
+                                if (!!template) {
+                                    template.lessons = template.lessons.map(t => {
+                                        const date = new Date(currentDate.getTime())
+                                        const startDate = new Date(currentDate.toLocaleDateString() + ' ' + t.startTime)
+                                        const endDate = new Date(currentDate.toLocaleDateString() + ' ' + t.endTime)
+                                        return {...t, date: day, startDate, endDate, isGeneral: true}
+                                    })
+                                    lessons.push({...template});
+                                }
+								currentDate.setDate(currentDate.getDate() + 1);
+							}
+
+							return lessons
+						}`,
+                    "args": ["$days", new Date(2023, 4, 17), new Date(2023, 4, 30)],
+                    "lang": "js",
                 },
-                "weeksAmount": "$weeksCount"
-            }
-        }
+            },
+        },
     },
+    {"$unwind": "$days"},
+    {"$replaceRoot": {"newRoot": "$days"}},
+    {"$addFields": {"_id": {"$first": "$lessons.date"}}},
+    {"$project": {"general": "$lessons"}},
     {
-        $lookup: {
+        "$lookup": {
             "from": "Lessons",
-            "let": {"env": "$env"},
+            "let": {"from": "$_id.date", "till": {"$dateAdd": {"startDate": "$_id.date", "unit": "day", "amount": 1}}},
             "pipeline": [
                 {
-                    $match: {
-                        $expr: {
-                            $and: [
-                                {
-                                    $eq: ["$studyPlaceId", "$$env.studyPlaceID"],
-                                }, {
-                                    $eq: ['$' + type, typename],
-                                }, {
-                                    $gte: ["$startDate", "$$env.startDate"],
-                                }, {
-                                    $lt: ["$endDate", "$$env.endDate"],
-                                }
-                            ]
+                    "$match": {
+                        "$expr": {
+                            "$and": [{"$eq": ["$group", "95Т"]}, {"$gte": ["$startDate", "$$from"]}, {"$lt": ["$startDate", "$$till"]}]
                         }
                     }
                 },
-                {
-                  $project: {
-                      marks: 0
-                  }
-                },
-                {
-                    $addFields: {
-                        "isGeneral": false
-                    }
-                }
             ],
             "as": "lessons"
         }
     },
     {
-        $addFields: {
-            "env.lastUpdatedDate": {$max: "$lessons.endDate"}
-        }
-    },
-    {
-        $addFields: {
-            "env.startGeneral": {
-                $dateFromParts: {
-                    'year': {$year: "$env.lastUpdatedDate"},
-                    'month': {$month: "$env.lastUpdatedDate"},
-                    'day': {$sum: [{$dayOfMonth: "$env.lastUpdatedDate"}, 1]},
+        "$project": {
+            "lessons": {
+                "$cond": {
+                    "if": {"$eq": ["$lessons", []]},
+                    "then": "$general",
+                    "else": "$lessons"
                 }
             }
         }
     },
+    {"$unwind": "$lessons"},
+    {"$replaceRoot": {"newRoot": "$lessons"}},
     {
-        $addFields: {
-            "env.startWeekIndex": {$mod: [{$isoWeek: "$env.startDate"}, "$env.weeksAmount"]},
-            "env.startGeneralDayIndex": {$subtract: [{$isoDayOfWeek: "$env.startGeneral"}, 1]},
-            "env.startGeneralWeekIndex": {$mod: [{$isoWeek: "$env.startGeneral"}, "$env.weeksAmount"]},
-            "env.endGeneralDayIndex": {$subtract: [{$isoDayOfWeek: "$env.endDate"}, 1]},
-            "env.endGeneralWeekIndex": {$mod: [{$isoWeek: "$env.endDate"}, "$env.weeksAmount"]},
-        }
-    },
-    {
-        $lookup: {
-            "from": "GeneralLessons",
-            "let": {"env": "$env"},
-            "pipeline": [
-                {
-                    $match: {
-                        $expr: {
-                            $and: [
-                                {
-                                    $eq: ["$studyPlaceId", "$$env.studyPlaceID"],
-                                }, {
-                                    $eq: ['$' + type, typename],
-                                },
-                            ]
-                        }
-                    }
-                },
-                {
-                    $addFields: {
-                        "date": {
-                            $dateAdd: {
-                                "startDate": {
-                                    $dateAdd: {
-                                        "startDate": "$$env.startDate",
-                                        "unit": "week",
-                                        "amount": {$abs: {$subtract: ["$weekIndex", "$$env.startWeekIndex"]}}
-                                    }
-                                },
-                                "unit": "day",
-                                "amount": "$dayIndex"
-                            }
-                        }
-                    }
-                },
-                {
-                    $match: {
-                        $expr: {
-                            $and: [
-                                {$gte: ["$date", "$$env.startGeneral"]},
-                                {$lt: ["$date", "$$env.endDate"]}
-                            ]
-                        }
-                    }
-                },
-                {
-                    $addFields: {
-                        "startDate": {
-                            $toDate: {
-                                $concat: [{
-                                    $dateToString: {
-                                        "format": "%Y-%m-%d",
-                                        "date": "$date"
-                                    }
-                                }, "T", "$startTime"]
-                            }
-                        },
-                        "endDate": {
-                            $toDate: {
-                                $concat: [{
-                                    $dateToString: {
-                                        "format": "%Y-%m-%d",
-                                        "date": "$date"
-                                    }
-                                }, "T", "$endTime"]
-                            }
-                        },
-                        "isGeneral": false
-                    }
-                },
-            ],
-            "as": "general"
-        }
-    },
-    {
-        $addFields: {
-            "lessons": {$concatArrays: ["$lessons", "$general"]}
-        }
-    },
-    {
-        $addFields: {
+        "$group": {
             "_id": null,
-            "info": {
-                "studyPlace": "$$ROOT",
-                "type": type,
-                "typeName": typename,
-                "startWeekDate": startWeekDate
-            },
-            "lessons": "$lessons"
+            "lessons": {"$push": "$$ROOT"}
         }
     },
-    {
-        $project: {
-            "studyPlace.lessons": 0,
-            "studyPlace.general": 0,
-            "studyPlace.env": 0
-        }
-    },
-    {
-        $project: {
-            "studyPlace": 1,
-            "lessons": 1,
-        }
-    }
-    )
+])
