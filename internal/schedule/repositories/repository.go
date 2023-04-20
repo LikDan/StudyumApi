@@ -55,7 +55,7 @@ func (s *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectI
 	return
 }
 
-func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeName string, startDate, endDate time.Time, isGeneral bool, asPreview bool) (entities.Schedule, error) {
+func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeName string, startDate, endDate time.Time, onlyGeneral bool, asPreview bool) (entities.Schedule, error) {
 	cursor, err := s.generalLessons.Aggregate(ctx, bson.A{
 		bson.M{"$match": bson.M{"studyPlaceId": studyPlaceID, type_: typeName}},
 		bson.M{"$group": bson.M{
@@ -122,6 +122,7 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 						"$match": bson.M{
 							"$expr": bson.M{
 								"$and": bson.A{
+									bson.M{"$eq": bson.A{onlyGeneral, false}},
 									bson.M{"$eq": bson.A{"$" + type_, typeName}},
 									bson.M{"$eq": bson.A{"$studyPlaceId", studyPlaceID}},
 									bson.M{"$gte": bson.A{"$startDate", "$$from"}},
@@ -151,10 +152,11 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 			"$group": bson.M{
 				"_id": nil,
 				"info": bson.M{"$first": bson.M{
-					"type":      type_,
-					"typeName":  typeName,
-					"startDate": startDate,
-					"endDate":   endDate,
+					"studyPlaceID": studyPlaceID,
+					"type":         type_,
+					"typeName":     typeName,
+					"startDate":    startDate,
+					"endDate":      endDate,
 				}},
 				"lessons": bson.M{"$push": "$$ROOT"},
 			},
@@ -172,11 +174,11 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 
 		return entities.Schedule{
 			Info: entities.Info{
-				Type:       type_,
-				TypeName:   typeName,
-				StudyPlace: studyPlace,
-				StartDate:  startDate,
-				Date:       time.Now(),
+				StudyPlaceID: primitive.NilObjectID,
+				Type:         type_,
+				TypeName:     typeName,
+				StartDate:    startDate,
+				Date:         time.Now(),
 			},
 		}, nil
 	}
