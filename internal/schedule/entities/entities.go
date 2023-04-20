@@ -2,7 +2,6 @@ package entities
 
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	general "studyum/internal/general/entities"
 	"studyum/internal/journal/entities"
 	"time"
 )
@@ -56,11 +55,11 @@ type GeneralLesson struct {
 }
 
 type Info struct {
-	Type       string             `json:"type" bson:"type"`
-	TypeName   string             `json:"typeName" bson:"typeName"`
-	StudyPlace general.StudyPlace `json:"studyPlace" bson:"studyPlace"`
-	StartDate  time.Time          `json:"startDate" bson:"startDate"`
-	Date       time.Time          `json:"date" bson:"date"`
+	StudyPlaceID primitive.ObjectID `json:"studyPlaceID" bson:"studyPlaceID"`
+	Type         string             `json:"type" bson:"type"`
+	TypeName     string             `json:"typeName" bson:"typeName"`
+	StartDate    time.Time          `json:"startDate" bson:"startDate"`
+	Date         time.Time          `json:"date" bson:"date"`
 }
 
 type Types struct {

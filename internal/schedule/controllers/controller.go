@@ -385,7 +385,7 @@ func (s *controller) SaveCurrentScheduleAsGeneral(ctx context.Context, user auth
 			Teacher:        lesson.Teacher,
 			Room:           lesson.Room,
 			DayIndex:       dayIndex,
-			WeekIndex:      weekIndex % schedule.Info.StudyPlace.WeeksCount,
+			WeekIndex:      weekIndex,
 		}
 
 		lessons[i] = gLesson
