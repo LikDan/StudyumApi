@@ -59,6 +59,7 @@ type Info struct {
 	Type         string             `json:"type" bson:"type"`
 	TypeName     string             `json:"typeName" bson:"typeName"`
 	StartDate    time.Time          `json:"startDate" bson:"startDate"`
+	EndDate      time.Time          `json:"endDate" bson:"endDate"`
 	Date         time.Time          `json:"date" bson:"date"`
 }
 
