@@ -24,6 +24,18 @@ services:
     networks:
       - main
 
+  applications-api:
+    image: docker.studyum.net/applications-api
+    restart: always
+    # noinspection ComposeUnknownKeys
+    pull_policy: always
+    env_file:
+      - .env
+    ports:
+      - "277:277"
+    networks:
+      - main
+
   redis:
     image: redis:6.2-alpine
     restart: always
