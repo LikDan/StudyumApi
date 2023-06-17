@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+option go_package = "./protoauth";
+
+service Auth {
+  rpc AuthUser(AuthRequest) returns (AuthResponse) {}
+}
+
+message AuthRequest {
+  JWT jwt = 1;
+  repeated string requiredPermissions = 2;
+}
+
+message AuthResponse {
+  bool hasRequiredPermissions = 1;
+  User user = 2;
+  bool update = 3;
+  JWT jwt = 4;
+}
+
+message JWT {
+  string refresh = 1;
+  string access = 2;
+}
+
+message User {
+  string name = 1;
+  string studyPlaceID = 2;
+}

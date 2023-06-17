@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option go_package = "./protostudyplaces";
+
+service StudyPlaces {
+  rpc GetByID(IdRequest) returns (StudyPlace) {}
+}
+
+message IdRequest {
+  string id = 2;
+}
+
+message StudyPlace {
+  string id = 1;
+  string name = 2;
+  bool restricted = 3;
+}

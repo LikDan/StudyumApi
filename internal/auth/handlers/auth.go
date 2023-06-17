@@ -1,11 +1,16 @@
 package handlers
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
+	"google.golang.org/grpc"
+	_ "google.golang.org/grpc"
 	"net/http"
+	"studyum/grpc/auth/protoauth"
 	"studyum/internal/auth/controllers"
 	"studyum/internal/auth/dto"
+	"studyum/pkg/jwt/entities"
 )
 
 type Auth struct {
@@ -16,8 +21,10 @@ type Auth struct {
 	Group *gin.RouterGroup
 }
 
-func NewAuth(middleware Middleware, controller controllers.Auth, group *gin.RouterGroup) *Auth {
+func NewAuth(middleware Middleware, controller controllers.Auth, group *gin.RouterGroup, grpcServer *grpc.Server) *Auth {
 	h := &Auth{Middleware: middleware, controller: controller, Group: group}
+
+	protoauth.RegisterAuthServer(grpcServer, h)
 
 	group.PUT("login", h.Login)
 
@@ -172,4 +179,42 @@ func (h *Auth) TerminateAllSessions(ctx *gin.Context) {
 
 	h.DeleteTokenPairCookie(ctx)
 	ctx.Status(http.StatusNoContent)
+}
+
+func (h *Auth) AuthUser(ctx context.Context, request *protoauth.AuthRequest) (*protoauth.AuthResponse, error) {
+	pair, update, user, err := h.GrpcAuth(ctx, entities.TokenPair{
+		Access:  request.Jwt.Access,
+		Refresh: request.Jwt.Refresh,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	successfully := true
+	for _, requiredPermission := range request.RequiredPermissions {
+		found := false
+		for _, permission := range user.Permissions {
+			if requiredPermission == permission {
+				found = true
+				break
+			}
+		}
+		if !found {
+			successfully = false
+			break
+		}
+	}
+
+	return &protoauth.AuthResponse{
+		HasRequiredPermissions: successfully,
+		User: &protoauth.User{
+			Name:         user.Name,
+			StudyPlaceID: user.StudyPlaceID.Hex(),
+		},
+		Update: update,
+		Jwt: &protoauth.JWT{
+			Refresh: pair.Refresh,
+			Access:  pair.Access,
+		},
+	}, nil
 }

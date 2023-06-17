@@ -3,6 +3,7 @@ package auth
 import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
+	"google.golang.org/grpc"
 	"studyum/internal/auth/controllers"
 	"studyum/internal/auth/handlers"
 	"studyum/internal/auth/handlers/swagger"
@@ -15,7 +16,7 @@ import (
 // @BasePath /api/user
 
 //go:generate swag init --instanceName auth -o handlers/swagger -g auth.go -ot go,yaml
-func New(core *gin.RouterGroup, codes codes.Controller, encryption encryption.Encryption, jwtController controllers2.Controller, db *mongo.Database) (handlers.Middleware, *handlers.Auth, *handlers.OAuth2) {
+func New(core *gin.RouterGroup, grpcServer *grpc.Server, codes codes.Controller, encryption encryption.Encryption, jwtController controllers2.Controller, db *mongo.Database) (handlers.Middleware, *handlers.Auth, *handlers.OAuth2) {
 	swagger.SwaggerInfoauth.BasePath = "/api/user"
 
 	usersCollection := db.Collection("Users")
@@ -33,7 +34,7 @@ func New(core *gin.RouterGroup, codes codes.Controller, encryption encryption.En
 	oauth2Controller := controllers.NewOAuth2(oauth2Repository, encryption, jwtController)
 
 	authMiddleware := handlers.NewMiddleware(middlewareController)
-	authHandler := handlers.NewAuth(authMiddleware, authController, core)
+	authHandler := handlers.NewAuth(authMiddleware, authController, core, grpcServer)
 	oauthHandler := handlers.NewOAuth2(authMiddleware, oauth2Controller, core.Group("/oauth2"))
 	return authMiddleware, authHandler, oauthHandler
 }

@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"google.golang.org/grpc"
 	"net/http"
 	"strconv"
+	"studyum/grpc/studyPlaces/protostudyplaces"
 	auth "studyum/internal/auth/handlers"
 	"studyum/internal/general/controllers"
 	"studyum/internal/general/handlers/swagger"
@@ -26,8 +29,27 @@ type handler struct {
 	Group      *gin.RouterGroup
 }
 
-func NewGeneralHandler(middleware auth.Middleware, controller controllers.Controller, group *gin.RouterGroup) Handler {
+func (g *handler) GetByID(ctx context.Context, request *protostudyplaces.IdRequest) (*protostudyplaces.StudyPlace, error) {
+	id, err := primitive.ObjectIDFromHex(request.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	err, studyPlace := g.controller.GetStudyPlaceByID(ctx, id, false)
+	if err != nil {
+		return nil, err
+	}
+
+	return &protostudyplaces.StudyPlace{
+		Name:       studyPlace.Name,
+		Restricted: studyPlace.Restricted,
+	}, nil
+}
+
+func NewGeneralHandler(middleware auth.Middleware, controller controllers.Controller, group *gin.RouterGroup, grpcServer *grpc.Server) Handler {
 	h := &handler{Middleware: middleware, controller: controller, Group: group}
+
+	protostudyplaces.RegisterStudyPlacesServer(grpcServer, h)
 
 	group.GET("/studyPlaces", h.GetStudyPlaces)
 	group.GET("/studyPlaces/:id", h.GetStudyPlaceByID)

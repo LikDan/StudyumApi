@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	"studyum/internal/auth/controllers"
 	"studyum/internal/auth/entities"
@@ -9,6 +10,8 @@ import (
 )
 
 type Middleware interface {
+	GrpcAuth(ctx context.Context, pair entities2.TokenPair) (entities2.TokenPair, bool, entities.User, error)
+
 	Auth() gin.HandlerFunc
 	TryAuth() gin.HandlerFunc
 	MemberAuth(permissions ...string) gin.HandlerFunc
@@ -62,6 +65,10 @@ func (h *middleware) authViaApiToken(ctx *gin.Context) bool {
 
 	ctx.Set("user", user)
 	return true
+}
+
+func (h *middleware) GrpcAuth(ctx context.Context, pair entities2.TokenPair) (entities2.TokenPair, bool, entities.User, error) {
+	return h.controller.Auth(ctx, pair, "")
 }
 
 func (h *middleware) Auth() gin.HandlerFunc {

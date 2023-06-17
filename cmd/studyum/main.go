@@ -11,6 +11,9 @@ import (
 	"github.com/unrolled/secure"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/grpclog"
+	"net"
 	"net/http"
 	"os"
 	applications "studyum/internal/apps"
@@ -88,15 +91,17 @@ func main() {
 
 	apps := applications.New(db, encrypt)
 
-	authMiddleware, _, _ := auth.New(api.Group("/user"), codesController, encrypt, j, db)
+	grpcServer := grpc.NewServer()
+	authMiddleware, _, _ := auth.New(api.Group("/user"), grpcServer, codesController, encrypt, j, db)
 
-	_, generalController := general.New(api, authMiddleware, db)
+	_, generalController := general.New(api, grpcServer, authMiddleware, db)
 	_ = journal.New(api.Group("/journal"), authMiddleware, apps, encrypt, db)
 	_ = schedule.New(api.Group("/schedule"), authMiddleware, apps, generalController, db)
 	_ = user.New(api.Group("/user"), authMiddleware, encrypt, codesController, j, db)
 
 	if gin.Mode() == gin.DebugMode {
-		logrus.Fatalf("Error launching server %s", engine.Run().Error())
+		go launchGRPC(grpcServer)
+		logrus.Fatalf("Error launching http server %s", engine.Run().Error())
 		return
 	}
 
@@ -137,4 +142,15 @@ func redirectFunc() gin.HandlerFunc {
 
 		ctx.Next()
 	}
+}
+
+func launchGRPC(server *grpc.Server) {
+	listener, err := net.Listen("tcp", ":"+os.Getenv("GRPC_PORT"))
+
+	if err != nil {
+		grpclog.Fatalf("failed to listen: %v", err)
+	}
+
+	logrus.Fatalf("Error launching grpc server %s", server.Serve(listener))
+
 }
