@@ -98,8 +98,9 @@ func main() {
 	_ = schedule.New(api.Group("/schedule"), authMiddleware, apps, generalController, db)
 	_ = user.New(api.Group("/user"), authMiddleware, encrypt, codesController, j, db)
 
+	go launchGRPC(grpcServer)
+
 	if gin.Mode() == gin.DebugMode {
-		go launchGRPC(grpcServer)
 		logrus.Fatalf("Error launching http server %s", engine.Run().Error())
 		return
 	}
