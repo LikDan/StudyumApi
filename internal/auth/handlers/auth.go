@@ -208,6 +208,7 @@ func (h *Auth) AuthUser(ctx context.Context, request *protoauth.AuthRequest) (*p
 	return &protoauth.AuthResponse{
 		HasRequiredPermissions: successfully,
 		User: &protoauth.User{
+			Id:           user.Id.Hex(),
 			Name:         user.Name,
 			StudyPlaceID: user.StudyPlaceID.Hex(),
 		},

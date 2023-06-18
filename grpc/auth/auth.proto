@@ -24,6 +24,7 @@ message JWT {
 }
 
 message User {
-  string name = 1;
-  string studyPlaceID = 2;
+  string id = 1;
+  string name = 2;
+  string studyPlaceID = 3;
 }
