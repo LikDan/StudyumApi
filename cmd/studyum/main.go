@@ -12,7 +12,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/grpclog"
 	"net"
 	"net/http"
 	"os"
@@ -148,9 +147,9 @@ func launchGRPC(server *grpc.Server) {
 	listener, err := net.Listen("tcp", ":"+os.Getenv("GRPC_PORT"))
 
 	if err != nil {
-		grpclog.Fatalf("failed to listen: %v", err)
+		logrus.Fatalf("failed to listen: %v", err)
 	}
 
+	logrus.Infof("Starting GRPC server")
 	logrus.Fatalf("Error launching grpc server %s", server.Serve(listener))
-
 }
