@@ -2,8 +2,11 @@ package repositories
 
 import (
 	"context"
+	"github.com/pkg/errors"
 	"studyum/pkg/jwt/entities"
 )
+
+var NotValidRefreshTokenErr = errors.New("Not valid refresh token")
 
 type Repository interface {
 	Add(ctx context.Context, session entities.Session) error

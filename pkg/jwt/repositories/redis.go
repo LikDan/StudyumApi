@@ -2,15 +2,10 @@ package repositories
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	r "github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"studyum/pkg/jwt/entities"
 	"time"
-)
-
-var (
-	ErrNoDocument = errors.New("no document in result")
 )
 
 type redis struct {
@@ -47,7 +42,7 @@ func (repo *redis) GetByID(ctx context.Context, id string) (session entities.Ses
 	}
 
 	if len(result) != 5 {
-		return entities.Session{}, ErrNoDocument
+		return entities.Session{}, NotValidRefreshTokenErr
 	}
 
 	session.ID = id

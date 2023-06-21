@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	m "go.mongodb.org/mongo-driver/mongo"
 	"studyum/pkg/jwt/entities"
@@ -28,6 +29,9 @@ func (r *mongo) RemoveByID(ctx context.Context, id string) error {
 
 func (r *mongo) GetByID(ctx context.Context, id string) (session entities.Session, err error) {
 	err = r.sessions.FindOne(ctx, bson.M{"_id": id}).Decode(&session)
+	if errors.Is(err, m.ErrNoDocuments) {
+		return entities.Session{}, NotValidRefreshTokenErr
+	}
 	return
 }
 
