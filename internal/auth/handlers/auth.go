@@ -207,8 +207,11 @@ func (h *Auth) AuthUser(ctx context.Context, request *protoauth.AuthRequest) (*p
 		}
 	}
 
+	if !successfully {
+		return nil, status.Errorf(codes.PermissionDenied, "no permission")
+	}
+
 	return &protoauth.AuthResponse{
-		HasRequiredPermissions: successfully,
 		User: &protoauth.User{
 			Id:           user.Id.Hex(),
 			Name:         user.Name,
