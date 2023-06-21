@@ -20,4 +20,4 @@ jobs:
         with:
           token: ${{ secrets.TOKEN }}
           pr-title: 'Syncing'
-          email: 'likdan.official@gmail.com'
+          email: 'likdan.company@gmail.com'
