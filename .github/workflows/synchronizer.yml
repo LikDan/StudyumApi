@@ -21,4 +21,3 @@ jobs:
           token: ${{ secrets.TOKEN }}
           pr-title: 'Syncing'
           email: 'likdan.official@gmail.com'
-      - uses: actions/checkout@v2
