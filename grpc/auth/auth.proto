@@ -12,7 +12,6 @@ message AuthRequest {
 }
 
 message AuthResponse {
-  bool hasRequiredPermissions = 1;
   User user = 2;
   bool update = 3;
   JWT jwt = 4;

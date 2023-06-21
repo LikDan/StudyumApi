@@ -1,0 +1,19 @@
+{
+  "files": [
+    "docker-compose.yml",
+    "grpc"
+  ],
+  "repositories": [
+    {
+      "name": "SyncActionTestRepository",
+      "user": "LikDan",
+      "branch": "sync",
+      "pull_request": {
+        "branch": "main"
+      },
+      "fileReplacements": {
+        "grpc": "Grpc"
+      }
+    }
+  ]
+}

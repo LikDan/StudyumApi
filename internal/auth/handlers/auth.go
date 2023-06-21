@@ -6,6 +6,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
 	_ "google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"net/http"
 	"studyum/grpc/auth/protoauth"
 	"studyum/internal/auth/controllers"
@@ -187,7 +189,7 @@ func (h *Auth) AuthUser(ctx context.Context, request *protoauth.AuthRequest) (*p
 		Refresh: request.Jwt.Refresh,
 	})
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Unauthenticated, err.Error())
 	}
 
 	successfully := true
