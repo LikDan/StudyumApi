@@ -1,4 +1,4 @@
-name: Build and Push Image
+name: Syncing
 
 on:
   push:
@@ -15,10 +15,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: SyncGrpc and Docker Compose
+      - name: Sync Grpc and Docker Compose
         uses: LikDan/SyncRepositoriesAction@v0.0.1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.TOKEN }}
           pr-title: 'Syncing'
           email: 'likdan.official@gmail.com'
       - uses: actions/checkout@v2
