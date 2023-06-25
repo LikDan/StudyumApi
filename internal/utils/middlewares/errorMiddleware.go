@@ -54,6 +54,7 @@ func GetHttpCodeByError(err error) int {
 	case
 		errors.Is(err, controllers3.ValidationErr),
 		errors.Is(err, j.ErrSignatureInvalid),
+		errors.Is(err, controllers3.RefreshTokenErr),
 		errors.Is(err, http.ErrNoCookie),
 		errors.Is(err, repositories.NotValidRefreshTokenErr):
 		code = http.StatusUnauthorized

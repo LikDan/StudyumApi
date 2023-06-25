@@ -17,6 +17,7 @@ type Middleware interface {
 	MemberAuth(permissions ...string) gin.HandlerFunc
 
 	SetTokenPairCookie(ctx *gin.Context, pair entities2.TokenPair)
+	SetTokenPairHeader(ctx *gin.Context, pair entities2.TokenPair)
 	DeleteTokenPairCookie(ctx *gin.Context)
 
 	GetUser(ctx *gin.Context) entities.User
@@ -35,18 +36,31 @@ func (h *middleware) SetTokenPairCookie(ctx *gin.Context, pair entities2.TokenPa
 	ctx.SetCookie("access", pair.Access, 60*15, "/", "", true, true)
 }
 
+func (h *middleware) SetTokenPairHeader(ctx *gin.Context, pair entities2.TokenPair) {
+	ctx.Header("SetAccessToken", pair.Access)
+	ctx.Header("SetRefreshToken", pair.Refresh)
+}
+
 func (h *middleware) DeleteTokenPairCookie(ctx *gin.Context) {
 	ctx.SetCookie("refresh", "", 0, "/", "", true, true)
 	ctx.SetCookie("access", "", 0, "/", "", true, true)
 }
 
 func (h *middleware) tokenPair(ctx *gin.Context) entities2.TokenPair {
+	access := ctx.GetHeader("Authorization")
+	if access != "" {
+		return entities2.TokenPair{
+			Access:  access,
+			Refresh: "",
+		}
+	}
+
 	refresh := ctx.GetString("refresh") //proceed on oauth2
 	if refresh == "" {
 		refresh, _ = ctx.Cookie("refresh")
 	}
 
-	access, _ := ctx.Cookie("access")
+	access, _ = ctx.Cookie("access")
 	return entities2.TokenPair{Access: access, Refresh: refresh}
 }
 
@@ -91,13 +105,6 @@ func (h *middleware) Auth() gin.HandlerFunc {
 		ctx.Set("user", user)
 
 		ctx.Next()
-		//if ctx.Request.Context().Err() != nil && update {
-		//	if err = h.controller.Recover(ctx, pair, newPair, ctx.ClientIP(), user.Id); err != nil {
-		//		_ = ctx.Error(err)
-		//		ctx.Abort()
-		//		return
-		//	}
-		//}
 	}
 }
 

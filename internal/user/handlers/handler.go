@@ -79,6 +79,8 @@ func (h *handler) UpdateUser(ctx *gin.Context) {
 	}
 
 	h.SetTokenPairCookie(ctx, pair)
+	h.SetTokenPairHeader(ctx, pair)
+
 	ctx.JSON(http.StatusOK, user)
 }
 

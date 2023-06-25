@@ -15,7 +15,8 @@ import (
 )
 
 var (
-	ValidationErr = errors.New("Validation error")
+	ValidationErr   = errors.New("Validation error")
+	RefreshTokenErr = errors.New("access token has expired")
 )
 
 type Controller interface {
@@ -25,6 +26,7 @@ type Controller interface {
 	Auth(ctx context.Context, pair entities.TokenPair) (string, bool, error)
 
 	RemoveByToken(ctx context.Context, token string) error
+	UpdateTokensByRefresh(ctx context.Context, token string, ip string) (entities.TokenPair, error)
 
 	LaunchCron()
 	StopCron()
@@ -89,7 +91,7 @@ func (c *controller) Auth(ctx context.Context, pair entities.TokenPair) (string,
 		var err error
 		id, needUpdate, err = c.authViaRefreshToken(ctx, pair.Refresh)
 		if err != nil {
-			return "", false, err
+			return "", false, RefreshTokenErr
 		}
 	} else {
 		id = claims.Claims.ID
@@ -143,6 +145,19 @@ func (c *controller) RemoveByToken(ctx context.Context, token string) error {
 
 	id := token[:i]
 	return c.repository.RemoveByID(ctx, id)
+}
+
+func (c *controller) UpdateTokensByRefresh(ctx context.Context, refresh string, ip string) (entities.TokenPair, error) {
+	id, _, err := c.authViaRefreshToken(ctx, refresh)
+	if err != nil {
+		return entities.TokenPair{}, err
+	}
+	session, err := c.repository.GetByID(ctx, id)
+	if err != nil {
+		return entities.TokenPair{}, err
+	}
+
+	return c.Create(ctx, ip, session.UserID)
 }
 
 func (c *controller) LaunchCron() {

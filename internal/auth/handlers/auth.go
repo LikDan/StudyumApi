@@ -28,6 +28,8 @@ func NewAuth(middleware Middleware, controller controllers.Auth, group *gin.Rout
 
 	protoauth.RegisterAuthServer(grpcServer, h)
 
+	group.PUT("updateToken", h.UpdateByRefreshToken)
+
 	group.PUT("login", h.Login)
 
 	group.POST("signup", h.SignUp)
@@ -41,6 +43,25 @@ func NewAuth(middleware Middleware, controller controllers.Auth, group *gin.Rout
 	group.DELETE("sessions", h.Auth(), h.TerminateAllSessions)
 
 	return h
+}
+
+// UpdateByRefreshToken godoc
+// @Router /updateToken [put]
+func (h *Auth) UpdateByRefreshToken(ctx *gin.Context) {
+	var token string
+	if err := ctx.BindJSON(&token); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	pair, err := h.controller.UpdateByRefreshToken(ctx, token, ctx.ClientIP())
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	h.SetTokenPairHeader(ctx, pair)
+	ctx.Status(http.StatusOK)
 }
 
 // Login godoc
@@ -59,6 +80,7 @@ func (h *Auth) Login(ctx *gin.Context) {
 	}
 
 	h.SetTokenPairCookie(ctx, pair)
+	h.SetTokenPairHeader(ctx, pair)
 
 	ctx.JSON(http.StatusOK, user)
 }
@@ -79,6 +101,7 @@ func (h *Auth) SignUp(ctx *gin.Context) {
 	}
 
 	h.SetTokenPairCookie(ctx, pair)
+	h.SetTokenPairHeader(ctx, pair)
 	ctx.JSON(http.StatusOK, user)
 }
 

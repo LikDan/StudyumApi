@@ -21,6 +21,8 @@ var (
 )
 
 type Auth interface {
+	UpdateByRefreshToken(ctx context.Context, token string, ip string) (entities2.TokenPair, error)
+
 	Login(ctx context.Context, ip string, data dto.Login) (entities.User, entities2.TokenPair, error)
 
 	SignUp(ctx context.Context, ip string, data dto.SignUp) (entities.User, entities2.TokenPair, error)
@@ -46,6 +48,10 @@ type auth struct {
 
 func NewAuth(sessions controllers.Controller, codes codes.Controller, encryption encryption.Encryption, repository repositories.Auth, codeRepository repositories.Code) Auth {
 	return &auth{sessions: sessions, codes: codes, encryption: encryption, repository: repository, codeRepository: codeRepository}
+}
+
+func (c *auth) UpdateByRefreshToken(ctx context.Context, token string, ip string) (entities2.TokenPair, error) {
+	return c.sessions.UpdateTokensByRefresh(ctx, token, ip)
 }
 
 func (c *auth) Login(ctx context.Context, ip string, data dto.Login) (entities.User, entities2.TokenPair, error) {
