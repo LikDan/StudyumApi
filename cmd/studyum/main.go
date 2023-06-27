@@ -22,9 +22,11 @@ import (
 	"studyum/internal/journal"
 	"studyum/internal/schedule"
 	"studyum/internal/user"
+	jUtils "studyum/internal/utils/jwt"
 	"studyum/internal/utils/middlewares"
 	"studyum/pkg/encryption"
 	"studyum/pkg/jwt"
+	"studyum/pkg/jwt/entities"
 	"studyum/pkg/mail"
 	_ "studyum/pkg/validators"
 	"time"
@@ -82,7 +84,7 @@ func main() {
 		Password: os.Getenv("REDIS_DB_PASSWORD"),
 	})
 
-	j := jwt.NewWithRedis("", time.Minute*15, time.Hour*24*30, time.Second*30, os.Getenv("JWT_SECRET"), redisClient)
+	j := jwt.NewWithRedis[jUtils.Claims]("", time.Minute*15, time.Hour*24*30, time.Second*30, os.Getenv("JWT_SECRET"), redisClient)
 	codesController := codes.New(time.Minute*15, time.Minute, mailer, db)
 
 	api := engine.Group("/api")
@@ -96,7 +98,22 @@ func main() {
 	_, generalController := general.New(api, grpcServer, authMiddleware, db)
 	_ = journal.New(api.Group("/journal"), authMiddleware, apps, encrypt, db)
 	_ = schedule.New(api.Group("/schedule"), authMiddleware, apps, generalController, db)
-	_ = user.New(api.Group("/user"), authMiddleware, encrypt, codesController, j, db)
+	_, controller := user.New(api.Group("/user"), authMiddleware, encrypt, codesController, j, db)
+	j.SetCreateClaimsFunc(func(ctx context.Context, id, userID string) (jUtils.Claims, error) {
+		u, err := controller.GetByID(ctx, userID)
+		if err != nil {
+			return jUtils.Claims{}, err
+		}
+
+		return jUtils.Claims{
+			IDClaims:    entities.IDClaims{ID: id},
+			UserID:      u.Id.Hex(),
+			Login:       u.Login,
+			Name:        u.Name,
+			PictureURL:  u.PictureUrl,
+			Permissions: u.Permissions,
+		}, nil
+	})
 
 	go launchGRPC(grpcServer)
 

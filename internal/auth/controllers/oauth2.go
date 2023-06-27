@@ -7,8 +7,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"studyum/internal/auth/entities"
 	"studyum/internal/auth/repositories"
+	"studyum/internal/utils/jwt"
 	"studyum/pkg/encryption"
-	"studyum/pkg/jwt/controllers"
 	entities2 "studyum/pkg/jwt/entities"
 )
 
@@ -23,10 +23,10 @@ type oauth2 struct {
 	repository repositories.OAuth2
 
 	encryption encryption.Encryption
-	jwt        controllers.Controller
+	jwt        jwt.JWT
 }
 
-func NewOAuth2(repository repositories.OAuth2, encryption encryption.Encryption, jwt controllers.Controller) OAuth2 {
+func NewOAuth2(repository repositories.OAuth2, encryption encryption.Encryption, jwt jwt.JWT) OAuth2 {
 	return &oauth2{repository: repository, encryption: encryption, jwt: jwt}
 }
 

@@ -11,13 +11,14 @@ import (
 	"studyum/internal/user/dto"
 	entities2 "studyum/internal/user/entities"
 	"studyum/internal/user/repositories"
+	"studyum/internal/utils/jwt"
 	"studyum/pkg/encryption"
 	"studyum/pkg/hash"
-	jwt "studyum/pkg/jwt/controllers"
 	entities3 "studyum/pkg/jwt/entities"
 )
 
 type Controller interface {
+	GetByID(ctx context.Context, id string) (entities.User, error)
 	UpdateUser(ctx context.Context, user entities.User, token, ip string, data dto.Edit) (entities.User, entities3.TokenPair, error)
 
 	CreateCode(ctx context.Context, user entities.User, data dto.CreateCode) (entities2.SignUpCode, error)
@@ -38,13 +39,27 @@ type Controller interface {
 type controller struct {
 	repository      repositories.Repository
 	codesController codes.Controller
-	jwt             jwt.Controller
+	jwt             jwt.JWT
 
 	encrypt encryption.Encryption
 }
 
-func NewUserController(repository repositories.Repository, codesController codes.Controller, sessionsController jwt.Controller, encrypt encryption.Encryption) Controller {
+func NewUserController(repository repositories.Repository, codesController codes.Controller, sessionsController jwt.JWT, encrypt encryption.Encryption) Controller {
 	return &controller{repository: repository, codesController: codesController, jwt: sessionsController, encrypt: encrypt}
+}
+
+func (u *controller) GetByID(ctx context.Context, idHex string) (entities.User, error) {
+	id, err := primitive.ObjectIDFromHex(idHex)
+	if err != nil {
+		return entities.User{}, err
+	}
+
+	user, err := u.repository.GetUserByID(ctx, id)
+	if err != nil {
+		return entities.User{}, err
+	}
+
+	return u.DecryptUser(ctx, user), nil
 }
 
 func (u *controller) UpdateUser(ctx context.Context, user entities.User, token, ip string, data dto.Edit) (entities.User, entities3.TokenPair, error) {

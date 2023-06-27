@@ -9,14 +9,14 @@ import (
 	"studyum/internal/auth/handlers/swagger"
 	"studyum/internal/auth/repositories"
 	codes "studyum/internal/codes/controllers"
+	"studyum/internal/utils/jwt"
 	"studyum/pkg/encryption"
-	controllers2 "studyum/pkg/jwt/controllers"
 )
 
 // @BasePath /api/user
 
 //go:generate swag init --instanceName auth -o handlers/swagger -g auth.go -ot go,yaml
-func New(core *gin.RouterGroup, grpcServer *grpc.Server, codes codes.Controller, encryption encryption.Encryption, jwtController controllers2.Controller, db *mongo.Database) (handlers.Middleware, *handlers.Auth, *handlers.OAuth2) {
+func New(core *gin.RouterGroup, grpcServer *grpc.Server, codes codes.Controller, encryption encryption.Encryption, jwtController jwt.JWT, db *mongo.Database) (handlers.Middleware, *handlers.Auth, *handlers.OAuth2) {
 	swagger.SwaggerInfoauth.BasePath = "/api/user"
 
 	usersCollection := db.Collection("Users")

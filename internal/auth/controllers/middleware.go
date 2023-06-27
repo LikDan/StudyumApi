@@ -6,7 +6,7 @@ import (
 	"golang.org/x/net/context"
 	"studyum/internal/auth/entities"
 	"studyum/internal/auth/repositories"
-	"studyum/pkg/jwt/controllers"
+	"studyum/internal/utils/jwt"
 	entities2 "studyum/pkg/jwt/entities"
 )
 
@@ -22,11 +22,11 @@ type Middleware interface {
 }
 
 type middleware struct {
-	jwt        controllers.Controller
+	jwt        jwt.JWT
 	repository repositories.Middleware
 }
 
-func NewMiddleware(jwt controllers.Controller, repository repositories.Middleware) Middleware {
+func NewMiddleware(jwt jwt.JWT, repository repositories.Middleware) Middleware {
 	return &middleware{jwt: jwt, repository: repository}
 }
 

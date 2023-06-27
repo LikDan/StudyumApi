@@ -5,22 +5,23 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"studyum/pkg/jwt/base"
 	"studyum/pkg/jwt/controllers"
+	"studyum/pkg/jwt/entities"
 	"studyum/pkg/jwt/repositories"
 	"time"
 )
 
-func NewWithMongo(cronPattern string, expire time.Duration, refreshExpire time.Duration, timeout time.Duration, secret string, sessions *mongo.Collection) controllers.Controller {
+func NewWithMongo[C entities.IIDClaims](cronPattern string, expire time.Duration, refreshExpire time.Duration, timeout time.Duration, secret string, sessions *mongo.Collection) controllers.Controller[C] {
 	r := repositories.NewMongo(sessions)
-	return NewWithRepository(cronPattern, expire, refreshExpire, timeout, secret, r)
+	return NewWithRepository[C](cronPattern, expire, refreshExpire, timeout, secret, r)
 }
 
-func NewWithRedis(cronPattern string, expire time.Duration, refreshExpire time.Duration, timeout time.Duration, secret string, client *redis.Client) controllers.Controller {
+func NewWithRedis[C entities.IIDClaims](cronPattern string, expire time.Duration, refreshExpire time.Duration, timeout time.Duration, secret string, client *redis.Client) controllers.Controller[C] {
 	r := repositories.NewRedis(client)
-	return NewWithRepository(cronPattern, expire, refreshExpire, timeout, secret, r)
+	return NewWithRepository[C](cronPattern, expire, refreshExpire, timeout, secret, r)
 }
 
-func NewWithRepository(cronPattern string, expire time.Duration, refreshExpire time.Duration, timeout time.Duration, secret string, repo repositories.Repository) controllers.Controller {
-	c := controllers.NewController(cronPattern, expire, refreshExpire, timeout, secret, repo)
+func NewWithRepository[C entities.IIDClaims](cronPattern string, expire time.Duration, refreshExpire time.Duration, timeout time.Duration, secret string, repo repositories.Repository) controllers.Controller[C] {
+	c := controllers.NewController[C](cronPattern, expire, refreshExpire, timeout, secret, repo)
 	return c
 }
 

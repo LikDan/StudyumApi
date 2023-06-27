@@ -9,9 +9,9 @@ import (
 	"studyum/internal/auth/repositories"
 	codes "studyum/internal/codes/controllers"
 	codesEntities "studyum/internal/codes/entities"
+	"studyum/internal/utils/jwt"
 	"studyum/pkg/encryption"
 	"studyum/pkg/hash"
-	"studyum/pkg/jwt/controllers"
 	entities2 "studyum/pkg/jwt/entities"
 )
 
@@ -37,7 +37,7 @@ type Auth interface {
 }
 
 type auth struct {
-	sessions controllers.Controller
+	sessions jwt.JWT
 
 	codes      codes.Controller
 	encryption encryption.Encryption
@@ -46,7 +46,7 @@ type auth struct {
 	codeRepository repositories.Code
 }
 
-func NewAuth(sessions controllers.Controller, codes codes.Controller, encryption encryption.Encryption, repository repositories.Auth, codeRepository repositories.Code) Auth {
+func NewAuth(sessions jwt.JWT, codes codes.Controller, encryption encryption.Encryption, repository repositories.Auth, codeRepository repositories.Code) Auth {
 	return &auth{sessions: sessions, codes: codes, encryption: encryption, repository: repository, codeRepository: codeRepository}
 }
 

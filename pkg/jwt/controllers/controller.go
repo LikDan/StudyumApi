@@ -19,7 +19,7 @@ var (
 	RefreshTokenErr = errors.New("access token has expired")
 )
 
-type Controller interface {
+type Controller[C entities.IIDClaims] interface {
 	Create(ctx context.Context, ip string, userID string) (entities.TokenPair, error)
 	CreateWithTime(ctx context.Context, ip string, userID string, d time.Duration) (entities.TokenPair, error)
 
@@ -28,39 +28,61 @@ type Controller interface {
 	RemoveByToken(ctx context.Context, token string) error
 	UpdateTokensByRefresh(ctx context.Context, token string, ip string) (entities.TokenPair, error)
 
+	SetCreateClaimsFunc(func(ctx context.Context, id, userID string) (C, error))
+
 	LaunchCron()
 	StopCron()
 }
 
-type controller struct {
+type controller[C entities.IIDClaims] struct {
 	refreshExpire time.Duration
 	timeout       time.Duration
 
 	cron *cron.Cron
 
-	jwt        base.JWT[BaseClaims]
+	jwt        base.JWT[C]
 	repository repositories.Repository
+
+	createClaimsFunc func(ctx context.Context, id, userID string) (C, error)
 }
 
-type BaseClaims struct{ ID string }
+func NewController[C entities.IIDClaims](cronPattern string, expire, refreshExpire, timeout time.Duration, secret string, repository repositories.Repository) Controller[C] {
+	return NewControllerWithCreateClaimsFunc[C](cronPattern, expire, refreshExpire, timeout, secret, repository, nil)
+}
 
-func NewController(cronPattern string, expire time.Duration, refreshExpire time.Duration, timeout time.Duration, secret string, repository repositories.Repository) Controller {
-	jwt := base.NewJWT[BaseClaims](expire, secret)
+func NewControllerWithCreateClaimsFunc[C entities.IIDClaims](cronPattern string, expire, refreshExpire, timeout time.Duration, secret string, repository repositories.Repository, createClaimsFunc func(ctx context.Context, id, userID string) (C, error)) Controller[C] {
+	jwt := base.NewJWT[C](expire, secret)
 
-	c := &controller{refreshExpire: refreshExpire, timeout: timeout, cron: cron.New(), jwt: jwt, repository: repository}
+	c := &controller[C]{refreshExpire: refreshExpire, timeout: timeout, cron: cron.New(), jwt: jwt, repository: repository, createClaimsFunc: createClaimsFunc}
 	_ = c.cron.AddFunc(cronPattern, c.ClearExpired)
 
 	return c
 }
 
-func (c *controller) Create(ctx context.Context, ip string, userID string) (entities.TokenPair, error) {
+func NewControllerWithSimpleClaims(cronPattern string, expire, refreshExpire, timeout time.Duration, secret string, repository repositories.Repository) Controller[entities.IIDClaims] {
+	return NewControllerWithCreateClaimsFunc[entities.IIDClaims](cronPattern, expire, refreshExpire, timeout, secret, repository, func(ctx context.Context, id, userID string) (entities.IIDClaims, error) {
+		return entities.IDClaims{ID: id}, nil
+	})
+}
+
+func (c *controller[C]) Create(ctx context.Context, ip string, userID string) (entities.TokenPair, error) {
 	return c.CreateWithTime(ctx, ip, userID, c.jwt.GetValidTime())
 }
 
-func (c *controller) CreateWithTime(ctx context.Context, ip string, userID string, d time.Duration) (entities.TokenPair, error) {
+func (c *controller[C]) CreateWithTime(ctx context.Context, ip string, userID string, d time.Duration) (entities.TokenPair, error) {
 	//839_299_365_868_340_224
 	id := utils.RandomString(10)
-	pair, err := c.jwt.GeneratePairWithExpireTime(BaseClaims{ID: id}, d)
+
+	if c.createClaimsFunc == nil {
+		return entities.TokenPair{}, errors.New("createClaimsFunc is nil")
+	}
+	claims, err := c.createClaimsFunc(ctx, id, userID)
+
+	if err != nil {
+		return entities.TokenPair{}, err
+	}
+
+	pair, err := c.jwt.GeneratePairWithExpireTime(claims, d)
 	if err != nil {
 		return entities.TokenPair{}, err
 	}
@@ -82,7 +104,7 @@ func (c *controller) CreateWithTime(ctx context.Context, ip string, userID strin
 	return pair, nil
 }
 
-func (c *controller) Auth(ctx context.Context, pair entities.TokenPair) (string, bool, error) {
+func (c *controller[C]) Auth(ctx context.Context, pair entities.TokenPair) (string, bool, error) {
 	var id string
 	needUpdate := false
 
@@ -94,7 +116,7 @@ func (c *controller) Auth(ctx context.Context, pair entities.TokenPair) (string,
 			return "", false, RefreshTokenErr
 		}
 	} else {
-		id = claims.Claims.ID
+		id = claims.Claims.GetID()
 	}
 	session, err := c.repository.GetByID(ctx, id)
 	if err != nil {
@@ -104,7 +126,7 @@ func (c *controller) Auth(ctx context.Context, pair entities.TokenPair) (string,
 	return session.UserID, needUpdate, nil
 }
 
-func (c *controller) authViaRefreshToken(ctx context.Context, token string) (string, bool, error) {
+func (c *controller[C]) authViaRefreshToken(ctx context.Context, token string) (string, bool, error) {
 	i := strings.IndexByte(token, '|')
 	if i == -1 {
 		return "", false, ValidationErr
@@ -137,7 +159,7 @@ func (c *controller) authViaRefreshToken(ctx context.Context, token string) (str
 	return session.ID, true, nil
 }
 
-func (c *controller) RemoveByToken(ctx context.Context, token string) error {
+func (c *controller[C]) RemoveByToken(ctx context.Context, token string) error {
 	i := strings.IndexByte(token, '|')
 	if i == -1 {
 		return ValidationErr
@@ -147,7 +169,7 @@ func (c *controller) RemoveByToken(ctx context.Context, token string) error {
 	return c.repository.RemoveByID(ctx, id)
 }
 
-func (c *controller) UpdateTokensByRefresh(ctx context.Context, refresh string, ip string) (entities.TokenPair, error) {
+func (c *controller[C]) UpdateTokensByRefresh(ctx context.Context, refresh string, ip string) (entities.TokenPair, error) {
 	id, _, err := c.authViaRefreshToken(ctx, refresh)
 	if err != nil {
 		return entities.TokenPair{}, err
@@ -160,15 +182,19 @@ func (c *controller) UpdateTokensByRefresh(ctx context.Context, refresh string, 
 	return c.Create(ctx, ip, session.UserID)
 }
 
-func (c *controller) LaunchCron() {
+func (c *controller[C]) SetCreateClaimsFunc(f func(ctx context.Context, id, userID string) (C, error)) {
+	c.createClaimsFunc = f
+}
+
+func (c *controller[C]) LaunchCron() {
 	c.cron.Start()
 }
 
-func (c *controller) StopCron() {
+func (c *controller[C]) StopCron() {
 	c.cron.Stop()
 }
 
-func (c *controller) ClearExpired() {
+func (c *controller[C]) ClearExpired() {
 	logrus.Infoln("Clear expired tokens at " + time.Now().Format(time.ANSIC))
 
 	ctx := context.Background()

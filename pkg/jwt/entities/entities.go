@@ -10,7 +10,19 @@ type TokenPair struct {
 	Refresh string `json:"refresh" bson:"refresh"`
 }
 
-type Claims[C any] struct {
+type IIDClaims interface {
+	GetID() string
+}
+
+type IDClaims struct {
+	ID string `json:"id" bson:"id"`
+}
+
+func (i IDClaims) GetID() string {
+	return i.ID
+}
+
+type BaseClaims[C any] struct {
 	jwt.StandardClaims
 	Claims C `json:"claims"`
 }
