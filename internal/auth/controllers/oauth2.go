@@ -67,7 +67,6 @@ func (c *oauth2) ReceiveUser(ctx context.Context, serviceName string, code strin
 			Email:         callbackUser.Email,
 			VerifiedEmail: callbackUser.VerifiedEmail,
 			Login:         callbackUser.Name,
-			Name:          callbackUser.Name,
 			PictureUrl:    callbackUser.PictureUrl,
 		}
 

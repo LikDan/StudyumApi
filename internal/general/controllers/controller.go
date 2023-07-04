@@ -31,5 +31,5 @@ func (g *controller) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectI
 }
 
 func (g *controller) GetSelfStudyPlace(ctx context.Context, user auth.User) (error, entities.StudyPlace) {
-	return g.GetStudyPlaceByID(ctx, user.StudyPlaceID, false)
+	return g.GetStudyPlaceByID(ctx, user.StudyPlaceInfo.ID, false)
 }

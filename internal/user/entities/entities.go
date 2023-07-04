@@ -7,8 +7,8 @@ import (
 type AcceptUser struct {
 	Id       primitive.ObjectID `json:"id" bson:"_id"`
 	Name     string             `json:"name" bson:"name" encryption:""`
-	Type     string             `json:"type" bson:"type"`
-	Typename string             `json:"typename" bson:"typename"`
+	Role     string             `json:"role" bson:"role"`
+	RoleName string             `json:"roleName" bson:"roleName"`
 }
 
 type SignUpCode struct {
@@ -16,7 +16,7 @@ type SignUpCode struct {
 	Code         string             `json:"code" bson:"code"`
 	Name         string             `json:"name" bson:"name" encryption:""`
 	StudyPlaceID primitive.ObjectID `json:"studyPlaceID" bson:"studyPlaceID"`
-	Type         string             `json:"type" bson:"type"`
-	Typename     string             `json:"typename" bson:"typename"`
+	Role         string             `json:"role" bson:"role"`
+	RoleName     string             `json:"roleName" bson:"roleName"`
 	Password     string             `json:"-" bson:"defaultPassword"`
 }

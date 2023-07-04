@@ -6,8 +6,8 @@ db.Users.aggregate([
         "$project": {
             "user._id": 1,
             "user.name": 1,
-            "user.type": 1,
-            "user.typename": 1
+            "user.role": 1,
+            "user.roleName": 1
         }
     },
     {
@@ -17,8 +17,8 @@ db.Users.aggregate([
                 {
                     "$project": {
                         "name": 1,
-                        "type": 1,
-                        "typename": 1
+                        "role": 1,
+                        "roleName": 1
                     }
                 },
             ],
@@ -31,7 +31,7 @@ db.Users.aggregate([
                 "$filter": {
                     "input": {"$concatArrays": ["$codeUsers", "$user"]},
                     "as": "user",
-                    "cond": {"$and": [{"$eq": ["$$user.type", "group"]}, {"$eq": ["$$user.typename", "95Т"]}]}
+                    "cond": {"$and": [{"$eq": ["$$user.role", "group"]}, {"$eq": ["$$user.roleName", "95Т"]}]}
                 }
             }
         }

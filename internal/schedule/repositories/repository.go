@@ -14,8 +14,8 @@ import (
 )
 
 type Repository interface {
-	GetSchedule(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string, typeName string, startDate, endDate time.Time, general bool, asPreview bool) (entities.Schedule, error)
-	GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string) []string
+	GetSchedule(ctx context.Context, studyPlaceId primitive.ObjectID, role string, roleName string, startDate, endDate time.Time, general bool, asPreview bool) (entities.Schedule, error)
+	GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, role string) []string
 
 	AddGeneralLessons(ctx context.Context, lessons []entities.GeneralLesson) error
 
@@ -32,7 +32,7 @@ type Repository interface {
 	RemoveLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID) error
 	RemoveGroupLessonBetweenDates(ctx context.Context, date1, date2 time.Time, id primitive.ObjectID, group string) error
 
-	RemoveGeneralLessonsByType(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, name string) error
+	RemoveGeneralLessonsByType(ctx context.Context, studyPlaceID primitive.ObjectID, role string, roleName string) error
 
 	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace general.StudyPlace)
 	GetGeneralLessons(ctx context.Context, studyPlaceId primitive.ObjectID, weekIndex, dayIndex int) ([]entities.GeneralLesson, error)
@@ -55,9 +55,9 @@ func (s *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectI
 	return
 }
 
-func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeName string, startDate, endDate time.Time, onlyGeneral bool, asPreview bool) (entities.Schedule, error) {
+func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, role string, roleName string, startDate, endDate time.Time, onlyGeneral bool, _ bool) (entities.Schedule, error) {
 	cursor, err := s.generalLessons.Aggregate(ctx, bson.A{
-		bson.M{"$match": bson.M{"studyPlaceId": studyPlaceID, type_: typeName}},
+		bson.M{"$match": bson.M{"studyPlaceId": studyPlaceID, role: roleName}},
 		bson.M{"$group": bson.M{
 			"_id":     bson.M{"dayIndex": "$dayIndex", "weekIndex": "$weekIndex"},
 			"lessons": bson.M{"$push": "$$ROOT"},
@@ -123,7 +123,7 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 							"$expr": bson.M{
 								"$and": bson.A{
 									bson.M{"$eq": bson.A{onlyGeneral, false}},
-									bson.M{"$eq": bson.A{"$" + type_, typeName}},
+									bson.M{"$eq": bson.A{"$" + role, roleName}},
 									bson.M{"$eq": bson.A{"$studyPlaceId", studyPlaceID}},
 									bson.M{"$gte": bson.A{"$startDate", "$$from"}},
 									bson.M{"$lt": bson.A{"$startDate", "$$till"}},
@@ -158,8 +158,8 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 				"_id": nil,
 				"info": bson.M{"$first": bson.M{
 					"studyPlaceID": studyPlaceID,
-					"type":         type_,
-					"typeName":     typeName,
+					"role":         role,
+					"roleName":     roleName,
 					"startDate":    startDate,
 					"endDate":      endDate,
 				}},
@@ -180,8 +180,8 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 		return entities.Schedule{
 			Info: entities.Info{
 				StudyPlaceID: primitive.NilObjectID,
-				Type:         type_,
-				TypeName:     typeName,
+				Role:         role,
+				RoleName:     roleName,
 				StartDate:    startDate,
 				EndDate:      endDate,
 				Date:         time.Now(),
@@ -197,8 +197,8 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 	return schedule, nil
 }
 
-func (s *repository) GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, type_ string) []string {
-	namesInterface, _ := s.lessons.Distinct(ctx, type_, bson.M{"studyPlaceId": studyPlaceId})
+func (s *repository) GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, role string) []string {
+	namesInterface, _ := s.lessons.Distinct(ctx, role, bson.M{"studyPlaceId": studyPlaceId})
 
 	names := make([]string, len(namesInterface))
 	for i, v := range namesInterface {
@@ -296,8 +296,8 @@ func (s *repository) RemoveGroupLessonBetweenDates(ctx context.Context, date1, d
 	return err
 }
 
-func (s *repository) RemoveGeneralLessonsByType(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typename string) error {
-	_, err := s.generalLessons.DeleteMany(ctx, bson.M{"studyPlaceId": studyPlaceID, type_: typename})
+func (s *repository) RemoveGeneralLessonsByType(ctx context.Context, studyPlaceID primitive.ObjectID, role string, roleName string) error {
+	_, err := s.generalLessons.DeleteMany(ctx, bson.M{"studyPlaceId": studyPlaceID, role: roleName})
 	return err
 }
 

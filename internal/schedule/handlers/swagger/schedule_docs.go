@@ -81,7 +81,7 @@ const docTemplateschedule = `{
                     },
                     {
                         "type": "string",
-                        "description": "Typename",
+                        "description": "RoleName",
                         "name": "name",
                         "in": "path",
                         "required": true
@@ -145,7 +145,7 @@ const docTemplateschedule = `{
                     },
                     {
                         "type": "string",
-                        "description": "Typename",
+                        "description": "RoleName",
                         "name": "name",
                         "in": "path",
                         "required": true

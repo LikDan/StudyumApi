@@ -25,6 +25,6 @@ type VerificationCode struct {
 type SignUpStage1 struct {
 	Name         string             `json:"name" binding:"req"`
 	StudyPlaceID primitive.ObjectID `json:"studyPlaceID"`
-	Type         string             `json:"type" binding:"req"`
-	TypeName     string             `json:"typeName" binding:"req"`
+	Role         string             `json:"role" binding:"req"`
+	RoleName     string             `json:"roleName" binding:"req"`
 }

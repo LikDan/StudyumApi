@@ -129,9 +129,9 @@ func (u *controller) CreateCode(ctx context.Context, user entities.User, data dt
 		Id:           primitive.NewObjectID(),
 		Code:         data.Code,
 		Name:         data.Name,
-		StudyPlaceID: user.StudyPlaceID,
-		Type:         data.Type,
-		Typename:     data.TypeName,
+		StudyPlaceID: user.StudyPlaceInfo.ID,
+		Role:         data.Role,
+		RoleName:     data.RoleName,
 		Password:     password,
 	}
 
@@ -145,7 +145,7 @@ func (u *controller) CreateCode(ctx context.Context, user entities.User, data dt
 }
 
 func (u *controller) GetAccept(ctx context.Context, user entities.User) ([]entities2.AcceptUser, error) {
-	users, err := u.repository.GetAccept(ctx, user.StudyPlaceID)
+	users, err := u.repository.GetAccept(ctx, user.StudyPlaceInfo.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -155,11 +155,11 @@ func (u *controller) GetAccept(ctx context.Context, user entities.User) ([]entit
 }
 
 func (u *controller) Accept(ctx context.Context, user entities.User, acceptUserID primitive.ObjectID) error {
-	return u.repository.Accept(ctx, user.StudyPlaceID, acceptUserID)
+	return u.repository.Accept(ctx, user.StudyPlaceInfo.ID, acceptUserID)
 }
 
 func (u *controller) Block(ctx context.Context, user entities.User, blockUserID primitive.ObjectID) error {
-	return u.repository.Block(ctx, user.StudyPlaceID, blockUserID)
+	return u.repository.Block(ctx, user.StudyPlaceInfo.ID, blockUserID)
 }
 
 func (u *controller) GetDataByCode(ctx context.Context, code string) (entities2.SignUpCode, error) {

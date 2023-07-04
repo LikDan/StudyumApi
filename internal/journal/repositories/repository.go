@@ -79,8 +79,8 @@ func (j *repository) GenerateMarksReport(ctx context.Context, group string, less
 			"$project": bson.M{
 				"user._id":          1,
 				"user.name":         1,
-				"user.type":         1,
-				"user.typename":     1,
+				"user.role":         1,
+				"user.roleName":     1,
 				"user.studyPlaceID": 1,
 			},
 		},
@@ -91,8 +91,8 @@ func (j *repository) GenerateMarksReport(ctx context.Context, group string, less
 					bson.M{
 						"$project": bson.M{
 							"name":         1,
-							"type":         1,
-							"typename":     1,
+							"role":         1,
+							"roleName":     1,
 							"studyPlaceID": 1,
 						},
 					},
@@ -106,7 +106,7 @@ func (j *repository) GenerateMarksReport(ctx context.Context, group string, less
 					"$filter": bson.M{
 						"input": bson.M{"$concatArrays": bson.A{"$codeUsers", "$user"}},
 						"as":    "user",
-						"cond":  bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$$user.type", "group"}}, bson.M{"$eq": bson.A{"$$user.typename", group}}, bson.M{"$eq": bson.A{"$$user.studyPlaceID", studyPlaceId}}}},
+						"cond":  bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$$user.role", "group"}}, bson.M{"$eq": bson.A{"$$user.roleName", group}}, bson.M{"$eq": bson.A{"$$user.studyPlaceID", studyPlaceId}}}},
 					},
 				},
 			},
@@ -268,8 +268,8 @@ func (j *repository) GenerateAbsencesReport(ctx context.Context, group string, f
 			"$project": bson.M{
 				"user._id":          1,
 				"user.name":         1,
-				"user.type":         1,
-				"user.typename":     1,
+				"user.role":         1,
+				"user.roleName":     1,
 				"user.studyPlaceID": 1,
 			},
 		},
@@ -280,8 +280,8 @@ func (j *repository) GenerateAbsencesReport(ctx context.Context, group string, f
 					bson.M{
 						"$project": bson.M{
 							"name":         1,
-							"type":         1,
-							"typename":     1,
+							"role":         1,
+							"roleName":     1,
 							"studyPlaceID": 1,
 						},
 					},
@@ -295,7 +295,7 @@ func (j *repository) GenerateAbsencesReport(ctx context.Context, group string, f
 					"$filter": bson.M{
 						"input": bson.M{"$concatArrays": bson.A{"$codeUsers", "$user"}},
 						"as":    "user",
-						"cond":  bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$$user.type", "group"}}, bson.M{"$eq": bson.A{"$$user.typename", group}}, bson.M{"$eq": bson.A{"$$user.studyPlaceID", studyPlaceId}}}},
+						"cond":  bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$$user.role", "group"}}, bson.M{"$eq": bson.A{"$$user.roleName", group}}, bson.M{"$eq": bson.A{"$$user.studyPlaceID", studyPlaceId}}}},
 					},
 				},
 			},
@@ -432,8 +432,8 @@ func (j *repository) getAvailableOptions(ctx context.Context, matcher bson.M, ed
 							bson.M{
 								"$project": bson.M{
 									"name":         1,
-									"type":         1,
-									"typename":     1,
+									"role":         1,
+									"roleName":     1,
 									"studyPlaceID": 1,
 								},
 							},
@@ -449,7 +449,7 @@ func (j *repository) getAvailableOptions(ctx context.Context, matcher bson.M, ed
 								"as":    "user",
 								"cond": bson.M{
 									"$and": bson.A{
-										bson.M{"$eq": bson.A{"$$user.typename", "$$group"}},
+										bson.M{"$eq": bson.A{"$$user.roleName", "$$group"}},
 									},
 								},
 							},
@@ -655,8 +655,8 @@ func (j *repository) GetJournal(ctx context.Context, option entities.AvailableOp
 			"$project": bson.M{
 				"user._id":          1,
 				"user.name":         1,
-				"user.type":         1,
-				"user.typename":     1,
+				"user.role":         1,
+				"user.roleName":     1,
 				"user.studyPlaceID": 1,
 			},
 		},
@@ -667,8 +667,8 @@ func (j *repository) GetJournal(ctx context.Context, option entities.AvailableOp
 					bson.M{
 						"$project": bson.M{
 							"name":         1,
-							"type":         1,
-							"typename":     1,
+							"role":         1,
+							"roleName":     1,
 							"studyPlaceID": 1,
 						},
 					},
@@ -682,7 +682,7 @@ func (j *repository) GetJournal(ctx context.Context, option entities.AvailableOp
 					"$filter": bson.M{
 						"input": bson.M{"$concatArrays": bson.A{"$codeUsers", "$user"}},
 						"as":    "user",
-						"cond":  bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$$user.type", "group"}}, bson.M{"$eq": bson.A{"$$user.typename", option.Group}}, bson.M{"$eq": bson.A{"$$user.studyPlaceID", studyPlaceId}}}},
+						"cond":  bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$$user.role", "group"}}, bson.M{"$eq": bson.A{"$$user.roleName", option.Group}}, bson.M{"$eq": bson.A{"$$user.studyPlaceID", studyPlaceId}}}},
 					},
 				},
 			},

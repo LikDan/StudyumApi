@@ -66,8 +66,8 @@ func NewScheduleHandler(middleware auth.Middleware, controller controllers.Contr
 }
 
 // GetSchedule godoc
-// @Param type path string true "Type"
-// @Param name path string true "Typename"
+// @Param type path string true "Role"
+// @Param name path string true "RoleName"
 // @Router /{type}/{name} [get]
 func (s *handler) GetSchedule(ctx *gin.Context) {
 	user := s.GetUser(ctx)
@@ -78,10 +78,10 @@ func (s *handler) GetSchedule(ctx *gin.Context) {
 	endDateStr := ctx.Query("endDate")
 	endDate, _ := time.Parse(time.RFC3339, endDateStr)
 
-	type_ := ctx.Param("type")
-	typeName := ctx.Param("name")
+	role := ctx.Param("type")
+	roleName := ctx.Param("name")
 
-	schedule, err := s.controller.GetSchedule(ctx, user, studyPlaceID, type_, typeName, startDate, endDate)
+	schedule, err := s.controller.GetSchedule(ctx, user, studyPlaceID, role, roleName, startDate, endDate)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
@@ -111,22 +111,22 @@ func (s *handler) GetUserSchedule(ctx *gin.Context) {
 
 // GetGeneralSchedule godoc
 // @Param type path string true "Type"
-// @Param name path string true "Typename"
+// @Param name path string true "RoleName"
 // @Router /general/{type}/{name} [get]
 func (s *handler) GetGeneralSchedule(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
 	studyPlaceID := ctx.Query("studyPlaceID")
 
-	type_ := ctx.Param("type")
-	typeName := ctx.Param("name")
+	role := ctx.Param("type")
+	roleName := ctx.Param("name")
 
 	startDateStr := ctx.Query("startDate")
 	startDate, _ := time.Parse(time.RFC3339, startDateStr)
 	endDateStr := ctx.Query("endDate")
 	endDate, _ := time.Parse(time.RFC3339, endDateStr)
 
-	schedule, err := s.controller.GetGeneralSchedule(ctx, user, studyPlaceID, type_, typeName, startDate, endDate)
+	schedule, err := s.controller.GetGeneralSchedule(ctx, user, studyPlaceID, role, roleName, startDate, endDate)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
@@ -320,10 +320,10 @@ func (s *handler) AddGeneralLessons(ctx *gin.Context) {
 func (s *handler) SaveCurrentScheduleAsGeneral(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
-	type_ := ctx.Query("type")
-	typeName := ctx.Query("typeName")
+	role := ctx.Query("type")
+	roleName := ctx.Query("roleName")
 
-	err := s.controller.SaveCurrentScheduleAsGeneral(ctx, user, type_, typeName)
+	err := s.controller.SaveCurrentScheduleAsGeneral(ctx, user, role, roleName)
 	if err != nil {
 		_ = ctx.Error(err)
 		return

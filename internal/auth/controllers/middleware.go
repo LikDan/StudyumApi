@@ -65,7 +65,7 @@ func (c *middleware) MemberAuth(ctx context.Context, pair entities2.TokenPair, i
 		return entities2.TokenPair{}, false, entities.User{}, err
 	}
 
-	if !user.Accepted || user.Blocked {
+	if !user.StudyPlaceInfo.Accepted {
 		return entities2.TokenPair{}, false, entities.User{}, ForbiddenErr
 	}
 
@@ -89,7 +89,7 @@ func (c *middleware) AuthViaApiToken(ctx context.Context, token string) (entitie
 func (c *middleware) hasPermission(user entities.User, permissions []string) bool {
 	for _, permission := range permissions {
 		found := false
-		for _, uPermission := range user.Permissions {
+		for _, uPermission := range user.StudyPlaceInfo.Permissions {
 			if uPermission == permission {
 				found = true
 				continue

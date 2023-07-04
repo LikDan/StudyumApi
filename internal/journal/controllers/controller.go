@@ -47,7 +47,7 @@ func NewController(journal Journal, repository repositories.Repository, encrypt 
 }
 
 func (j *controller) GenerateMarksReport(ctx context.Context, config dtos.MarksReport, user auth.User) (*excelize.File, error) {
-	table, err := j.repository.GenerateMarksReport(ctx, user.TuitionGroup, config.LessonType, config.Mark, config.StartDate, config.EndDate, user.StudyPlaceID)
+	table, err := j.repository.GenerateMarksReport(ctx, user.StudyPlaceInfo.TuitionGroup, config.LessonType, config.Mark, config.StartDate, config.EndDate, user.StudyPlaceInfo.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (j *controller) GenerateMarksReport(ctx context.Context, config dtos.MarksR
 	if err = f.MergeCell(sheetName, "B1", "D1"); err != nil {
 		return nil, err
 	}
-	err = f.SetCellValue(sheetName, "B1", user.TypeName+" -> "+user.TuitionGroup)
+	err = f.SetCellValue(sheetName, "B1", user.StudyPlaceInfo.RoleName+" -> "+user.StudyPlaceInfo.TuitionGroup)
 
 	column := "B"
 	for _, title := range table.Titles {
@@ -94,7 +94,7 @@ func (j *controller) GenerateMarksReport(ctx context.Context, config dtos.MarksR
 }
 
 func (j *controller) GenerateAbsencesReport(ctx context.Context, config dtos.AbsencesReport, user auth.User) (*excelize.File, error) {
-	table, err := j.repository.GenerateAbsencesReport(ctx, user.TuitionGroup, config.StartDate, config.EndDate, user.StudyPlaceID)
+	table, err := j.repository.GenerateAbsencesReport(ctx, user.StudyPlaceInfo.TuitionGroup, config.StartDate, config.EndDate, user.StudyPlaceInfo.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (j *controller) GenerateAbsencesReport(ctx context.Context, config dtos.Abs
 	if err = f.MergeCell(sheetName, "B1", "D1"); err != nil {
 		return nil, err
 	}
-	err = f.SetCellValue(sheetName, "B1", user.TypeName+" -> "+user.TuitionGroup)
+	err = f.SetCellValue(sheetName, "B1", user.StudyPlaceInfo.RoleName+" -> "+user.StudyPlaceInfo.TuitionGroup)
 
 	column := "B"
 	for _, title := range table.Titles {
@@ -173,7 +173,7 @@ func (j *controller) checkMarkExistence(ctx context.Context, mark dtos.AddMarkDT
 func (j *controller) AddMarks(ctx context.Context, addDTO []dtos.AddMarkDTO, user auth.User) ([]entities.Mark, error) {
 	marks := make([]entities.Mark, len(addDTO))
 	for i, markDTO := range addDTO {
-		if markDTO.Mark == "" || markDTO.StudentID.IsZero() || markDTO.LessonID.IsZero() || !j.checkMarkExistence(ctx, markDTO, user.StudyPlaceID) {
+		if markDTO.Mark == "" || markDTO.StudentID.IsZero() || markDTO.LessonID.IsZero() || !j.checkMarkExistence(ctx, markDTO, user.StudyPlaceInfo.ID) {
 			return nil, NotValidParams
 		}
 
@@ -182,14 +182,14 @@ func (j *controller) AddMarks(ctx context.Context, addDTO []dtos.AddMarkDTO, use
 			Mark:         markDTO.Mark,
 			StudentID:    markDTO.StudentID,
 			LessonID:     markDTO.LessonID,
-			StudyPlaceID: user.StudyPlaceID,
+			StudyPlaceID: user.StudyPlaceInfo.ID,
 		}
 
-		if err := j.repository.AddMark(ctx, mark, user.TypeName); err != nil {
+		if err := j.repository.AddMark(ctx, mark, user.StudyPlaceInfo.RoleName); err != nil {
 			return nil, err
 		}
 
-		j.apps.AsyncEvent(user.StudyPlaceID, "AddMark", mark)
+		j.apps.AsyncEvent(user.StudyPlaceInfo.ID, "AddMark", mark)
 
 		marks[i] = mark
 	}
@@ -198,7 +198,7 @@ func (j *controller) AddMarks(ctx context.Context, addDTO []dtos.AddMarkDTO, use
 }
 
 func (j *controller) AddMark(ctx context.Context, addDTO dtos.AddMarkDTO, user auth.User) (entities.CellResponse, error) {
-	if addDTO.Mark == "" || addDTO.StudentID.IsZero() || addDTO.LessonID.IsZero() || !j.checkMarkExistence(ctx, addDTO, user.StudyPlaceID) {
+	if addDTO.Mark == "" || addDTO.StudentID.IsZero() || addDTO.LessonID.IsZero() || !j.checkMarkExistence(ctx, addDTO, user.StudyPlaceInfo.ID) {
 		return entities.CellResponse{}, NotValidParams
 	}
 
@@ -207,20 +207,20 @@ func (j *controller) AddMark(ctx context.Context, addDTO dtos.AddMarkDTO, user a
 		Mark:         addDTO.Mark,
 		StudentID:    addDTO.StudentID,
 		LessonID:     addDTO.LessonID,
-		StudyPlaceID: user.StudyPlaceID,
+		StudyPlaceID: user.StudyPlaceInfo.ID,
 	}
 
-	if err := j.repository.AddMark(ctx, mark, user.TypeName); err != nil {
+	if err := j.repository.AddMark(ctx, mark, user.StudyPlaceInfo.RoleName); err != nil {
 		return entities.CellResponse{}, err
 	}
 
-	j.apps.AsyncEvent(user.StudyPlaceID, "AddMark", mark)
+	j.apps.AsyncEvent(user.StudyPlaceInfo.ID, "AddMark", mark)
 
 	return j.journal.GetUpdateInfo(ctx, mark.StudentID, mark.LessonID)
 }
 
 func (j *controller) UpdateMark(ctx context.Context, user auth.User, updateDTO dtos.UpdateMarkDTO) (entities.CellResponse, error) {
-	if updateDTO.Mark == "" || updateDTO.ID.IsZero() || updateDTO.LessonID.IsZero() || !j.checkMarkExistence(ctx, updateDTO.AddMarkDTO, user.StudyPlaceID) {
+	if updateDTO.Mark == "" || updateDTO.ID.IsZero() || updateDTO.LessonID.IsZero() || !j.checkMarkExistence(ctx, updateDTO.AddMarkDTO, user.StudyPlaceInfo.ID) {
 		return entities.CellResponse{}, NotValidParams
 	}
 
@@ -231,11 +231,11 @@ func (j *controller) UpdateMark(ctx context.Context, user auth.User, updateDTO d
 		LessonID:  updateDTO.LessonID,
 	}
 
-	if err := j.repository.UpdateMark(ctx, mark, user.TypeName); err != nil {
+	if err := j.repository.UpdateMark(ctx, mark, user.StudyPlaceInfo.RoleName); err != nil {
 		return entities.CellResponse{}, err
 	}
 
-	j.apps.AsyncEvent(user.StudyPlaceID, "UpdateMark", mark)
+	j.apps.AsyncEvent(user.StudyPlaceInfo.ID, "UpdateMark", mark)
 
 	return j.journal.GetUpdateInfo(ctx, mark.StudentID, mark.LessonID)
 }
@@ -251,9 +251,9 @@ func (j *controller) DeleteMark(ctx context.Context, user auth.User, markIdHex s
 		return entities.CellResponse{}, err
 	}
 
-	j.apps.Event(user.StudyPlaceID, "RemoveMark", mark)
+	j.apps.Event(user.StudyPlaceInfo.ID, "RemoveMark", mark)
 
-	if err = j.repository.DeleteMarkByID(ctx, markId, user.TypeName); err != nil {
+	if err = j.repository.DeleteMarkByID(ctx, markId, user.StudyPlaceInfo.RoleName); err != nil {
 		return entities.CellResponse{}, err
 	}
 
@@ -272,14 +272,14 @@ func (j *controller) AddAbsences(ctx context.Context, dto []dtos.AddAbsencesDTO,
 			Time:         markDTO.Time,
 			StudentID:    markDTO.StudentID,
 			LessonID:     markDTO.LessonID,
-			StudyPlaceID: user.StudyPlaceID,
+			StudyPlaceID: user.StudyPlaceInfo.ID,
 		}
 
-		if err := j.repository.AddAbsence(ctx, absence, user.TypeName); err != nil {
+		if err := j.repository.AddAbsence(ctx, absence, user.StudyPlaceInfo.RoleName); err != nil {
 			return nil, err
 		}
 
-		j.apps.AsyncEvent(user.StudyPlaceID, "AddAbsence", absence)
+		j.apps.AsyncEvent(user.StudyPlaceInfo.ID, "AddAbsence", absence)
 
 		absences[i] = absence
 	}
@@ -297,15 +297,15 @@ func (j *controller) AddAbsence(ctx context.Context, dto dtos.AddAbsencesDTO, us
 		Time:         dto.Time,
 		StudentID:    dto.StudentID,
 		LessonID:     dto.LessonID,
-		StudyPlaceID: user.StudyPlaceID,
+		StudyPlaceID: user.StudyPlaceInfo.ID,
 	}
 
-	err := j.repository.AddAbsence(ctx, absence, user.TypeName)
+	err := j.repository.AddAbsence(ctx, absence, user.StudyPlaceInfo.RoleName)
 	if err != nil {
 		return entities.CellResponse{}, err
 	}
 
-	j.apps.AsyncEvent(user.StudyPlaceID, "AddAbsence", absence)
+	j.apps.AsyncEvent(user.StudyPlaceInfo.ID, "AddAbsence", absence)
 
 	return j.journal.GetUpdateInfo(ctx, absence.StudentID, absence.LessonID)
 }
@@ -320,14 +320,14 @@ func (j *controller) UpdateAbsence(ctx context.Context, user auth.User, dto dtos
 		Time:         dto.Time,
 		StudentID:    dto.StudentID,
 		LessonID:     dto.LessonID,
-		StudyPlaceID: user.StudyPlaceID,
+		StudyPlaceID: user.StudyPlaceInfo.ID,
 	}
 
-	if err := j.repository.UpdateAbsence(ctx, absence, user.TypeName); err != nil {
+	if err := j.repository.UpdateAbsence(ctx, absence, user.StudyPlaceInfo.RoleName); err != nil {
 		return entities.CellResponse{}, err
 	}
 
-	j.apps.AsyncEvent(user.StudyPlaceID, "UpdateAbsence", absence)
+	j.apps.AsyncEvent(user.StudyPlaceInfo.ID, "UpdateAbsence", absence)
 
 	return j.journal.GetUpdateInfo(ctx, absence.StudentID, absence.LessonID)
 }
@@ -343,9 +343,9 @@ func (j *controller) DeleteAbsence(ctx context.Context, user auth.User, idHex st
 		return entities.CellResponse{}, err
 	}
 
-	j.apps.AsyncEvent(user.StudyPlaceID, "RemoveAbsence", entities.DeleteAbsenceID{ID: absence.ID})
+	j.apps.AsyncEvent(user.StudyPlaceInfo.ID, "RemoveAbsence", entities.DeleteAbsenceID{ID: absence.ID})
 
-	if err = j.repository.DeleteAbsenceByID(ctx, id, user.TypeName); err != nil {
+	if err = j.repository.DeleteAbsenceByID(ctx, id, user.StudyPlaceInfo.RoleName); err != nil {
 		return entities.CellResponse{}, err
 	}
 

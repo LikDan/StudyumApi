@@ -102,14 +102,17 @@ func (c *auth) SignUp(ctx context.Context, ip string, data dto.SignUp) (entities
 		c.encryption.Decrypt(&code)
 
 		user = entities.User{
-			Id:           code.Id,
-			Password:     code.DefaultPassword,
-			Login:        data.Login,
-			Type:         code.Type,
-			TypeName:     code.Typename,
-			StudyPlaceID: code.StudyPlaceID,
-			Name:         code.Name,
-			Accepted:     true,
+			Id:       code.Id,
+			Password: code.DefaultPassword,
+			Login:    data.Login,
+			StudyPlaceInfo: entities.UserStudyPlaceInfo{
+				ID:           code.StudyPlaceID,
+				Name:         code.Name,
+				Role:         code.Role,
+				RoleName:     code.RoleName,
+				TuitionGroup: "", //todo
+				Accepted:     false,
+			},
 		}
 	} else {
 		password, err := hash.Hash(data.Password)
@@ -149,11 +152,14 @@ func (c *auth) SignUp(ctx context.Context, ip string, data dto.SignUp) (entities
 }
 
 func (c *auth) SignUpStage1(ctx context.Context, user entities.User, data dto.SignUpStage1) (entities.User, error) {
-	user.Type = data.Type
-	user.TypeName = data.TypeName
-	user.StudyPlaceID = data.StudyPlaceID
-	user.Blocked = false
-	user.Accepted = false
+	user.StudyPlaceInfo = entities.UserStudyPlaceInfo{
+		ID:           data.StudyPlaceID,
+		Name:         data.Name,
+		Role:         data.Role,
+		RoleName:     data.RoleName,
+		TuitionGroup: "", //todo
+		Accepted:     false,
+	}
 
 	if err := c.repository.UpdateUser(ctx, user); err != nil {
 		return entities.User{}, err
@@ -171,12 +177,14 @@ func (c *auth) SignUpStage1ViaCode(ctx context.Context, user entities.User, code
 		return entities.User{}, err
 	}
 
-	user.Type = data.Type
-	user.TypeName = data.Typename
-	user.StudyPlaceID = data.StudyPlaceID
-	user.Name = data.Name
-	user.Blocked = false
-	user.Accepted = true
+	user.StudyPlaceInfo = entities.UserStudyPlaceInfo{
+		ID:           data.StudyPlaceID,
+		Name:         data.Name,
+		Role:         data.Role,
+		RoleName:     data.RoleName,
+		TuitionGroup: "", //todo
+		Accepted:     true,
+	}
 
 	if err = c.repository.UpdateUser(ctx, user); err != nil {
 		return entities.User{}, err

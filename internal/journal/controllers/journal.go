@@ -55,16 +55,16 @@ func (c *journal) rowAverageMark(row entities.Row) float32 {
 	return float32(sum) / float32(amount)
 }
 
-func (c *journal) markColor(colorSet general.JournalColors, date time.Time, type_ general.LessonType, mark entities.Mark) string {
+func (c *journal) markColor(colorSet general.JournalColors, date time.Time, role general.LessonType, mark entities.Mark) string {
 	var markType general.MarkType
-	for _, markType_ := range type_.Marks {
+	for _, markType_ := range role.Marks {
 		if markType_.Mark == mark.Mark {
 			markType = markType_
 		}
 	}
 
 	if markType.Mark == "" {
-		for _, markType_ := range type_.StandaloneMarks {
+		for _, markType_ := range role.StandaloneMarks {
 			if markType_.Mark == mark.Mark {
 				markType = markType_
 			}
@@ -87,13 +87,13 @@ func (c *journal) markColor(colorSet general.JournalColors, date time.Time, type
 	return colorSet.Danger
 }
 
-func (c *journal) absenceColor(colorSet general.JournalColors, date time.Time, type_ general.LessonType, absence entities.Absence) string {
+func (c *journal) absenceColor(colorSet general.JournalColors, date time.Time, role general.LessonType, absence entities.Absence) string {
 	if absence.Time != nil {
 		return colorSet.General
 	}
 
 	now := time.Now()
-	if date.Add(type_.AbsenceWorkOutTime).After(now) {
+	if date.Add(role.AbsenceWorkOutTime).After(now) {
 		return colorSet.Warning
 	}
 
@@ -102,20 +102,20 @@ func (c *journal) absenceColor(colorSet general.JournalColors, date time.Time, t
 
 func (c *journal) cellColor(studyPlace general.StudyPlace, date time.Time, cell entities.Cell) string {
 	cellType := cell.Type[0]
-	var type_ = general.LessonType{}
+	var role = general.LessonType{}
 	for _, t := range studyPlace.LessonTypes {
 		if cellType == t.Type {
-			type_ = t
+			role = t
 		}
 	}
 
-	if type_.Type == "" {
+	if role.Type == "" {
 		return studyPlace.JournalColors.General
 	}
 
 	color := studyPlace.JournalColors.General
 	for _, m := range cell.Marks {
-		markColor := c.markColor(studyPlace.JournalColors, date, type_, m)
+		markColor := c.markColor(studyPlace.JournalColors, date, role, m)
 		if markColor == studyPlace.JournalColors.General {
 			return markColor
 		}
@@ -129,7 +129,7 @@ func (c *journal) cellColor(studyPlace general.StudyPlace, date time.Time, cell 
 	}
 
 	if len(cell.Absences) != 0 {
-		if color := c.absenceColor(studyPlace.JournalColors, date, type_, cell.Absences[0]); color != studyPlace.JournalColors.General {
+		if color := c.absenceColor(studyPlace.JournalColors, date, role, cell.Absences[0]); color != studyPlace.JournalColors.General {
 			return color
 		}
 	}
@@ -286,11 +286,11 @@ func (c *journal) GetUpdateInfo(ctx context.Context, userID, lessonID primitive.
 }
 
 func (c *journal) BuildAvailableOptions(ctx context.Context, user auth.User) ([]entities.AvailableOption, error) {
-	if user.Type == "group" {
+	if user.StudyPlaceInfo.Role == "group" {
 		return []entities.AvailableOption{{
 			Teacher:  "",
 			Subject:  "",
-			Group:    user.TypeName,
+			Group:    user.StudyPlaceInfo.Role,
 			Editable: false,
 		}}, nil
 	}
@@ -312,19 +312,19 @@ func (c *journal) BuildAvailableOptions(ctx context.Context, user auth.User) ([]
 		}
 	}
 
-	teacherOptions, err := c.repository.GetAvailableOptions(ctx, user.StudyPlaceID, user.TypeName, slices.Contains(user.Permissions, "editJournal"))
+	teacherOptions, err := c.repository.GetAvailableOptions(ctx, user.StudyPlaceInfo.ID, user.StudyPlaceInfo.RoleName, slices.Contains(user.StudyPlaceInfo.Permissions, "editJournal"))
 	if err != nil {
 		return nil, err
 	}
 
 	appendOptions(teacherOptions)
 
-	if tuitionOptions, err := c.repository.GetAvailableTuitionOptions(ctx, user.StudyPlaceID, user.TuitionGroup, false); err == nil {
+	if tuitionOptions, err := c.repository.GetAvailableTuitionOptions(ctx, user.StudyPlaceInfo.ID, user.StudyPlaceInfo.TuitionGroup, false); err == nil {
 		appendOptions(tuitionOptions)
 	}
 
 	if utils.HasPermission(user, "viewJournals") {
-		adminOptions, err := c.repository.GetAllAvailableOptions(ctx, user.StudyPlaceID, false)
+		adminOptions, err := c.repository.GetAllAvailableOptions(ctx, user.StudyPlaceInfo.ID, false)
 		if err == nil {
 			appendOptions(adminOptions)
 		}
@@ -360,7 +360,7 @@ func (c *journal) BuildSubjectsJournal(ctx context.Context, group string, subjec
 		return entities.Journal{}, ErrNoPermission
 	}
 
-	journal, err := c.repository.GetJournal(ctx, *option, user.StudyPlaceID)
+	journal, err := c.repository.GetJournal(ctx, *option, user.StudyPlaceInfo.ID)
 	if err != nil {
 		return entities.Journal{}, err
 	}
@@ -382,7 +382,7 @@ func (c *journal) BuildSubjectsJournal(ctx context.Context, group string, subjec
 }
 
 func (c *journal) BuildStudentsJournal(ctx context.Context, user auth.User) (entities.Journal, error) {
-	journal, err := c.repository.GetStudentJournal(ctx, user.Id, user.TypeName, user.StudyPlaceID)
+	journal, err := c.repository.GetStudentJournal(ctx, user.Id, user.StudyPlaceInfo.RoleName, user.StudyPlaceInfo.ID)
 	if err != nil {
 		return entities.Journal{}, err
 	}

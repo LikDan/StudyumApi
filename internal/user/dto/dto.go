@@ -10,8 +10,8 @@ type Edit struct {
 type CreateCode struct {
 	Code     string `json:"code" binding:"req"`
 	Name     string `json:"name" binding:"req"`
-	Type     string `json:"type" binding:"req"`
-	TypeName string `json:"typeName" binding:"req"`
+	Role     string `json:"role" binding:"req"`
+	RoleName string `json:"roleName" binding:"req"`
 	Password string `json:"password" binding:"min=8"`
 }
 

@@ -10,8 +10,8 @@ type Data map[string]any
 type User struct {
 	ID           primitive.ObjectID `json:"id" bson:"_id"`
 	Name         string             `json:"name" bson:"name" encryption:""`
-	Type         string             `json:"type" bson:"type"`
-	TypeName     string             `json:"typeName" bson:"typename"`
+	Role         string             `json:"role" bson:"role"`
+	RoleName     string             `json:"roleName" bson:"roleName"`
 	TuitionGroup string             `json:"tuitionGroup" bson:"tuitionGroup"`
 	Data         Data               `json:"data" bson:"appData"`
 }

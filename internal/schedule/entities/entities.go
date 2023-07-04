@@ -56,8 +56,8 @@ type GeneralLesson struct {
 
 type Info struct {
 	StudyPlaceID primitive.ObjectID `json:"studyPlaceID" bson:"studyPlaceID"`
-	Type         string             `json:"type" bson:"type"`
-	TypeName     string             `json:"typeName" bson:"typeName"`
+	Role         string             `json:"role" bson:"role"`
+	RoleName     string             `json:"roleName" bson:"roleName"`
 	StartDate    time.Time          `json:"startDate" bson:"startDate"`
 	EndDate      time.Time          `json:"endDate" bson:"endDate"`
 	Date         time.Time          `json:"date" bson:"date"`

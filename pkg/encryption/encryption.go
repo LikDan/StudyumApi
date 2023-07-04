@@ -59,6 +59,10 @@ func (e *encryption) EncryptString(s string) string {
 func (e *encryption) DecryptString(s string) string {
 	ciphertext, _ := base64.URLEncoding.DecodeString(s)
 
+	if len(ciphertext) <= aes.BlockSize {
+		return ""
+	}
+
 	iv := ciphertext[:aes.BlockSize]
 	ciphertext = ciphertext[aes.BlockSize:]
 

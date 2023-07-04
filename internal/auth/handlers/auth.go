@@ -218,7 +218,7 @@ func (h *Auth) AuthUser(ctx context.Context, request *protoauth.AuthRequest) (*p
 	successfully := true
 	for _, requiredPermission := range request.RequiredPermissions {
 		found := false
-		for _, permission := range user.Permissions {
+		for _, permission := range user.StudyPlaceInfo.Permissions {
 			if requiredPermission == permission {
 				found = true
 				break
@@ -237,8 +237,8 @@ func (h *Auth) AuthUser(ctx context.Context, request *protoauth.AuthRequest) (*p
 	return &protoauth.AuthResponse{
 		User: &protoauth.User{
 			Id:           user.Id.Hex(),
-			Name:         user.Name,
-			StudyPlaceID: user.StudyPlaceID.Hex(),
+			Name:         user.Login,
+			StudyPlaceID: user.StudyPlaceInfo.ID.Hex(),
 		},
 		Update: update,
 		Jwt: &protoauth.JWT{

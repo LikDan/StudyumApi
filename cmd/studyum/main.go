@@ -106,12 +106,21 @@ func main() {
 		}
 
 		return jUtils.Claims{
-			IDClaims:    entities.IDClaims{ID: id},
-			UserID:      u.Id.Hex(),
-			Login:       u.Login,
-			Name:        u.Name,
-			PictureURL:  u.PictureUrl,
-			Permissions: u.Permissions,
+			IDClaims:      entities.IDClaims{ID: id},
+			UserID:        u.Id.Hex(),
+			Login:         u.Login,
+			PictureURL:    u.PictureUrl,
+			Email:         u.Email,
+			VerifiedEmail: u.VerifiedEmail,
+			StudyPlaceInfo: jUtils.ClaimsStudyPlaceInfo{
+				Id:           u.StudyPlaceInfo.ID.Hex(),
+				Name:         u.StudyPlaceInfo.Name,
+				Role:         u.StudyPlaceInfo.Role,
+				RoleName:     u.StudyPlaceInfo.RoleName,
+				TuitionGroup: u.StudyPlaceInfo.TuitionGroup,
+				Permissions:  u.StudyPlaceInfo.Permissions,
+				Accepted:     u.StudyPlaceInfo.Accepted,
+			},
 		}, nil
 	})
 
