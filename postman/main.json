@@ -1,0 +1,97 @@
+{
+	"info": {
+		"_postman_id": "0e1584f3-f3fb-46ef-8377-08be6a17fb66",
+		"name": "Studyum",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "2a5ba443-4652-4c63-a69e-a42df86e1d77",
+								"exec": [
+									"pm.globals.set('access_token', pm.cookies.get('access'))",
+									"pm.globals.set('refresh_token', pm.cookies.get('refresh'))"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"_postman_id": "09c1491c-0a42-43ef-a9b2-610111b83a65",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"login\": \"likdan\",\n    \"password\": \"likliklik\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": "https://api.studyum.net/api/user/login"
+					},
+					"response": [
+						{
+							"id": "69ee338f-35c9-429a-94dd-e8a78c372d4b",
+							"name": "LoginStudent",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"login\": \"likdan\",\n    \"password\": \"likliklik\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": "https://api.studyum.net/api/user/login"
+							},
+							"_postman_previewlanguage": null,
+							"header": null,
+							"cookie": [],
+							"responseTime": null,
+							"body": null
+						},
+						{
+							"id": "1fbccb35-fe35-4fe9-b8c5-2335416ba286",
+							"name": "LoginTeacher",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"login\": \"admin\",\n    \"password\": \"likliklik\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": "https://api.studyum.net/api/user/login"
+							},
+							"_postman_previewlanguage": null,
+							"header": null,
+							"cookie": [],
+							"responseTime": null,
+							"body": null
+						}
+					]
+				}
+			],
+			"_postman_id": "721b5319-7988-485a-b5ae-24122d317298"
+		}
+	]
+}
