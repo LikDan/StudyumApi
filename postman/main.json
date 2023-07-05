@@ -23,7 +23,7 @@
 							}
 						}
 					],
-					"_postman_id": "09c1491c-0a42-43ef-a9b2-610111b83a65",
+					"id": "09c1491c-0a42-43ef-a9b2-610111b83a65",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
 					},
@@ -39,7 +39,7 @@
 								}
 							}
 						},
-						"url": "https://api.studyum.net/api/user/login"
+						"url": "https://api.studyum.net/api/user/login2"
 					},
 					"response": [
 						{
@@ -91,7 +91,7 @@
 					]
 				}
 			],
-			"_postman_id": "721b5319-7988-485a-b5ae-24122d317298"
+			"id": "721b5319-7988-485a-b5ae-24122d317298"
 		}
 	]
 }
