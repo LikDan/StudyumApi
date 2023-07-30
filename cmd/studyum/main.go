@@ -53,12 +53,9 @@ func main() {
 	secret := os.Getenv("GMAIL_CLIENT_SECRET")
 	access := os.Getenv("GMAIL_ACCESS_TOKEN")
 	refresh := os.Getenv("GMAIL_REFRESH_TOKEN")
-	mailer := mail.NewMail(context.Background(), mail.Mode(gin.Mode()), id, secret, access, refresh, "email-templates")
+	mailer := mail.NewMail(context.Background(), mail.DebugMode, id, secret, access, refresh, "email-templates")
 
-	err = mailer.Send("likdan.official@gmail.com", "Application started", "Studyum app has been started")
-	if err != nil {
-		logrus.Error(err.Error())
-	}
+	mailer.ForceSend("likdan.official@gmail.com", "Application started", "Studyum app has been started")
 	defer mailer.ForceSend("likdan.official@gmail.com", "Application stopped", "Studyum app has been stopped at"+time.Now().Format("2006-01-02 15:04"))
 
 	defer logrus.Warning("Studyum is stopping at", time.Now().Format("2006-01-02 15:04"))
