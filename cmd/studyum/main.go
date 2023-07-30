@@ -58,7 +58,6 @@ func main() {
 	err = mailer.Send("likdan.official@gmail.com", "Application started", "Studyum app has been started")
 	if err != nil {
 		logrus.Error(err.Error())
-		return
 	}
 	defer mailer.ForceSend("likdan.official@gmail.com", "Application stopped", "Studyum app has been stopped at"+time.Now().Format("2006-01-02 15:04"))
 
