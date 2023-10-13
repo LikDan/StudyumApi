@@ -55,9 +55,13 @@ func (s *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectI
 	return
 }
 
-func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, role string, roleName string, startDate, endDate time.Time, onlyGeneral bool, _ bool) (entities.Schedule, error) {
+func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeName string, startDate, endDate time.Time, onlyGeneral bool, _ bool) (entities.Schedule, error) {
+	if type_ == "student" {
+		type_ = "group"
+	}
+
 	cursor, err := s.generalLessons.Aggregate(ctx, bson.A{
-		bson.M{"$match": bson.M{"studyPlaceId": studyPlaceID, role: roleName}},
+		bson.M{"$match": bson.M{"studyPlaceId": studyPlaceID, type_: typeName}},
 		bson.M{"$group": bson.M{
 			"_id":     bson.M{"dayIndex": "$dayIndex", "weekIndex": "$weekIndex"},
 			"lessons": bson.M{"$push": "$$ROOT"},
@@ -123,7 +127,7 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 							"$expr": bson.M{
 								"$and": bson.A{
 									bson.M{"$eq": bson.A{onlyGeneral, false}},
-									bson.M{"$eq": bson.A{"$" + role, roleName}},
+									bson.M{"$eq": bson.A{"$" + type_, typeName}},
 									bson.M{"$eq": bson.A{"$studyPlaceId", studyPlaceID}},
 									bson.M{"$gte": bson.A{"$startDate", "$$from"}},
 									bson.M{"$lt": bson.A{"$startDate", "$$till"}},
@@ -157,13 +161,28 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 			"$group": bson.M{
 				"_id": nil,
 				"info": bson.M{"$first": bson.M{
-					"studyPlaceID": studyPlaceID,
-					"role":         role,
-					"roleName":     roleName,
-					"startDate":    startDate,
-					"endDate":      endDate,
+					"studyPlaceInfo": bson.M{
+						"_id": studyPlaceID,
+					},
+					"type":      type_,
+					"typeName":  typeName,
+					"startDate": startDate,
+					"endDate":   endDate,
 				}},
 				"lessons": bson.M{"$push": "$$ROOT"},
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "StudyPlaces",
+				"localField":   "info.studyPlaceInfo._id",
+				"foreignField": "_id",
+				"as":           "info.studyPlaceInfo.title",
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"info.studyPlaceInfo.title": bson.M{"$first": "$info.studyPlaceInfo.title.name"},
 			},
 		},
 	})
@@ -179,12 +198,15 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 
 		return entities.Schedule{
 			Info: entities.Info{
-				StudyPlaceID: primitive.NilObjectID,
-				Role:         role,
-				RoleName:     roleName,
-				StartDate:    startDate,
-				EndDate:      endDate,
-				Date:         time.Now(),
+				StudyPlaceInfo: entities.StudyPlaceInfo{
+					Id:    studyPlace.Id,
+					Title: studyPlace.Name,
+				},
+				Type:      type_,
+				TypeName:  typeName,
+				StartDate: startDate,
+				EndDate:   endDate,
+				Date:      time.Now(),
 			},
 		}, nil
 	}

@@ -6,6 +6,7 @@ import (
 	auth "studyum/internal/auth/handlers"
 	"studyum/internal/journal/controllers"
 	"studyum/internal/journal/dtos"
+	"studyum/internal/journal/entities"
 )
 
 type Handler interface {
@@ -51,7 +52,7 @@ func NewJournalHandler(middleware auth.Middleware, controller controllers.Contro
 	group.GET("", h.MemberAuth(), h.GetUserJournal)
 
 	//todo change endpoint to marks
-	mark := group.Group("/mark", h.MemberAuth("editJournal"))
+	mark := group.Group("/marks", h.MemberAuth("editJournal"))
 	{
 		mark.POST("list", h.AddMarks)
 		mark.POST("", h.AddMark)
@@ -115,7 +116,7 @@ func (j *handler) GenerateAbsences(ctx *gin.Context) {
 func (j *handler) GetJournalAvailableOptions(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
-	options, err := j.journalController.BuildAvailableOptions(ctx, user)
+	options, err := j.journalController.GetAvailableOptions(ctx, user)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
@@ -150,7 +151,18 @@ func (j *handler) GetJournal(ctx *gin.Context) {
 func (j *handler) GetUserJournal(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
-	journal, err := j.journalController.BuildStudentsJournal(ctx, user)
+	group := ctx.Query("group")
+	subject := ctx.Query("subject")
+	teacher := ctx.Query("teacher")
+
+	var journal entities.Journal
+	var err error
+	if group == "" || subject == "" || teacher == "" {
+		journal, err = j.journalController.BuildStudentsJournal(ctx, user)
+	} else {
+		journal, err = j.journalController.BuildSubjectsJournal(ctx, group, subject, teacher, user)
+	}
+
 	if err != nil {
 		_ = ctx.Error(err)
 		return

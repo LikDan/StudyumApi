@@ -19,3 +19,9 @@ type ResetPassword struct {
 	Code        string `json:"code" binding:"req"`
 	NewPassword string `json:"password" binding:"min=8"`
 }
+
+type Preferences struct {
+	Theme    string `json:"theme" bson:"theme"`
+	Language string `json:"language" bson:"language"`
+	Timezone string `json:"timezone" bson:"timezone"`
+}

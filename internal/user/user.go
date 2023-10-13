@@ -21,11 +21,14 @@ func New(core *gin.RouterGroup, auth auth.Middleware, encrypt encryption.Encrypt
 
 	users := db.Collection("Users")
 	signUpCodes := db.Collection("SignUpCodes")
+	preferences := db.Collection("UserPreferences")
 
 	repository := repositories.NewUserRepository(users, signUpCodes)
+	preferencesRepository := repositories.NewPreferencesRepository(preferences)
 
 	controller := controllers.NewUserController(repository, codesController, sessionsController, encrypt)
+	preferencesController := controllers.NewPreferencesController(preferencesRepository)
 
-	handler := handlers.NewUserHandler(auth, controller, core)
+	handler := handlers.NewUserHandler(auth, controller, preferencesController, core)
 	return handler, controller
 }

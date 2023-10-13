@@ -449,7 +449,7 @@ func (j *repository) getAvailableOptions(ctx context.Context, matcher bson.M, ed
 								"as":    "user",
 								"cond": bson.M{
 									"$and": bson.A{
-										bson.M{"$eq": bson.A{"$$user.roleName", "$$group"}},
+										bson.M{"$eq": bson.A{"$$user.studyPlaceInfo.roleName", "$$group"}},
 									},
 								},
 							},
@@ -457,12 +457,14 @@ func (j *repository) getAvailableOptions(ctx context.Context, matcher bson.M, ed
 					},
 				},
 			},
-			"as": "user",
+			"as": "users",
 		}},
-		bson.M{"$addFields": bson.M{"temp": bson.M{"$first": "$user"}}},
-		bson.M{"$match": bson.M{"temp.len": bson.M{"$gt": 0}}},
-		bson.M{"$addFields": bson.M{"editable": editable}},
-		bson.M{"$sort": bson.M{"group": 1, "subject": 1, "teacher": 1}},
+		bson.M{"$addFields": bson.M{"temp": bson.M{"$first": "$users"}}},
+		bson.M{"$addFields": bson.M{
+			"editable":   editable,
+			"hasMembers": bson.M{"$gt": bson.A{"$temp.len", 0}},
+		}},
+		bson.M{"$sort": bson.M{"hasMembers": -1, "group": 1, "subject": 1, "teacher": 1}},
 	})
 	if err != nil {
 		return nil, err
@@ -653,11 +655,12 @@ func (j *repository) GetJournal(ctx context.Context, option entities.AvailableOp
 		},
 		bson.M{
 			"$project": bson.M{
-				"user._id":          1,
-				"user.name":         1,
-				"user.role":         1,
-				"user.roleName":     1,
-				"user.studyPlaceID": 1,
+				"user._id":            1,
+				"user.name":           1,
+				"user.role":           1,
+				"user.roleName":       1,
+				"user.studyPlaceID":   1,
+				"user.studyPlaceInfo": 1,
 			},
 		},
 		bson.M{
@@ -682,7 +685,11 @@ func (j *repository) GetJournal(ctx context.Context, option entities.AvailableOp
 					"$filter": bson.M{
 						"input": bson.M{"$concatArrays": bson.A{"$codeUsers", "$user"}},
 						"as":    "user",
-						"cond":  bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$$user.role", "group"}}, bson.M{"$eq": bson.A{"$$user.roleName", option.Group}}, bson.M{"$eq": bson.A{"$$user.studyPlaceID", studyPlaceId}}}},
+						"cond": bson.M{"$and": bson.A{
+							bson.M{"$eq": bson.A{"$$user.studyPlaceInfo.role", "student"}},
+							bson.M{"$eq": bson.A{"$$user.studyPlaceInfo.roleName", option.Group}},
+							bson.M{"$eq": bson.A{"$$user.studyPlaceInfo._id", studyPlaceId}},
+						}},
 					},
 				},
 			},

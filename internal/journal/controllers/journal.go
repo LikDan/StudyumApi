@@ -16,6 +16,7 @@ import (
 
 type Journal interface {
 	GetUpdateInfo(ctx context.Context, userID, lessonID primitive.ObjectID) (entities.CellResponse, error)
+	GetAvailableOptions(ctx context.Context, user auth.User) ([]entities.CategoryOptions, error)
 
 	BuildAvailableOptions(ctx context.Context, user auth.User) ([]entities.AvailableOption, error)
 	BuildSubjectsJournal(ctx context.Context, group string, subject string, teacher string, user auth.User) (entities.Journal, error)
@@ -285,13 +286,24 @@ func (c *journal) GetUpdateInfo(ctx context.Context, userID, lessonID primitive.
 	}, nil
 }
 
+func (c *journal) GetAvailableOptions(ctx context.Context, user auth.User) ([]entities.CategoryOptions, error) {
+	options, err := c.BuildAvailableOptions(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	return []entities.CategoryOptions{{Category: "selectOption", Options: options}}, nil
+}
+
 func (c *journal) BuildAvailableOptions(ctx context.Context, user auth.User) ([]entities.AvailableOption, error) {
-	if user.StudyPlaceInfo.Role == "group" {
+	if user.StudyPlaceInfo.Role == "student" {
 		return []entities.AvailableOption{{
-			Teacher:  "",
-			Subject:  "",
-			Group:    user.StudyPlaceInfo.Role,
-			Editable: false,
+			Header:     "myJournal",
+			Teacher:    "",
+			Subject:    "",
+			Group:      "",
+			Editable:   false,
+			HasMembers: true,
 		}}, nil
 	}
 

@@ -29,6 +29,20 @@ type handler struct {
 	Group      *gin.RouterGroup
 }
 
+func NewGeneralHandler(middleware auth.Middleware, controller controllers.Controller, group *gin.RouterGroup, grpcServer *grpc.Server) Handler {
+	h := &handler{Middleware: middleware, controller: controller, Group: group}
+
+	protostudyplaces.RegisterStudyPlacesServer(grpcServer, h)
+
+	group.GET("/studyPlaces", h.GetStudyPlaces)
+	group.GET("/studyPlaces/:id", h.GetStudyPlaceByID)
+	group.GET("/studyPlaces/self", h.MemberAuth(), h.GetSelfStudyPlace)
+
+	swagger.SwaggerInfogeneral.BasePath = "/api"
+
+	return h
+}
+
 func (g *handler) GetByID(ctx context.Context, request *protostudyplaces.IdRequest) (*protostudyplaces.StudyPlace, error) {
 	id, err := primitive.ObjectIDFromHex(request.Id)
 	if err != nil {
@@ -44,20 +58,6 @@ func (g *handler) GetByID(ctx context.Context, request *protostudyplaces.IdReque
 		Name:       studyPlace.Name,
 		Restricted: studyPlace.Restricted,
 	}, nil
-}
-
-func NewGeneralHandler(middleware auth.Middleware, controller controllers.Controller, group *gin.RouterGroup, grpcServer *grpc.Server) Handler {
-	h := &handler{Middleware: middleware, controller: controller, Group: group}
-
-	protostudyplaces.RegisterStudyPlacesServer(grpcServer, h)
-
-	group.GET("/studyPlaces", h.GetStudyPlaces)
-	group.GET("/studyPlaces/:id", h.GetStudyPlaceByID)
-	group.GET("/studyPlaces/self", h.MemberAuth(), h.GetSelfStudyPlace)
-
-	swagger.SwaggerInfogeneral.BasePath = "/api"
-
-	return h
 }
 
 // GetStudyPlaces godoc

@@ -42,10 +42,17 @@ type Cell struct {
 }
 
 type AvailableOption struct {
-	Teacher  string `json:"teacher"`
-	Subject  string `json:"subject"`
-	Group    string `json:"group"`
-	Editable bool   `json:"editable"`
+	Teacher    string `json:"teacher"`
+	Subject    string `json:"subject"`
+	Group      string `json:"group"`
+	Header     string `json:"header"`
+	Editable   bool   `json:"editable"`
+	HasMembers bool   `json:"hasMembers"`
+}
+
+type CategoryOptions struct {
+	Category string            `json:"category"`
+	Options  []AvailableOption `json:"options"`
 }
 
 type DeleteMarkID struct {

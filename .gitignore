@@ -3,7 +3,7 @@ firebase_credentials.json
 /.idea/
 /.fleet/
 .env
-/db/data/
-/db/backup/
+/db/mongo/
+/db/clickhouse/
 
 ssl

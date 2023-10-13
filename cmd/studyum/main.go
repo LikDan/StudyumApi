@@ -19,6 +19,7 @@ import (
 	"studyum/internal/auth"
 	"studyum/internal/codes"
 	"studyum/internal/general"
+	"studyum/internal/i18n"
 	"studyum/internal/journal"
 	"studyum/internal/schedule"
 	"studyum/internal/user"
@@ -87,32 +88,43 @@ func main() {
 	j := jwt.NewWithRedis[jUtils.Claims]("", time.Minute*15, time.Hour*24*30, time.Second*30, os.Getenv("JWT_SECRET"), redisClient)
 	codesController := codes.New(time.Minute*15, time.Minute, mailer, db)
 
-	api := engine.Group("/api")
-	api.Use(gin.Logger(), gin.Recovery())
+	api := Api{
+		Default: engine.Group("/api"),
+		V1:      engine.Group("/api/v1"),
+	}
+
+	api.Default.Use(gin.Logger(), gin.Recovery())
+	api.V1.Use(gin.Logger(), gin.Recovery())
 
 	apps := applications.New(db, encrypt)
 
-	grpcServer := grpc.NewServer()
-	authMiddleware, _, _ := auth.New(api.Group("/user"), grpcServer, codesController, encrypt, j, db)
+	defer i18nDB.Close()
 
-	_, generalController := general.New(api, grpcServer, authMiddleware, db)
-	_ = journal.New(api.Group("/journal"), authMiddleware, apps, encrypt, db)
-	_ = schedule.New(api.Group("/schedule"), authMiddleware, apps, generalController, db)
-	_, controller := user.New(api.Group("/user"), authMiddleware, encrypt, codesController, j, db)
+	grpcServer := grpc.NewServer()
+	authMiddleware, _, _ := auth.New(api.V1.Group("/user"), grpcServer, codesController, encrypt, j, db)
+
+	i18n.New(i18nDB, api.V1.Group("i18n"))
+
+	_, generalController := general.New(api.V1, grpcServer, authMiddleware, db)
+	_ = journal.New(api.V1.Group("/journal"), authMiddleware, apps, encrypt, db)
+	_ = schedule.New(api.V1.Group("/schedule"), authMiddleware, apps, generalController, db)
+	_, controller := user.New(api.V1.Group("/user"), authMiddleware, encrypt, codesController, j, db)
 	j.SetCreateClaimsFunc(func(ctx context.Context, id, userID string) (jUtils.Claims, error) {
 		u, err := controller.GetByID(ctx, userID)
 		if err != nil {
 			return jUtils.Claims{}, err
 		}
 
-		return jUtils.Claims{
+		claims := jUtils.Claims{
 			IDClaims:      entities.IDClaims{ID: id},
 			UserID:        u.Id.Hex(),
 			Login:         u.Login,
 			PictureURL:    u.PictureUrl,
 			Email:         u.Email,
 			VerifiedEmail: u.VerifiedEmail,
-			StudyPlaceInfo: jUtils.ClaimsStudyPlaceInfo{
+		}
+		if u.StudyPlaceInfo != nil {
+			claims.StudyPlaceInfo = jUtils.ClaimsStudyPlaceInfo{
 				Id:           u.StudyPlaceInfo.ID.Hex(),
 				Name:         u.StudyPlaceInfo.Name,
 				Role:         u.StudyPlaceInfo.Role,
@@ -120,8 +132,10 @@ func main() {
 				TuitionGroup: u.StudyPlaceInfo.TuitionGroup,
 				Permissions:  u.StudyPlaceInfo.Permissions,
 				Accepted:     u.StudyPlaceInfo.Accepted,
-			},
-		}, nil
+			}
+		}
+
+		return claims, nil
 	})
 
 	go launchGRPC(grpcServer)
@@ -130,7 +144,6 @@ func main() {
 		logrus.Fatalf("Error launching http server %s", engine.Run().Error())
 		return
 	}
-
 	redirect := gin.New()
 	redirect.Use(redirectFunc())
 

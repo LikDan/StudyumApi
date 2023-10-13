@@ -105,7 +105,7 @@ func (c *auth) SignUp(ctx context.Context, ip string, data dto.SignUp) (entities
 			Id:       code.Id,
 			Password: code.DefaultPassword,
 			Login:    data.Login,
-			StudyPlaceInfo: entities.UserStudyPlaceInfo{
+			StudyPlaceInfo: &entities.UserStudyPlaceInfo{
 				ID:           code.StudyPlaceID,
 				Name:         code.Name,
 				Role:         code.Role,
@@ -152,7 +152,7 @@ func (c *auth) SignUp(ctx context.Context, ip string, data dto.SignUp) (entities
 }
 
 func (c *auth) SignUpStage1(ctx context.Context, user entities.User, data dto.SignUpStage1) (entities.User, error) {
-	user.StudyPlaceInfo = entities.UserStudyPlaceInfo{
+	user.StudyPlaceInfo = &entities.UserStudyPlaceInfo{
 		ID:           data.StudyPlaceID,
 		Name:         data.Name,
 		Role:         data.Role,
@@ -177,7 +177,7 @@ func (c *auth) SignUpStage1ViaCode(ctx context.Context, user entities.User, code
 		return entities.User{}, err
 	}
 
-	user.StudyPlaceInfo = entities.UserStudyPlaceInfo{
+	user.StudyPlaceInfo = &entities.UserStudyPlaceInfo{
 		ID:           data.StudyPlaceID,
 		Name:         data.Name,
 		Role:         data.Role,

@@ -8,7 +8,7 @@ import (
 type AddMarkDTO struct {
 	Mark      string             `json:"mark"`
 	StudentID primitive.ObjectID `json:"studentID"`
-	LessonID  primitive.ObjectID `json:"lessonId"`
+	LessonID  primitive.ObjectID `json:"lessonID"`
 }
 
 type UpdateMarkDTO struct {

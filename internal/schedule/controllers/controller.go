@@ -69,8 +69,8 @@ func (s *controller) scheduleDated(start, end time.Time) (time.Time, time.Time) 
 	return start, end
 }
 
-func (s *controller) GetSchedule(ctx context.Context, user auth.User, studyPlaceIDHex string, role string, roleName string, startDate, endDate time.Time) (entities.Schedule, error) {
-	if role == "" || roleName == "" {
+func (s *controller) GetSchedule(ctx context.Context, user auth.User, studyPlaceIDHex string, type_ string, typeName string, startDate, endDate time.Time) (entities.Schedule, error) {
+	if type_ == "" || typeName == "" {
 		return entities.Schedule{}, NotValidParams
 	}
 
@@ -82,7 +82,7 @@ func (s *controller) GetSchedule(ctx context.Context, user auth.User, studyPlace
 	}
 
 	startDate, endDate = s.scheduleDated(startDate, endDate)
-	return s.repository.GetSchedule(ctx, studyPlaceID, role, roleName, startDate, endDate, false, !restricted)
+	return s.repository.GetSchedule(ctx, studyPlaceID, type_, typeName, startDate, endDate, false, !restricted)
 }
 
 func (s *controller) GetUserSchedule(ctx context.Context, user auth.User, startDate, endDate time.Time) (entities.Schedule, error) {

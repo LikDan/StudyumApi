@@ -21,18 +21,22 @@ type Handler interface {
 
 	ResetPassword(ctx *gin.Context)
 	ResetPasswordViaCode(ctx *gin.Context)
+
+	GetPreferences(ctx *gin.Context)
+	SavePreferences(ctx *gin.Context)
 }
 
 type handler struct {
 	auth.Middleware
 
-	controller controllers.Controller
+	controller            controllers.Controller
+	preferencesController controllers.PreferencesController
 
 	Group *gin.RouterGroup
 }
 
-func NewUserHandler(middleware auth.Middleware, controller controllers.Controller, group *gin.RouterGroup) Handler {
-	h := &handler{Middleware: middleware, controller: controller, Group: group}
+func NewUserHandler(middleware auth.Middleware, controller controllers.Controller, preferences controllers.PreferencesController, group *gin.RouterGroup) Handler {
+	h := &handler{Middleware: middleware, controller: controller, preferencesController: preferences, Group: group}
 
 	group.GET("", h.Auth(), h.GetUser)
 	group.PUT("", h.Auth(), h.UpdateUser)
@@ -43,10 +47,13 @@ func NewUserHandler(middleware auth.Middleware, controller controllers.Controlle
 
 	group.PUT("firebase/token", h.Auth(), h.PutFirebaseToken)
 
-	group.POST("password/reset", h.ResetPassword)
-	group.PUT("password/reset", h.ResetPasswordViaCode)
+	group.POST("password/reset/data", h.ResetPassword)
+	group.POST("password/reset/code", h.ResetPasswordViaCode)
 
 	group.POST("code", h.MemberAuth("manageUsers"), h.CreateCode)
+
+	group.GET("preferences", h.Auth(), h.GetPreferences)
+	group.PUT("preferences", h.Auth(), h.SavePreferences)
 
 	return h
 }
@@ -167,6 +174,7 @@ func (h *handler) PutFirebaseToken(ctx *gin.Context) {
 // ResetPassword godoc
 // @Router /password/reset [post]
 func (h *handler) ResetPassword(ctx *gin.Context) {
+	//todo login
 	var data struct {
 		Email string `json:"email"`
 	}
@@ -220,4 +228,37 @@ func (h *handler) CreateCode(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, code)
+}
+
+// GetPreferences godoc
+// @Router /preferences [get]
+func (h *handler) GetPreferences(ctx *gin.Context) {
+	user := h.Middleware.GetUser(ctx)
+
+	preferences, err := h.preferencesController.GetPreferences(ctx, user)
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, preferences)
+}
+
+// SavePreferences godoc
+// @Router /preferences [put]
+func (h *handler) SavePreferences(ctx *gin.Context) {
+	user := h.Middleware.GetUser(ctx)
+
+	var data dto.Preferences
+	if err := ctx.BindJSON(&data); err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
+		return
+	}
+
+	if err := h.preferencesController.SavePreferences(ctx, user, data); err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.Status(http.StatusCreated)
 }

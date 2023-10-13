@@ -55,12 +55,17 @@ type GeneralLesson struct {
 }
 
 type Info struct {
-	StudyPlaceID primitive.ObjectID `json:"studyPlaceID" bson:"studyPlaceID"`
-	Role         string             `json:"role" bson:"role"`
-	RoleName     string             `json:"roleName" bson:"roleName"`
-	StartDate    time.Time          `json:"startDate" bson:"startDate"`
-	EndDate      time.Time          `json:"endDate" bson:"endDate"`
-	Date         time.Time          `json:"date" bson:"date"`
+	StudyPlaceInfo StudyPlaceInfo `json:"studyPlaceInfo" bson:"studyPlaceInfo"`
+	Type           string         `json:"type" bson:"type"`
+	TypeName       string         `json:"typeName" bson:"typeName"`
+	StartDate      time.Time      `json:"startDate" bson:"startDate"`
+	EndDate        time.Time      `json:"endDate" bson:"endDate"`
+	Date           time.Time      `json:"date" bson:"date"`
+}
+
+type StudyPlaceInfo struct {
+	Id    primitive.ObjectID `json:"id" bson:"_id"`
+	Title string             `json:"title" bson:"title"`
 }
 
 type Types struct {

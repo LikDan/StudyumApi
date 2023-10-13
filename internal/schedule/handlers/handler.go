@@ -42,13 +42,13 @@ type handler struct {
 func NewScheduleHandler(middleware auth.Middleware, controller controllers.Controller, group *gin.RouterGroup) Handler {
 	h := &handler{Middleware: middleware, controller: controller, Group: group}
 
-	group.GET(":type/:name", h.TryAuth(), h.GetSchedule)
+	//group.GET(":type/:name", h.TryAuth(), h.GetSchedule)
 	group.GET("", h.MemberAuth(), h.GetUserSchedule)
 
 	group.GET("general/:type/:name", h.MemberAuth(), h.GetGeneralSchedule)
 	group.GET("general", h.MemberAuth(), h.GetGeneralUserSchedule)
 
-	group.GET("getTypes", h.TryAuth(), h.GetScheduleTypes) //todo change endpoint to types
+	group.GET("types", h.TryAuth(), h.GetScheduleTypes) //todo change endpoint to types
 
 	group.GET("lessons/:id", h.MemberAuth(), h.GetLessonByID) //todo change endpoint to :id
 	group.POST("/list", h.MemberAuth("editSchedule"), h.AddLessons)
@@ -99,6 +99,25 @@ func (s *handler) GetUserSchedule(ctx *gin.Context) {
 	startDate, err := time.Parse(time.RFC3339, startDateStr)
 	endDateStr := ctx.Query("endDate")
 	endDate, _ := time.Parse(time.RFC3339, endDateStr)
+
+	studyPlaceID := ctx.Query("studyPlaceID")
+	if studyPlaceID == "" {
+		studyPlaceID = user.StudyPlaceInfo.ID.Hex()
+	}
+
+	type_ := ctx.Query("type")
+	typename := ctx.Query("typename")
+
+	if type_ != "" && typename != "" {
+		schedule, err := s.controller.GetSchedule(ctx, user, studyPlaceID, type_, typename, startDate, endDate)
+		if err != nil {
+			_ = ctx.Error(err)
+			return
+		}
+
+		ctx.JSON(http.StatusOK, schedule)
+		return
+	}
 
 	schedule, err := s.controller.GetUserSchedule(ctx, user, startDate, endDate)
 	if err != nil {
@@ -159,7 +178,7 @@ func (s *handler) GetGeneralUserSchedule(ctx *gin.Context) {
 func (s *handler) GetScheduleTypes(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
-	id := ctx.Query("id")
+	id := ctx.Query("studyPlaceID")
 	types := s.controller.GetScheduleTypes(ctx, user, id)
 
 	ctx.JSON(http.StatusOK, types)

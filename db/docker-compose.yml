@@ -5,23 +5,35 @@ services:
     image: mongo
     restart: always
     env_file:
-      - .env
+      - mongo/.env
     ports:
       - "32:27017"
     volumes:
-      - ./backup/storage/main:/backups:r
-      - ./data:/etc/mongo:rw
+      - ./mongo/backup/storage/main:/backups:r
+      - ./mongo/data:/data/db:rw
 
-  backup:
+  clickhouse:
+    image: clickhouse/clickhouse-server
+    ports:
+      - "4186:8123"
+    volumes:
+      - ./clickhouse/data:/var/lib/clickhouse/data:rw
+      - ./clickhouse/users.xml:/etc/clickhouse-server/users.xml:rw
+      - ./clickhouse/logs/err.log:/var/log/clickhouse-server/clickhouse-server.err.log:rw
+      - ./clickhouse/logs/log.log:/var/log/clickhouse-server/clickhouse-server.log:rw
+    environment:
+      - CLICKHOUSE_CONFIG_PATH=/etc/clickhouse-server/config.xml
+
+  mongo-backup:
     image: stefanprodan/mgob
     restart: always
     ports:
       - "322:8090"
     volumes:
-      - ./backup/config:/config:r
-      - ./backup/storage:/storage:rw
-      - ./backup/tmp:/tmp:rw
-      - ./backup/data:/data:rw
+      - ./mongo/backup/config:/config:r
+      - ./mongo/backup/storage:/storage:rw
+      - ./mongo/backup/tmp:/tmp:rw
+      - ./mongo/backup/data:/data:rw
 
 # to restore:
 # ----------------------------

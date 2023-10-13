@@ -33,7 +33,7 @@ func NewAuth(middleware Middleware, controller controllers.Auth, group *gin.Rout
 	group.PUT("login", h.Login)
 
 	group.POST("signup", h.SignUp)
-	group.PUT("signup/stage1", h.Auth(), h.SignUpUserStage1)
+	group.PUT("join", h.Auth(), h.SignUpUserStage1)
 	group.POST("signup/code", h.Auth(), h.SignUpStage1ViaCode)
 	group.DELETE("signout", h.Auth(), h.SignOut)
 

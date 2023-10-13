@@ -5,14 +5,14 @@ import (
 )
 
 type User struct {
-	Id             primitive.ObjectID `json:"id" bson:"_id"`
-	Password       string             `json:"-" bson:"password"`
-	Email          string             `json:"email" bson:"email"`
-	VerifiedEmail  bool               `json:"verifiedEmail" bson:"verifiedEmail"`
-	FirebaseToken  string             `json:"-" bson:"firebaseToken" encryption:""`
-	Login          string             `json:"login" bson:"login"`
-	PictureUrl     string             `json:"picture" bson:"picture" encryption:""`
-	StudyPlaceInfo UserStudyPlaceInfo `json:"studyPlaceInfo" bson:"studyPlaceInfo"`
+	Id             primitive.ObjectID  `json:"id" bson:"_id"`
+	Password       string              `json:"-" bson:"password"`
+	Email          string              `json:"email" bson:"email"`
+	VerifiedEmail  bool                `json:"verifiedEmail" bson:"verifiedEmail"`
+	FirebaseToken  string              `json:"-" bson:"firebaseToken" encryption:""`
+	Login          string              `json:"login" bson:"login"`
+	PictureUrl     string              `json:"picture" bson:"picture" encryption:""`
+	StudyPlaceInfo *UserStudyPlaceInfo `json:"studyPlaceInfo" bson:"studyPlaceInfo"`
 }
 
 type UserStudyPlaceInfo struct {
