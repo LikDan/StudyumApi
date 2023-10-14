@@ -12,7 +12,7 @@ services:
   api:
     build:
       context: ..
-      dockerfile: docker/Dockerfile
+      dockerfile: deploy/Dockerfile
     restart: always
     # noinspection ComposeUnknownKeys
     pull_policy: always
