@@ -1,0 +1,75 @@
+version: '3.1'
+
+volumes:
+  redis:
+    driver: local
+
+networks:
+  main:
+    driver: bridge
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: always
+    # noinspection ComposeUnknownKeys
+    pull_policy: always
+    env_file:
+      - ../.env
+    ports:
+      - "80:80"
+      - "443:443"
+      - "4772:4772"
+    volumes:
+      - ./ssl:/ssl:r
+    networks:
+      - main
+
+  redis:
+    image: redis:6.2-alpine
+    restart: always
+    command: redis-server --save 20 1 --loglevel warning --requirepass cee6159087222e4b00e8ff8d44b9ab46
+    ports:
+      - '2884:6379'
+    volumes:
+      - redis:/data
+    networks:
+      - main
+
+  mongo:
+    image: mongo
+    restart: always
+    env_file:
+      - mongo/.env
+    ports:
+      - "32:27017"
+    volumes:
+      - ./mongo/backup/storage/main:/backups:r
+      - ./mongo/data:/data/db:rw
+
+  clickhouse:
+    image: clickhouse/clickhouse-server
+    ports:
+      - "4186:8123"
+    volumes:
+      - ./clickhouse/data:/var/lib/clickhouse/data:rw
+      - ./clickhouse/users.xml:/etc/clickhouse-server/users.xml:rw
+      - ./clickhouse/logs/err.log:/var/log/clickhouse-server/clickhouse-server.err.log:rw
+      - ./clickhouse/logs/log.log:/var/log/clickhouse-server/clickhouse-server.log:rw
+    environment:
+      - CLICKHOUSE_CONFIG_PATH=/etc/clickhouse-server/config.xml
+
+  mongo-backup:
+    image: stefanprodan/mgob
+    restart: always
+    ports:
+      - "322:8090"
+    volumes:
+      - ./mongo/backup/config:/config:r
+      - ./mongo/backup/storage:/storage:rw
+      - ./mongo/backup/tmp:/tmp:rw
+      - ./mongo/backup/data:/data:rw
+
+
