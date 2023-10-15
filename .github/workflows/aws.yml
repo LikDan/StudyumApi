@@ -36,4 +36,4 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           user: ${{ secrets.SSH_USER }}
           private_key: ${{ secrets.SSH_KEY }}
-          command: ./update.sh backend
+          command: ./StudyumDeploy/update.sh backend
