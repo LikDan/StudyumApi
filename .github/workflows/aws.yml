@@ -31,7 +31,7 @@ jobs:
 
     steps:
       - name: Update AWS
-        uses: appleboy/ssh-action@v0.1.3
+        uses: D3rHase/ssh-command-action@v0.2.2
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
