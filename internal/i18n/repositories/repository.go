@@ -47,5 +47,6 @@ func (r *repository) scanMap(scanner pgx.Rows) (dict entities.I18n, err error) {
 		dict[key] = value
 	}
 
+	scanner.Close()
 	return dict, nil
 }
