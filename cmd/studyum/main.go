@@ -98,7 +98,7 @@ func main() {
 
 	apps := applications.New(db, encrypt)
 
-	defer i18nDB.Close()
+	defer i18nDB.Close(context.Background())
 
 	grpcServer := grpc.NewServer()
 	authMiddleware, _, _ := auth.New(api.V1.Group("/user"), grpcServer, codesController, encrypt, j, db)

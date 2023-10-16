@@ -1,23 +1,39 @@
 package main
 
 import (
-	"database/sql"
-	"github.com/ClickHouse/clickhouse-go/v2"
+	"context"
+	"github.com/jackc/pgx/v5"
+	"log"
 	"os"
 )
 
-var i18nDB *sql.DB
+var i18nDB *pgx.Conn
 
 func init() {
-	conn := clickhouse.OpenDB(&clickhouse.Options{
-		Addr: []string{os.Getenv("CLICKHOUSE_DB_URL")},
-		Auth: clickhouse.Auth{
-			Database: "i18n",
-			Username: os.Getenv("CLICKHOUSE_DB_USER"),
-			Password: os.Getenv("CLICKHOUSE_DB_PASSWORD"),
-		},
-		Protocol: clickhouse.HTTP,
-	})
+	var err error
+	i18nDB, err = pgx.Connect(context.Background(), os.Getenv("POSTGRES_DB_URL"))
+	if err != nil {
+		log.Fatalf("Unable to connect to database: %v\n", err)
+	}
 
-	i18nDB = conn
+	createTables()
+}
+
+func createTables() {
+	q, err := i18nDB.Query(context.Background(), `
+CREATE TABLE IF NOT EXISTS public
+(
+    "group" varchar,
+    "key"   varchar,
+    "en_us" varchar,
+    "ru_ru" varchar,
+    
+    UNIQUE ("key", "group")
+)
+`)
+	if err != nil {
+		return
+	}
+
+	q.Close()
 }

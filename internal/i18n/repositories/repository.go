@@ -2,8 +2,8 @@ package repositories
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"studyum/internal/i18n/entities"
 )
 
@@ -12,19 +12,19 @@ type Repository interface {
 }
 
 type repository struct {
-	session *sql.DB
+	session *pgx.Conn
 }
 
-func NewI18nRepository(session *sql.DB) Repository {
+func NewI18nRepository(session *pgx.Conn) Repository {
 	return &repository{session: session}
 }
 
 func (r *repository) GetByCode(ctx context.Context, lang string, group string) (entities.I18n, error) {
-	return r.query(ctx, lang, "SELECT key, %s as value FROM i18n.public WHERE group=$1", group)
+	return r.query(ctx, lang, "SELECT key, %s as value FROM public WHERE \"group\"=$1", group)
 }
 
 func (r *repository) query(ctx context.Context, lang string, stmt string, values ...interface{}) (entities.I18n, error) {
-	scanner, err := r.session.QueryContext(ctx, fmt.Sprintf(stmt, lang), values...)
+	scanner, err := r.session.Query(ctx, fmt.Sprintf(stmt, lang), values...)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (r *repository) query(ctx context.Context, lang string, stmt string, values
 	return r.scanMap(scanner)
 }
 
-func (r *repository) scanMap(scanner *sql.Rows) (dict entities.I18n, err error) {
+func (r *repository) scanMap(scanner pgx.Rows) (dict entities.I18n, err error) {
 	dict = make(entities.I18n)
 	for scanner.Next() {
 		var (
