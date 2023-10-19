@@ -14,7 +14,9 @@ import (
 )
 
 type Repository interface {
-	GetSchedule(ctx context.Context, studyPlaceId primitive.ObjectID, role string, roleName string, startDate, endDate time.Time, general bool, asPreview bool) (entities.Schedule, error)
+	GetTypeID(ctx context.Context, studyPlaceId primitive.ObjectID, type_, typeName string) (primitive.ObjectID, error)
+
+	GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_, typeName string, typeID primitive.ObjectID, startDate, endDate time.Time, onlyGeneral bool, _ bool) (entities.Schedule, error)
 	GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, role string) []string
 
 	AddGeneralLessons(ctx context.Context, lessons []entities.GeneralLesson) error
@@ -44,10 +46,47 @@ type repository struct {
 	studyPlaces    *mongo.Collection
 	lessons        *mongo.Collection
 	generalLessons *mongo.Collection
+
+	database *mongo.Database
 }
 
-func NewScheduleRepository(studyPlaces *mongo.Collection, lessons *mongo.Collection, generalLessons *mongo.Collection) Repository {
-	return &repository{studyPlaces: studyPlaces, lessons: lessons, generalLessons: generalLessons}
+func NewScheduleRepository(studyPlaces *mongo.Collection, lessons *mongo.Collection, generalLessons *mongo.Collection, database *mongo.Database) Repository {
+	return &repository{studyPlaces: studyPlaces, lessons: lessons, generalLessons: generalLessons, database: database}
+}
+
+func (s *repository) GetTypeID(ctx context.Context, studyPlaceID primitive.ObjectID, type_, typeName string) (primitive.ObjectID, error) {
+	var collection string
+	switch type_ {
+	case "teacher":
+		var value struct {
+			ID primitive.ObjectID `bson:"_id"`
+		}
+
+		err := s.database.Collection("Users").FindOne(ctx, bson.M{"studyPlaceInfo.roleName": typeName}).Decode(&value)
+		if err != nil {
+			return primitive.ObjectID{}, err
+		}
+
+		return value.ID, nil
+	case "group", "student":
+		type_ = "group"
+		collection = "Groups"
+	case "subject":
+		collection = "Subjects"
+	case "room":
+		collection = "Rooms"
+	}
+
+	var value struct {
+		ID primitive.ObjectID `bson:"_id"`
+	}
+
+	err := s.database.Collection(collection).FindOne(ctx, bson.M{"studyPlaceID": studyPlaceID, type_: typeName}).Decode(&value)
+	if err != nil {
+		return primitive.ObjectID{}, err
+	}
+
+	return value.ID, nil
 }
 
 func (s *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace general.StudyPlace) {
@@ -55,13 +94,13 @@ func (s *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectI
 	return
 }
 
-func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeName string, startDate, endDate time.Time, onlyGeneral bool, _ bool) (entities.Schedule, error) {
+func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_, typeName string, typeID primitive.ObjectID, startDate, endDate time.Time, onlyGeneral bool, _ bool) (entities.Schedule, error) {
 	if type_ == "student" {
 		type_ = "group"
 	}
 
 	cursor, err := s.generalLessons.Aggregate(ctx, bson.A{
-		bson.M{"$match": bson.M{"studyPlaceId": studyPlaceID, type_: typeName}},
+		bson.M{"$match": bson.M{"studyPlaceId": studyPlaceID, type_ + "ID": typeID}},
 		bson.M{"$group": bson.M{
 			"_id":     bson.M{"dayIndex": "$dayIndex", "weekIndex": "$weekIndex"},
 			"lessons": bson.M{"$push": "$$ROOT"},
@@ -127,7 +166,7 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 							"$expr": bson.M{
 								"$and": bson.A{
 									bson.M{"$eq": bson.A{onlyGeneral, false}},
-									bson.M{"$eq": bson.A{"$" + type_, typeName}},
+									bson.M{"$eq": bson.A{"$" + type_ + "ID", typeID}},
 									bson.M{"$eq": bson.A{"$studyPlaceId", studyPlaceID}},
 									bson.M{"$gte": bson.A{"$startDate", "$$from"}},
 									bson.M{"$lt": bson.A{"$startDate", "$$till"}},
@@ -157,6 +196,58 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 		},
 		bson.M{"$unwind": "$lessons"},
 		bson.M{"$replaceRoot": bson.M{"newRoot": "$lessons"}},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "StudyPlaceUsers",
+				"localField":   "teacherID",
+				"foreignField": "_id",
+				"as":           "teacher",
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"teacher": bson.M{"$first": "$teacher.roleName"},
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "Groups",
+				"localField":   "groupID",
+				"foreignField": "_id",
+				"as":           "group",
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"group": bson.M{"$first": "$group.group"},
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "Subjects",
+				"localField":   "subjectID",
+				"foreignField": "_id",
+				"as":           "subject",
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"subject": bson.M{"$first": "$subject.subject"},
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "Rooms",
+				"localField":   "roomID",
+				"foreignField": "_id",
+				"as":           "room",
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"room": bson.M{"$first": "$room.room"},
+			},
+		},
 		bson.M{
 			"$group": bson.M{
 				"_id": nil,
@@ -203,7 +294,7 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 					Title: studyPlace.Name,
 				},
 				Type:      type_,
-				TypeName:  typeName,
+				TypeName:  "typeName",
 				StartDate: startDate,
 				EndDate:   endDate,
 				Date:      time.Now(),

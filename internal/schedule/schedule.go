@@ -24,7 +24,7 @@ func New(core *gin.RouterGroup, auth auth.Middleware, apps apps.Controller, gene
 	lessons := db.Collection("Lessons")
 	generalLessons := db.Collection("GeneralLessons")
 
-	repository := repositories.NewScheduleRepository(studyPlaces, lessons, generalLessons)
+	repository := repositories.NewScheduleRepository(studyPlaces, lessons, generalLessons, db)
 
 	validator := validators.NewSchedule(v.New())
 	controller := controllers.NewScheduleController(repository, general, apps, validator)

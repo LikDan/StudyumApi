@@ -48,6 +48,10 @@ type GeneralLesson struct {
 	Group          string             `json:"group" bson:"group"`
 	Teacher        string             `json:"teacher" bson:"teacher"`
 	Room           string             `json:"room" bson:"room"`
+	SubjectID      primitive.ObjectID `json:"subjectID" bson:"subjectID"`
+	GroupID        primitive.ObjectID `json:"groupID" bson:"groupID"`
+	TeacherID      primitive.ObjectID `json:"teacherID§" bson:"teacherID"`
+	RoomID         primitive.ObjectID `json:"roomID" bson:"roomID"`
 	Type           string             `json:"type" bson:"type"`
 	LessonIndex    int                `json:"lessonIndex" bson:"lessonIndex"`
 	DayIndex       int                `json:"dayIndex" bson:"dayIndex"`

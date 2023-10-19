@@ -9,8 +9,6 @@ import (
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/unrolled/secure"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc"
 	"net"
 	"net/http"
@@ -38,16 +36,6 @@ func main() {
 
 	if gin.Mode() == gin.DebugMode {
 		logrus.SetLevel(logrus.DebugLevel)
-	}
-
-	client, err := mongo.NewClient(options.Client().ApplyURI(os.Getenv("DB_URL")))
-	if err != nil {
-		logrus.Fatal(err)
-	}
-
-	ctx := context.Background()
-	if err = client.Connect(ctx); err != nil {
-		logrus.Fatalf("Can't connect to database, error: %s", err.Error())
 	}
 
 	id := os.Getenv("GMAIL_CLIENT_ID")
@@ -98,7 +86,7 @@ func main() {
 
 	apps := applications.New(db, encrypt)
 
-	defer i18nDB.Close(context.Background())
+	defer i18nDB.Close()
 
 	grpcServer := grpc.NewServer()
 	authMiddleware, _, _ := auth.New(api.V1.Group("/user"), grpcServer, codesController, encrypt, j, db)

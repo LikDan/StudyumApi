@@ -2,16 +2,16 @@ package main
 
 import (
 	"context"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"os"
 )
 
-var i18nDB *pgx.Conn
+var i18nDB *pgxpool.Pool
 
 func init() {
 	var err error
-	i18nDB, err = pgx.Connect(context.Background(), os.Getenv("POSTGRES_DB_URL"))
+	i18nDB, err = pgxpool.New(context.Background(), os.Getenv("POSTGRES_DB_URL"))
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v\n", err)
 	}

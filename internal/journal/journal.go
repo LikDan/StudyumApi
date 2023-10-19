@@ -21,8 +21,9 @@ func New(core *gin.RouterGroup, auth auth.Middleware, apps apps.Controller, encr
 	users := db.Collection("Users")
 	lessons := db.Collection("Lessons")
 	studyPlaces := db.Collection("StudyPlaces")
+	studyPlacesUsers := db.Collection("StudyPlaceUsers")
 
-	repository := repositories.NewJournalRepository(users, lessons, studyPlaces)
+	repository := repositories.NewJournalRepository(users, lessons, studyPlaces, studyPlacesUsers, db)
 
 	queryController := controllers.NewJournalController(repository, encrypt)
 	controller := controllers.NewController(queryController, repository, encrypt, apps)

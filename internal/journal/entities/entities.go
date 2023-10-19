@@ -42,12 +42,15 @@ type Cell struct {
 }
 
 type AvailableOption struct {
-	Teacher    string `json:"teacher"`
-	Subject    string `json:"subject"`
-	Group      string `json:"group"`
-	Header     string `json:"header"`
-	Editable   bool   `json:"editable"`
-	HasMembers bool   `json:"hasMembers"`
+	Teacher    string             `json:"teacher"`
+	Subject    string             `json:"subject"`
+	Group      string             `json:"group"`
+	TeacherID  primitive.ObjectID `json:"teacherID"`
+	SubjectID  primitive.ObjectID `json:"subjectID"`
+	GroupID    primitive.ObjectID `json:"groupID"`
+	Header     string             `json:"header"`
+	Editable   bool               `json:"editable"`
+	HasMembers bool               `json:"hasMembers"`
 }
 
 type CategoryOptions struct {
@@ -104,6 +107,10 @@ type Lesson struct {
 	Group            string             `json:"group" bson:"group"`
 	Teacher          string             `json:"teacher" bson:"teacher"`
 	Room             string             `json:"room" bson:"room"`
+	SubjectID        primitive.ObjectID `json:"subjectID" bson:"subjectID"`
+	GroupID          primitive.ObjectID `json:"groupID" bson:"groupID"`
+	TeacherID        primitive.ObjectID `json:"teacherID" bson:"teacherID"`
+	RoomID           primitive.ObjectID `json:"roomID" bson:"roomID"`
 	Title            string             `json:"title" bson:"title"`
 	Homework         string             `json:"homework" bson:"homework"`
 	Description      string             `json:"description" bson:"description"`

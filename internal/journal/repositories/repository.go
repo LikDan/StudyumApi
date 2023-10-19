@@ -12,6 +12,8 @@ import (
 )
 
 type Repository interface {
+	GetTypeID(ctx context.Context, studyPlaceID primitive.ObjectID, type_, typeName string) (primitive.ObjectID, error)
+
 	GetMarkByID(ctx context.Context, id primitive.ObjectID) (entities.Mark, error)
 	AddMarks(ctx context.Context, marks []entities.Mark, teacher string) error
 	AddMark(ctx context.Context, mark entities.Mark, teacher string) error
@@ -19,10 +21,10 @@ type Repository interface {
 	DeleteMarkByID(ctx context.Context, id primitive.ObjectID, teacher string) error
 
 	GetAllAvailableOptions(ctx context.Context, id primitive.ObjectID, editable bool) ([]entities.AvailableOption, error)
-	GetAvailableOptions(ctx context.Context, id primitive.ObjectID, teacher string, editable bool) ([]entities.AvailableOption, error)
-	GetAvailableTuitionOptions(ctx context.Context, id primitive.ObjectID, name string, editable bool) ([]entities.AvailableOption, error)
+	GetAvailableOptions(ctx context.Context, id, teacherID primitive.ObjectID, editable bool) ([]entities.AvailableOption, error)
+	GetAvailableTuitionOptions(ctx context.Context, id, groupID primitive.ObjectID, editable bool) ([]entities.AvailableOption, error)
 
-	GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId primitive.ObjectID) (entities.Journal, error)
+	GetStudentJournal(ctx context.Context, userId, groupID primitive.ObjectID, studyPlaceId primitive.ObjectID) (entities.Journal, error)
 	GetJournal(ctx context.Context, option entities.AvailableOption, studyPlaceId primitive.ObjectID) (entities.Journal, error)
 
 	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
@@ -43,13 +45,50 @@ type Repository interface {
 }
 
 type repository struct {
-	users       *mongo.Collection
-	lessons     *mongo.Collection
-	studyPlaces *mongo.Collection
+	users           *mongo.Collection
+	lessons         *mongo.Collection
+	studyPlaces     *mongo.Collection
+	studyPlaceUsers *mongo.Collection
+
+	database *mongo.Database
 }
 
-func NewJournalRepository(users *mongo.Collection, lessons *mongo.Collection, studyPlaces *mongo.Collection) Repository {
-	return &repository{users: users, lessons: lessons, studyPlaces: studyPlaces}
+func NewJournalRepository(users *mongo.Collection, lessons *mongo.Collection, studyPlaces *mongo.Collection, studyPlaceUsers *mongo.Collection, database *mongo.Database) Repository {
+	return &repository{users: users, lessons: lessons, studyPlaces: studyPlaces, studyPlaceUsers: studyPlaceUsers, database: database}
+}
+
+func (j *repository) GetTypeID(ctx context.Context, studyPlaceID primitive.ObjectID, type_, typeName string) (primitive.ObjectID, error) {
+	var collection string
+	switch type_ {
+	case "teacher":
+		var value struct {
+			ID primitive.ObjectID `bson:"_id"`
+		}
+
+		err := j.database.Collection("Users").FindOne(ctx, bson.M{"studyPlaceInfo.roleName": typeName}).Decode(&value)
+		if err != nil {
+			return primitive.ObjectID{}, err
+		}
+
+		return value.ID, nil
+	case "group", "student":
+		collection = "Groups"
+	case "subject":
+		collection = "Subjects"
+	case "room":
+		collection = "Rooms"
+	}
+
+	var value struct {
+		ID primitive.ObjectID `bson:"_id"`
+	}
+
+	err := j.database.Collection(collection).FindOne(ctx, bson.M{"studyPlaceID": studyPlaceID, type_: typeName}).Decode(&value)
+	if err != nil {
+		return primitive.ObjectID{}, err
+	}
+
+	return value.ID, nil
 }
 
 func (j *repository) GenerateMarksReport(ctx context.Context, group string, lessonType string, mark string, from, to *time.Time, studyPlaceId primitive.ObjectID) (entities.GeneratedTable, error) {
@@ -414,57 +453,67 @@ func (j *repository) getAvailableOptions(ctx context.Context, matcher bson.M, ed
 				"subject": "$subject",
 				"group":   "$group",
 			},
-			"teacher": bson.M{"$first": "$teacher"},
-			"subject": bson.M{"$first": "$subject"},
-			"group":   bson.M{"$first": "$group"}},
+			"teacherID": bson.M{"$first": "$teacherID"},
+			"subjectID": bson.M{"$first": "$subjectID"},
+			"groupID":   bson.M{"$first": "$groupID"}},
 		},
-		bson.M{"$lookup": bson.M{
-			"from": "Users",
-			"let":  bson.M{"group": "$group"},
-			"pipeline": bson.A{
-				bson.M{
-					"$group": bson.M{"_id": nil, "user": bson.M{"$push": "$$ROOT"}},
-				},
-				bson.M{
-					"$lookup": bson.M{
-						"from": "SignUpCodes",
-						"pipeline": bson.A{
-							bson.M{
-								"$project": bson.M{
-									"name":         1,
-									"role":         1,
-									"roleName":     1,
-									"studyPlaceID": 1,
-								},
-							},
-						},
-						"as": "codeUsers",
-					},
-				},
-				bson.M{
-					"$project": bson.M{
-						"len": bson.M{"$size": bson.M{
-							"$filter": bson.M{
-								"input": bson.M{"$concatArrays": bson.A{"$codeUsers", "$user"}},
-								"as":    "user",
-								"cond": bson.M{
-									"$and": bson.A{
-										bson.M{"$eq": bson.A{"$$user.studyPlaceInfo.roleName", "$$group"}},
-									},
-								},
-							},
-						}},
-					},
-				},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "StudyPlaceUsers",
+				"localField":   "teacherID",
+				"foreignField": "_id",
+				"as":           "teacher",
 			},
-			"as": "users",
-		}},
-		bson.M{"$addFields": bson.M{"temp": bson.M{"$first": "$users"}}},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"teacher": bson.M{"$first": "$teacher.roleName"},
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "Groups",
+				"localField":   "groupID",
+				"foreignField": "_id",
+				"as":           "group",
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"group": bson.M{"$first": "$group.group"},
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "Subjects",
+				"localField":   "subjectID",
+				"foreignField": "_id",
+				"as":           "subject",
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"subject": bson.M{"$first": "$subject.subject"},
+			},
+		},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "Rooms",
+				"localField":   "roomID",
+				"foreignField": "_id",
+				"as":           "room",
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"room": bson.M{"$first": "$room.room"},
+			},
+		},
 		bson.M{"$addFields": bson.M{
 			"editable":   editable,
-			"hasMembers": bson.M{"$gt": bson.A{"$temp.len", 0}},
+			"hasMembers": true,
 		}},
-		bson.M{"$sort": bson.M{"hasMembers": -1, "group": 1, "subject": 1, "teacher": 1}},
+		bson.M{"$sort": bson.M{"hasMembers": -1, "group": 1, "groupID": 1, "subject": 1, "subjectID": 1, "teacher": 1, "teacherID": 1}},
 	})
 	if err != nil {
 		return nil, err
@@ -482,17 +531,30 @@ func (j *repository) GetAllAvailableOptions(ctx context.Context, id primitive.Ob
 	return j.getAvailableOptions(ctx, bson.M{"studyPlaceId": id}, editable)
 }
 
-func (j *repository) GetAvailableOptions(ctx context.Context, id primitive.ObjectID, teacher string, editable bool) ([]entities.AvailableOption, error) {
-	return j.getAvailableOptions(ctx, bson.M{"studyPlaceId": id, "teacher": teacher}, editable)
+func (j *repository) GetAvailableOptions(ctx context.Context, id, teacherID primitive.ObjectID, editable bool) ([]entities.AvailableOption, error) {
+	return j.getAvailableOptions(ctx, bson.M{"studyPlaceId": id, "teacherID": teacherID}, editable)
 }
 
-func (j *repository) GetAvailableTuitionOptions(ctx context.Context, id primitive.ObjectID, group string, editable bool) ([]entities.AvailableOption, error) {
-	return j.getAvailableOptions(ctx, bson.M{"studyPlaceId": id, "group": group}, editable)
+func (j *repository) GetAvailableTuitionOptions(ctx context.Context, id, groupID primitive.ObjectID, editable bool) ([]entities.AvailableOption, error) {
+	return j.getAvailableOptions(ctx, bson.M{"studyPlaceId": id, "groupID": groupID}, editable)
 }
 
-func (j *repository) GetStudentJournal(ctx context.Context, userId primitive.ObjectID, group string, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
+func (j *repository) GetStudentJournal(ctx context.Context, userId, groupID primitive.ObjectID, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
 	cursor, err := j.lessons.Aggregate(ctx, bson.A{
-		bson.M{"$match": bson.M{"group": group, "studyPlaceId": studyPlaceId}},
+		bson.M{"$match": bson.M{"groupID": groupID, "studyPlaceId": studyPlaceId}},
+		bson.M{
+			"$lookup": bson.M{
+				"from":         "Subjects",
+				"localField":   "subjectID",
+				"foreignField": "_id",
+				"as":           "subject",
+			},
+		},
+		bson.M{
+			"$addFields": bson.M{
+				"subject": bson.M{"$first": "$subject.subject"},
+			},
+		},
 		bson.M{"$addFields": bson.M{
 			"marks":    hMongo.Filter("marks", hMongo.AEq("$$marks.studentID", userId)),
 			"absences": hMongo.Filter("absences", hMongo.AEq("$$absences.studentID", userId)),
@@ -599,7 +661,7 @@ func (j *repository) GetStudentJournal(ctx context.Context, userId primitive.Obj
 				"info": bson.M{
 					"editable":   false,
 					"studyPlace": "$studyPlace",
-					"group":      group,
+					"group":      groupID,
 					"teacher":    "",
 					"subject":    "",
 					"time":       time.Now(),
@@ -636,7 +698,7 @@ func (j *repository) GetStudentJournal(ctx context.Context, userId primitive.Obj
 			Info: entities.Info{
 				Editable:   false,
 				StudyPlace: general.StudyPlace{},
-				Group:      group,
+				Group:      "group",
 			},
 		}, nil
 	}
@@ -649,61 +711,22 @@ func (j *repository) GetStudentJournal(ctx context.Context, userId primitive.Obj
 }
 
 func (j *repository) GetJournal(ctx context.Context, option entities.AvailableOption, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
-	var cursor, err = j.users.Aggregate(ctx, bson.A{
+	var cursor, err = j.studyPlaceUsers.Aggregate(ctx, bson.A{
 		bson.M{
-			"$group": bson.M{"_id": nil, "user": bson.M{"$push": "$$ROOT"}},
+			"$match": bson.M{"role": "student", "roleName": option.Group, "studyPlaceID": studyPlaceId},
 		},
 		bson.M{
-			"$project": bson.M{
-				"user._id":            1,
-				"user.name":           1,
-				"user.role":           1,
-				"user.roleName":       1,
-				"user.studyPlaceID":   1,
-				"user.studyPlaceInfo": 1,
-			},
-		},
-		bson.M{
-			"$lookup": bson.M{
-				"from": "SignUpCodes",
-				"pipeline": bson.A{
-					bson.M{
-						"$project": bson.M{
-							"name":         1,
-							"role":         1,
-							"roleName":     1,
-							"studyPlaceID": 1,
-						},
-					},
-				},
-				"as": "codeUsers",
-			},
-		},
-		bson.M{
-			"$project": bson.M{
-				"user": bson.M{
-					"$filter": bson.M{
-						"input": bson.M{"$concatArrays": bson.A{"$codeUsers", "$user"}},
-						"as":    "user",
-						"cond": bson.M{"$and": bson.A{
-							bson.M{"$eq": bson.A{"$$user.studyPlaceInfo.role", "student"}},
-							bson.M{"$eq": bson.A{"$$user.studyPlaceInfo.roleName", option.Group}},
-							bson.M{"$eq": bson.A{"$$user.studyPlaceInfo._id", studyPlaceId}},
-						}},
-					},
-				},
-			},
+			"$group": bson.M{"_id": nil, "users": bson.M{"$push": "$$ROOT"}},
 		},
 		bson.M{
 			"$lookup": bson.M{
 				"from": "Lessons",
-				"let":  bson.M{"userID": "$_id"},
 				"pipeline": bson.A{
 					bson.M{
 						"$match": bson.M{
-							"subject":      option.Subject,
-							"group":        option.Group,
-							"teacher":      option.Teacher,
+							"subjectID":    option.SubjectID,
+							"groupID":      option.GroupID,
+							"teacherID":    option.TeacherID,
 							"studyPlaceId": studyPlaceId,
 						},
 					},
@@ -746,15 +769,15 @@ func (j *repository) GetJournal(ctx context.Context, option entities.AvailableOp
 			},
 		},
 		bson.M{
-			"$unwind": "$user",
+			"$unwind": "$users",
 		},
 		bson.M{
 			"$unwind": "$lessons",
 		},
 		bson.M{
 			"$addFields": bson.M{
-				"lessons.marks":    hMongo.Filter("lessons.marks", hMongo.AEq("$$marks.studentID", "$user._id")),
-				"lessons.absences": hMongo.Filter("lessons.absences", hMongo.AEq("$$absences.studentID", "$user._id")),
+				"lessons.marks":    hMongo.Filter("lessons.marks", hMongo.AEq("$$marks.studentID", "$users._id")),
+				"lessons.absences": hMongo.Filter("lessons.absences", hMongo.AEq("$$absences.studentID", "$users._id")),
 			},
 		},
 		bson.M{
@@ -765,8 +788,8 @@ func (j *repository) GetJournal(ctx context.Context, option entities.AvailableOp
 		bson.M{
 			"$group": bson.M{
 				"_id": bson.M{
-					"_id":   "$user._id",
-					"title": "$user.name",
+					"_id":   "$users._id",
+					"title": "$users.name",
 				},
 				"dates":      bson.M{"$first": "$dates"},
 				"cells":      bson.M{"$push": "$lessons"},

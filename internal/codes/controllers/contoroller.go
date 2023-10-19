@@ -28,7 +28,6 @@ type controller struct {
 }
 
 func New(repository repositories.Repository, mail mail.Mail, expireTime time.Duration, timeout time.Duration) Controller {
-	rand.Seed(time.Now().Unix())
 	return &controller{repository: repository, mail: mail, expireTime: expireTime, timeout: timeout}
 }
 

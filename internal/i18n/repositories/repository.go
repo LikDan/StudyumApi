@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"studyum/internal/i18n/entities"
 )
 
@@ -12,10 +13,10 @@ type Repository interface {
 }
 
 type repository struct {
-	session *pgx.Conn
+	session *pgxpool.Pool
 }
 
-func NewI18nRepository(session *pgx.Conn) Repository {
+func NewI18nRepository(session *pgxpool.Pool) Repository {
 	return &repository{session: session}
 }
 
@@ -28,6 +29,7 @@ func (r *repository) query(ctx context.Context, lang string, stmt string, values
 	if err != nil {
 		return nil, err
 	}
+	defer scanner.Close()
 
 	return r.scanMap(scanner)
 }
@@ -47,6 +49,5 @@ func (r *repository) scanMap(scanner pgx.Rows) (dict entities.I18n, err error) {
 		dict[key] = value
 	}
 
-	scanner.Close()
 	return dict, nil
 }

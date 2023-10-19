@@ -299,9 +299,6 @@ func (c *journal) BuildAvailableOptions(ctx context.Context, user auth.User) ([]
 	if user.StudyPlaceInfo.Role == "student" {
 		return []entities.AvailableOption{{
 			Header:     "myJournal",
-			Teacher:    "",
-			Subject:    "",
-			Group:      "",
 			Editable:   false,
 			HasMembers: true,
 		}}, nil
@@ -324,14 +321,24 @@ func (c *journal) BuildAvailableOptions(ctx context.Context, user auth.User) ([]
 		}
 	}
 
-	teacherOptions, err := c.repository.GetAvailableOptions(ctx, user.StudyPlaceInfo.ID, user.StudyPlaceInfo.RoleName, slices.Contains(user.StudyPlaceInfo.Permissions, "editJournal"))
+	teacherID, err := c.repository.GetTypeID(ctx, user.StudyPlaceInfo.ID, "teacher", user.StudyPlaceInfo.RoleName)
+	if err != nil {
+		return nil, err
+	}
+
+	teacherOptions, err := c.repository.GetAvailableOptions(ctx, user.StudyPlaceInfo.ID, teacherID, slices.Contains(user.StudyPlaceInfo.Permissions, "editJournal"))
 	if err != nil {
 		return nil, err
 	}
 
 	appendOptions(teacherOptions)
 
-	if tuitionOptions, err := c.repository.GetAvailableTuitionOptions(ctx, user.StudyPlaceInfo.ID, user.StudyPlaceInfo.TuitionGroup, false); err == nil {
+	groupID, err := c.repository.GetTypeID(ctx, user.StudyPlaceInfo.ID, "group", user.StudyPlaceInfo.RoleName)
+	if err != nil {
+		return options, nil
+	}
+
+	if tuitionOptions, err := c.repository.GetAvailableTuitionOptions(ctx, user.StudyPlaceInfo.ID, groupID, false); err == nil {
 		appendOptions(tuitionOptions)
 	}
 
@@ -394,7 +401,12 @@ func (c *journal) BuildSubjectsJournal(ctx context.Context, group string, subjec
 }
 
 func (c *journal) BuildStudentsJournal(ctx context.Context, user auth.User) (entities.Journal, error) {
-	journal, err := c.repository.GetStudentJournal(ctx, user.Id, user.StudyPlaceInfo.RoleName, user.StudyPlaceInfo.ID)
+	groupID, err := c.repository.GetTypeID(ctx, user.StudyPlaceInfo.ID, "group", user.StudyPlaceInfo.RoleName)
+	if err != nil {
+		return entities.Journal{}, nil
+	}
+
+	journal, err := c.repository.GetStudentJournal(ctx, user.Id, groupID, user.StudyPlaceInfo.ID)
 	if err != nil {
 		return entities.Journal{}, err
 	}
