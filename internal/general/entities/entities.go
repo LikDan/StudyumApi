@@ -9,6 +9,11 @@ type StudyPlace struct {
 	Id                primitive.ObjectID `json:"id" bson:"_id"`
 	WeeksCount        int                `json:"weeksCount" bson:"weeksCount"`
 	Name              string             `json:"name" bson:"name"`
+	Description       string             `json:"description" bson:"description"`
+	PictureUrl        string             `json:"picture" bson:"picture"`
+	BannerUrl         string             `json:"banner" bson:"banner"`
+	Address           string             `json:"address" bson:"address"`
+	Phone             string             `json:"phone" bson:"phone"`
 	PrimaryColorSet   []string           `json:"primaryColorSet" bson:"primaryColorSet"`
 	SecondaryColorSet []string           `json:"secondaryColorSet" bson:"secondaryColorSet"`
 	JournalColors     JournalColors      `json:"journalColors" bson:"journalColors"`

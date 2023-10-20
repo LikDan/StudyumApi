@@ -108,7 +108,8 @@ func (s *handler) GetUserSchedule(ctx *gin.Context) {
 	type_ := ctx.Query("type")
 	typename := ctx.Query("typename")
 
-	if type_ != "" && typename != "" {
+	if type_ != "" &&
+		typename != "" {
 		schedule, err := s.controller.GetSchedule(ctx, user, studyPlaceID, type_, typename, startDate, endDate)
 		if err != nil {
 			_ = ctx.Error(err)
