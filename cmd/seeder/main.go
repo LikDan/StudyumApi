@@ -239,7 +239,7 @@ func createStudyPlaceInfo(studyPlaceID primitive.ObjectID) entities.UserStudyPla
 		roleName = groups[random.Intn(len(groups))].value
 	}
 
-	return entities.UserStudyPlaceInfo{
+	info := entities.UserStudyPlaceInfo{
 		ID:           studyPlaceID,
 		Name:         name,
 		Role:         role,
@@ -248,6 +248,9 @@ func createStudyPlaceInfo(studyPlaceID primitive.ObjectID) entities.UserStudyPla
 		Permissions:  permissions,
 		Accepted:     true,
 	}
+
+	enc.Encrypt(&info)
+	return info
 }
 
 func createUser(password string, studyPlaceID primitive.ObjectID) entities.User {

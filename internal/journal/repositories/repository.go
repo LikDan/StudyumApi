@@ -449,9 +449,9 @@ func (j *repository) getAvailableOptions(ctx context.Context, matcher bson.M, ed
 		bson.M{"$match": matcher},
 		bson.M{"$group": bson.M{
 			"_id": bson.M{
-				"teacher": "$teacher",
-				"subject": "$subject",
-				"group":   "$group",
+				"teacherID": "$teacherID",
+				"subjectID": "$subjectID",
+				"groupID":   "$groupID",
 			},
 			"teacherID": bson.M{"$first": "$teacherID"},
 			"subjectID": bson.M{"$first": "$subjectID"},

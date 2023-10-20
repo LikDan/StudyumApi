@@ -12,7 +12,7 @@ type User struct {
 	FirebaseToken  string              `json:"-" bson:"firebaseToken" encryption:""`
 	Login          string              `json:"login" bson:"login"`
 	PictureUrl     string              `json:"picture" bson:"picture" encryption:""`
-	StudyPlaceInfo *UserStudyPlaceInfo `json:"studyPlaceInfo" bson:"studyPlaceInfo"`
+	StudyPlaceInfo *UserStudyPlaceInfo `json:"studyPlaceInfo" bson:"studyPlaceInfo" encryption:""`
 }
 
 type UserStudyPlaceInfo struct {
