@@ -20,16 +20,16 @@ type AddGeneralLessonDTO struct {
 }
 
 type AddLessonDTO struct {
-	PrimaryColor   string    `json:"primaryColor" binding:"hexcolor|eq=transparent"`
-	SecondaryColor string    `json:"secondaryColor" binding:"hexcolor|eq=transparent"`
-	EndDate        time.Time `json:"endDate"`
-	StartDate      time.Time `json:"startDate"`
-	LessonIndex    int       `json:"lessonIndex"`
-	Type           string    `json:"type" binding:"req"`
-	Subject        string    `json:"subject"`
-	Group          string    `json:"group" binding:"req"`
-	Teacher        string    `json:"teacher" binding:"req"`
-	Room           string    `json:"room" binding:"req"`
+	PrimaryColor   string             `json:"primaryColor"`
+	SecondaryColor string             `json:"secondaryColor"`
+	EndDate        time.Time          `json:"endDate"`
+	StartDate      time.Time          `json:"startDate"`
+	LessonIndex    int                `json:"lessonIndex"`
+	Type           string             `json:"type"`
+	SubjectID      primitive.ObjectID `json:"subjectID"`
+	GroupID        primitive.ObjectID `json:"groupID"`
+	TeacherID      primitive.ObjectID `json:"teacherID"`
+	RoomID         primitive.ObjectID `json:"roomID"`
 }
 
 type UpdateLessonDTO struct {

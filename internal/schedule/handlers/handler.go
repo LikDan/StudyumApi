@@ -48,11 +48,11 @@ func NewScheduleHandler(middleware auth.Middleware, controller controllers.Contr
 	group.GET("general/:type/:name", h.MemberAuth(), h.GetGeneralSchedule)
 	group.GET("general", h.MemberAuth(), h.GetGeneralUserSchedule)
 
-	group.GET("types", h.TryAuth(), h.GetScheduleTypes) //todo change endpoint to types
+	group.GET("types", h.MemberAuth(), h.GetScheduleTypes) //todo change endpoint to types
 
 	group.GET("lessons/:id", h.MemberAuth(), h.GetLessonByID) //todo change endpoint to :id
 	group.POST("/list", h.MemberAuth("editSchedule"), h.AddLessons)
-	group.POST("", h.MemberAuth("editSchedule"), h.AddLesson)
+	group.POST("lessons", h.MemberAuth("editSchedule"), h.AddLesson)
 	group.PUT("", h.MemberAuth("editJournal"), h.UpdateLesson)
 	group.DELETE(":id", h.MemberAuth("editSchedule"), h.DeleteLesson)
 	group.DELETE("between/:startDate/:endDate", h.MemberAuth("editSchedule"), h.RemoveLessonsBetweenDates)

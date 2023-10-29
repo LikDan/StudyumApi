@@ -17,7 +17,9 @@ type Repository interface {
 	GetTypeID(ctx context.Context, studyPlaceId primitive.ObjectID, type_, typeName string) (primitive.ObjectID, error)
 
 	GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_, typeName string, typeID primitive.ObjectID, startDate, endDate time.Time, onlyGeneral bool, _ bool) (entities.Schedule, error)
-	GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, role string) []string
+
+	GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, role string, property string) (entries []entities.TypeEntry, err error)
+	GetScheduleTeacherType(ctx context.Context, studyPlaceId primitive.ObjectID) (entries []entities.TypeEntry, err error)
 
 	AddGeneralLessons(ctx context.Context, lessons []entities.GeneralLesson) error
 
@@ -168,8 +170,9 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 									bson.M{"$eq": bson.A{onlyGeneral, false}},
 									bson.M{"$eq": bson.A{"$" + type_ + "ID", typeID}},
 									bson.M{"$eq": bson.A{"$studyPlaceId", studyPlaceID}},
+									//todo
 									bson.M{"$gte": bson.A{"$startDate", "$$from"}},
-									bson.M{"$lt": bson.A{"$startDate", "$$till"}},
+									//bson.M{"$lt": bson.A{"$startDate", "$$till"}},
 								},
 							},
 						},
@@ -310,15 +313,28 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 	return schedule, nil
 }
 
-func (s *repository) GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, role string) []string {
-	namesInterface, _ := s.lessons.Distinct(ctx, role, bson.M{"studyPlaceId": studyPlaceId})
-
-	names := make([]string, len(namesInterface))
-	for i, v := range namesInterface {
-		names[i] = v.(string)
+func (s *repository) GetScheduleType(ctx context.Context, studyPlaceId primitive.ObjectID, role string, property string) (entries []entities.TypeEntry, err error) {
+	result, err := s.database.Collection(role).Find(ctx, bson.M{"studyPlaceID": studyPlaceId}, &options.FindOptions{
+		Projection: bson.M{"_id": 1, "title": "$" + property},
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	return names
+	err = result.All(ctx, &entries)
+	return
+}
+
+func (s *repository) GetScheduleTeacherType(ctx context.Context, studyPlaceId primitive.ObjectID) (entries []entities.TypeEntry, err error) {
+	result, err := s.database.Collection("StudyPlaceUsers").Find(ctx, bson.M{"studyPlaceID": studyPlaceId, "role": "teacher"}, &options.FindOptions{
+		Projection: bson.M{"_id": 1, "title": "$roleName"},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = result.All(ctx, &entries)
+	return
 }
 
 func (s *repository) AddGeneralLessons(ctx context.Context, lessons []entities.GeneralLesson) error {

@@ -140,19 +140,29 @@ func (s *controller) GetGeneralUserSchedule(ctx context.Context, user auth.User,
 
 func (s *controller) GetScheduleTypes(ctx context.Context, user auth.User, idHex string) entities.Types {
 	studyPlaceID := user.StudyPlaceInfo.ID
-	if id, err := primitive.ObjectIDFromHex(idHex); err == nil && user.StudyPlaceInfo.ID != id {
-		if err, _ = s.repository.GetStudyPlaceByID(ctx, id, false); err != nil {
-			return entities.Types{}
-		}
 
-		studyPlaceID = id
+	subjects, err := s.repository.GetScheduleType(ctx, studyPlaceID, "Subjects", "subject")
+	if err != nil {
+		return entities.Types{}
+	}
+	teachers, err := s.repository.GetScheduleTeacherType(ctx, studyPlaceID)
+	if err != nil {
+		return entities.Types{}
+	}
+	groups, err := s.repository.GetScheduleType(ctx, studyPlaceID, "Groups", "group")
+	if err != nil {
+		return entities.Types{}
+	}
+	rooms, err := s.repository.GetScheduleType(ctx, studyPlaceID, "Rooms", "room")
+	if err != nil {
+		return entities.Types{}
 	}
 
 	return entities.Types{
-		Groups:   s.repository.GetScheduleType(ctx, studyPlaceID, "group"),
-		Teachers: s.repository.GetScheduleType(ctx, studyPlaceID, "teacher"),
-		Subjects: s.repository.GetScheduleType(ctx, studyPlaceID, "subject"),
-		Rooms:    s.repository.GetScheduleType(ctx, studyPlaceID, "room"),
+		Subjects: subjects,
+		Teachers: teachers,
+		Groups:   groups,
+		Rooms:    rooms,
 	}
 }
 
@@ -198,16 +208,16 @@ func (s *controller) AddLessons(ctx context.Context, user auth.User, lessonsDTO 
 		lesson := entities.Lesson{
 			Id:             primitive.NewObjectID(),
 			StudyPlaceId:   user.StudyPlaceInfo.ID,
-			PrimaryColor:   lessonDTO.PrimaryColor,
-			SecondaryColor: lessonDTO.SecondaryColor,
+			PrimaryColor:   "white",
+			SecondaryColor: "transparent",
 			Type:           lessonDTO.Type,
 			LessonIndex:    lessonDTO.LessonIndex,
 			StartDate:      lessonDTO.StartDate,
 			EndDate:        lessonDTO.EndDate,
-			Subject:        lessonDTO.Subject,
-			Group:          lessonDTO.Group,
-			Teacher:        lessonDTO.Teacher,
-			Room:           lessonDTO.Room,
+			SubjectID:      lessonDTO.SubjectID,
+			GroupID:        lessonDTO.GroupID,
+			TeacherID:      lessonDTO.TeacherID,
+			RoomID:         lessonDTO.RoomID,
 		}
 
 		if err := s.repository.RemoveGroupLessonBetweenDates(ctx, lesson.StartDate, lesson.EndDate, user.StudyPlaceInfo.ID, lesson.Group); err != nil {
@@ -243,10 +253,10 @@ func (s *controller) AddLesson(ctx context.Context, addDTO dto2.AddLessonDTO, us
 		EndDate:        addDTO.EndDate,
 		StartDate:      addDTO.StartDate,
 		LessonIndex:    addDTO.LessonIndex,
-		Subject:        addDTO.Subject,
-		Group:          addDTO.Group,
-		Teacher:        addDTO.Teacher,
-		Room:           addDTO.Room,
+		SubjectID:      addDTO.SubjectID,
+		GroupID:        addDTO.GroupID,
+		TeacherID:      addDTO.TeacherID,
+		RoomID:         addDTO.RoomID,
 	}
 
 	if err := s.repository.AddLesson(ctx, lesson); err != nil {
@@ -271,10 +281,10 @@ func (s *controller) UpdateLesson(ctx context.Context, updateDTO dto2.UpdateLess
 		EndDate:        updateDTO.EndDate,
 		StartDate:      updateDTO.StartDate,
 		LessonIndex:    updateDTO.LessonIndex,
-		Subject:        updateDTO.Subject,
-		Group:          updateDTO.Group,
-		Teacher:        updateDTO.Teacher,
-		Room:           updateDTO.Room,
+		SubjectID:      updateDTO.SubjectID,
+		GroupID:        updateDTO.GroupID,
+		TeacherID:      updateDTO.TeacherID,
+		RoomID:         updateDTO.RoomID,
 		Type:           updateDTO.Type,
 		Title:          updateDTO.Title,
 		Homework:       updateDTO.Homework,

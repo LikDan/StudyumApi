@@ -31,6 +31,10 @@ type Lesson struct {
 	Group            string             `json:"group" bson:"group"`
 	Teacher          string             `json:"teacher" bson:"teacher"`
 	Room             string             `json:"room" bson:"room"`
+	SubjectID        primitive.ObjectID `json:"subjectID" bson:"subjectID"`
+	GroupID          primitive.ObjectID `json:"groupID" bson:"groupID"`
+	TeacherID        primitive.ObjectID `json:"teacherID" bson:"teacherID"`
+	RoomID           primitive.ObjectID `json:"roomID" bson:"roomID"`
 	Title            string             `json:"title" bson:"title"`
 	Homework         string             `json:"homework" bson:"homework"`
 	Description      string             `json:"description" bson:"description"`
@@ -73,8 +77,13 @@ type StudyPlaceInfo struct {
 }
 
 type Types struct {
-	Groups   []string `json:"groups" bson:"groups"`
-	Teachers []string `json:"teachers" bson:"teachers"`
-	Subjects []string `json:"subjects" bson:"subjects"`
-	Rooms    []string `json:"rooms" bson:"rooms"`
+	Groups   []TypeEntry `json:"groups" bson:"groups"`
+	Teachers []TypeEntry `json:"teachers" bson:"teachers"`
+	Subjects []TypeEntry `json:"subjects" bson:"subjects"`
+	Rooms    []TypeEntry `json:"rooms" bson:"rooms"`
+}
+
+type TypeEntry struct {
+	ID    primitive.ObjectID `json:"id" bson:"_id"`
+	Title string             `json:"title" bson:"title"`
 }
