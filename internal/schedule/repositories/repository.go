@@ -48,12 +48,13 @@ type repository struct {
 	studyPlaces    *mongo.Collection
 	lessons        *mongo.Collection
 	generalLessons *mongo.Collection
+	schedule       *mongo.Collection
 
 	database *mongo.Database
 }
 
-func NewScheduleRepository(studyPlaces *mongo.Collection, lessons *mongo.Collection, generalLessons *mongo.Collection, database *mongo.Database) Repository {
-	return &repository{studyPlaces: studyPlaces, lessons: lessons, generalLessons: generalLessons, database: database}
+func NewScheduleRepository(studyPlaces *mongo.Collection, lessons *mongo.Collection, generalLessons *mongo.Collection, schedule *mongo.Collection, database *mongo.Database) Repository {
+	return &repository{studyPlaces: studyPlaces, lessons: lessons, generalLessons: generalLessons, schedule: schedule, database: database}
 }
 
 func (s *repository) GetTypeID(ctx context.Context, studyPlaceID primitive.ObjectID, type_, typeName string) (primitive.ObjectID, error) {
@@ -101,184 +102,127 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 		type_ = "group"
 	}
 
-	cursor, err := s.generalLessons.Aggregate(ctx, bson.A{
-		bson.M{"$match": bson.M{"studyPlaceId": studyPlaceID, type_ + "ID": typeID}},
-		bson.M{"$group": bson.M{
-			"_id":     bson.M{"dayIndex": "$dayIndex", "weekIndex": "$weekIndex"},
-			"lessons": bson.M{"$push": "$$ROOT"},
-		}},
+	cursor, err := s.schedule.Aggregate(ctx, bson.A{
 		bson.M{
-			"$sort": bson.M{
-				"_id.weekIndex": 1,
-				"_id.dayIndex":  1,
+			"$match": bson.M{
+				"date":   bson.M{"$gte": startDate, "$lte": endDate},
+				"status": bson.M{"$ne": "draft"},
 			},
 		},
-		bson.M{"$group": bson.M{
-			"_id":  nil,
-			"days": bson.M{"$push": "$$ROOT"},
-		}},
-		bson.M{
-			"$addFields": bson.M{
-				"days": bson.M{
-					"$function": bson.M{
-						"body": `function(templates, start, end) {
-    						const getWeekNumber = (date) => {
-								const yearStart = new Date(date.getFullYear(), 0, 1);
-								return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + yearStart.getDay() + 1) / 7);
-    						}
-
-    						const weekAmount = Math.max(...templates.map(t => t._id.weekIndex)) + 1
-							const currentDate = new Date(start.getTime());
-							const lessons = [];
-							while (currentDate <= end) {
-								const day = currentDate.getUTCDay() === 0 ? 6 : currentDate.getUTCDay() - 1;
-								const week = getWeekNumber(currentDate) % weekAmount;
-                                const template = templates.find(t => t._id.dayIndex === day && t._id.weekIndex === week)
-                                if (!!template) {
-                                    template.lessons = template.lessons.map(t => {
-                                        const date = new Date(currentDate.getTime())
-                                        const startDate = new Date(currentDate.toLocaleDateString() + ' ' + t.startTime)
-                                        const endDate = new Date(currentDate.toLocaleDateString() + ' ' + t.endTime)
-                                        return {...t, date, startDate, endDate, isGeneral: true}
-                                    })
-                                    lessons.push({...template});
-                                }
-								currentDate.setDate(currentDate.getDate() + 1);
-							}
-
-							return lessons
-						}`,
-						"args": bson.A{"$days", startDate, endDate},
-						"lang": "js",
-					},
-				},
-			},
-		},
-		bson.M{"$unwind": "$days"},
-		bson.M{"$replaceRoot": bson.M{"newRoot": "$days"}},
-		bson.M{"$addFields": bson.M{"_id.date": bson.M{"$first": "$lessons.date"}}},
-		bson.M{"$project": bson.M{"general": "$lessons"}},
 		bson.M{
 			"$lookup": bson.M{
 				"from": "Lessons",
-				"let":  bson.M{"from": "$_id.date", "till": bson.M{"$dateAdd": bson.M{"startDate": "$_id.date", "unit": "day", "amount": 1}}},
+				"let":  bson.M{"date": "$date", "status": "$status"},
 				"pipeline": bson.A{
 					bson.M{
-						"$match": bson.M{
-							"$expr": bson.M{
-								"$and": bson.A{
-									bson.M{"$eq": bson.A{onlyGeneral, false}},
-									bson.M{"$eq": bson.A{"$" + type_ + "ID", typeID}},
-									bson.M{"$eq": bson.A{"$studyPlaceId", studyPlaceID}},
-									//todo
-									bson.M{"$gte": bson.A{"$startDate", "$$from"}},
-									//bson.M{"$lt": bson.A{"$startDate", "$$till"}},
-								},
-							},
-						},
+						"$match": bson.M{"$expr": bson.M{"$and": bson.A{
+							bson.M{"$eq": bson.A{"$$date", bson.M{"$dateTrunc": bson.M{"date": "$startDate", "unit": "day"}}}},
+							bson.M{"$eq": bson.A{"$" + type_ + "ID", typeID}},
+						}}},
 					},
 					bson.M{
-						"$sort": bson.M{
-							"startDate": 1,
-						},
+						"$addFields": bson.M{"status": "$$status"},
 					},
 				},
 				"as": "lessons",
 			},
 		},
 		bson.M{
+			"$group": bson.M{
+				"_id":   nil,
+				"items": bson.M{"$push": "$$ROOT"}},
+		},
+		bson.M{
 			"$project": bson.M{
-				"lessons": bson.M{
-					"$cond": bson.M{
-						"if":   bson.M{"$eq": bson.A{"$lessons", bson.A{}}},
-						"then": "$general",
-						"else": "$lessons",
+				"items": bson.M{
+					"$function": bson.M{
+						"body": `function (items, start, end) { 
+const currentDate = new Date(start);
+while (currentDate <= end) {
+    if (!items.some(item => item.date.getTime() === currentDate.getTime())) { 
+        items.push({date: new Date(currentDate)}); 
+    }
+    currentDate.setDate(currentDate.getDate() + 1); 
+}
+return items; 
+}`,
+						"args": bson.A{"$items", startDate, endDate},
+						"lang": "js",
 					},
 				},
 			},
 		},
+		bson.M{"$unwind": "$items"},
+		bson.M{"$replaceRoot": bson.M{"newRoot": "$items"}},
+		bson.M{"$lookup": bson.M{
+			"from": "GeneralLessons",
+			"let":  bson.M{"lessons": "$lessons", "date": "$date"},
+			"pipeline": bson.A{
+				bson.M{
+					"$match": bson.M{"$expr": bson.M{"$and": bson.A{
+						bson.M{"$ne": bson.A{bson.M{"$type": "$$lessons"}, "array"}},
+						bson.M{"$eq": bson.A{"$" + type_ + "ID", typeID}},
+						bson.M{"$eq": bson.A{"$dayIndex", bson.M{"$dayOfWeek": "$$date"}}},
+					}}},
+				},
+				bson.M{
+					"$addFields": bson.M{
+						"startDate": bson.M{"$dateAdd": bson.M{"startDate": "$$date", "unit": "minute", "amount": "$startTimeMinutes"}},
+						"endDate":   bson.M{"$dateAdd": bson.M{"startDate": "$$date", "unit": "minute", "amount": "$endTimeMinutes"}},
+						"status":    "general",
+					},
+				},
+			}, "as": "generalLessons"},
+		},
+		bson.M{
+			"$project": bson.M{
+				"lessons": bson.M{"$cond": bson.M{
+					"if":   bson.M{"$eq": bson.A{bson.M{"$type": "$lessons"}, "array"}},
+					"then": "$lessons",
+					"else": "$generalLessons"},
+				}},
+		},
 		bson.M{"$unwind": "$lessons"},
 		bson.M{"$replaceRoot": bson.M{"newRoot": "$lessons"}},
-		bson.M{
-			"$lookup": bson.M{
-				"from":         "StudyPlaceUsers",
-				"localField":   "teacherID",
-				"foreignField": "_id",
-				"as":           "teacher",
-			},
-		},
-		bson.M{
-			"$addFields": bson.M{
-				"teacher": bson.M{"$first": "$teacher.roleName"},
-			},
-		},
-		bson.M{
-			"$lookup": bson.M{
-				"from":         "Groups",
-				"localField":   "groupID",
-				"foreignField": "_id",
-				"as":           "group",
-			},
-		},
-		bson.M{
-			"$addFields": bson.M{
-				"group": bson.M{"$first": "$group.group"},
-			},
-		},
-		bson.M{
-			"$lookup": bson.M{
-				"from":         "Subjects",
-				"localField":   "subjectID",
-				"foreignField": "_id",
-				"as":           "subject",
-			},
-		},
+		bson.M{"$lookup": bson.M{"from": "StudyPlaceUsers", "localField": "teacherID", "foreignField": "_id", "as": "teacher"}},
+		bson.M{"$lookup": bson.M{"from": "Groups", "localField": "groupID", "foreignField": "_id", "as": "group"}},
+		bson.M{"$lookup": bson.M{"from": "Subjects", "localField": "subjectID", "foreignField": "_id", "as": "subject"}},
+		bson.M{"$lookup": bson.M{"from": "Rooms", "localField": "roomID", "foreignField": "_id", "as": "room"}},
 		bson.M{
 			"$addFields": bson.M{
 				"subject": bson.M{"$first": "$subject.subject"},
+				"room":    bson.M{"$first": "$room.room"},
+				"teacher": bson.M{"$first": "$teacher.roleName"},
+				"group":   bson.M{"$first": "$group.group"},
 			},
 		},
-		bson.M{
-			"$lookup": bson.M{
-				"from":         "Rooms",
-				"localField":   "roomID",
-				"foreignField": "_id",
-				"as":           "room",
-			},
-		},
-		bson.M{
-			"$addFields": bson.M{
-				"room": bson.M{"$first": "$room.room"},
-			},
-		},
-		bson.M{
-			"$group": bson.M{
-				"_id": nil,
-				"info": bson.M{"$first": bson.M{
-					"studyPlaceInfo": bson.M{
-						"_id": studyPlaceID,
-					},
-					"type":      type_,
-					"typeName":  typeName,
-					"startDate": startDate,
-					"endDate":   endDate,
-				}},
-				"lessons": bson.M{"$push": "$$ROOT"},
-			},
-		},
-		bson.M{
-			"$lookup": bson.M{
-				"from":         "StudyPlaces",
-				"localField":   "info.studyPlaceInfo._id",
-				"foreignField": "_id",
-				"as":           "info.studyPlaceInfo.title",
-			},
-		},
-		bson.M{
-			"$addFields": bson.M{
-				"info.studyPlaceInfo.title": bson.M{"$first": "$info.studyPlaceInfo.title.name"},
-			},
-		},
+		bson.M{"$project": bson.M{
+			"endDate":        1,
+			"startDate":      1,
+			"subjectID":      1,
+			"subject":        1,
+			"teacherID":      1,
+			"teacher":        1,
+			"groupID":        1,
+			"group":          1,
+			"roomID":         1,
+			"room":           1,
+			"lessonIndex":    1,
+			"primaryColor":   1,
+			"secondaryColor": 1,
+			"status":         1,
+		}},
+		bson.M{"$group": bson.M{
+			"_id":     nil,
+			"lessons": bson.M{"$push": "$$ROOT"},
+			"info": bson.M{"$first": bson.M{
+				"studyPlaceInfo": bson.M{"_id": studyPlaceID},
+				"type":           type_,
+				"typeName":       typeName, //todo remove
+				"startDate":      startDate,
+				"endDate":        endDate,
+			}},
+		}},
 	})
 	if err != nil {
 		return entities.Schedule{}, err

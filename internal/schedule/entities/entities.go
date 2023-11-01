@@ -42,24 +42,26 @@ type Lesson struct {
 }
 
 type GeneralLesson struct {
-	Id             primitive.ObjectID `json:"id" bson:"_id"`
-	StudyPlaceId   primitive.ObjectID `json:"studyPlaceId" bson:"studyPlaceId"`
-	PrimaryColor   string             `json:"primaryColor" bson:"primaryColor"`
-	SecondaryColor string             `json:"secondaryColor" bson:"secondaryColor"`
-	EndTime        string             `json:"endTime" bson:"endTime"`
-	StartTime      string             `json:"startTime" bson:"startTime"`
-	Subject        string             `json:"subject" bson:"subject"`
-	Group          string             `json:"group" bson:"group"`
-	Teacher        string             `json:"teacher" bson:"teacher"`
-	Room           string             `json:"room" bson:"room"`
-	SubjectID      primitive.ObjectID `json:"subjectID" bson:"subjectID"`
-	GroupID        primitive.ObjectID `json:"groupID" bson:"groupID"`
-	TeacherID      primitive.ObjectID `json:"teacherID§" bson:"teacherID"`
-	RoomID         primitive.ObjectID `json:"roomID" bson:"roomID"`
-	Type           string             `json:"type" bson:"type"`
-	LessonIndex    int                `json:"lessonIndex" bson:"lessonIndex"`
-	DayIndex       int                `json:"dayIndex" bson:"dayIndex"`
-	WeekIndex      int                `json:"weekIndex" bson:"weekIndex"`
+	Id               primitive.ObjectID `json:"id" bson:"_id"`
+	StudyPlaceId     primitive.ObjectID `json:"studyPlaceId" bson:"studyPlaceId"`
+	PrimaryColor     string             `json:"primaryColor" bson:"primaryColor"`
+	SecondaryColor   string             `json:"secondaryColor" bson:"secondaryColor"`
+	EndTime          string             `json:"endTime" bson:"endTime"`
+	StartTime        string             `json:"startTime" bson:"startTime"`
+	Subject          string             `json:"subject" bson:"subject"`
+	Group            string             `json:"group" bson:"group"`
+	Teacher          string             `json:"teacher" bson:"teacher"`
+	Room             string             `json:"room" bson:"room"`
+	SubjectID        primitive.ObjectID `json:"subjectID" bson:"subjectID"`
+	GroupID          primitive.ObjectID `json:"groupID" bson:"groupID"`
+	TeacherID        primitive.ObjectID `json:"teacherID§" bson:"teacherID"`
+	RoomID           primitive.ObjectID `json:"roomID" bson:"roomID"`
+	Type             string             `json:"type" bson:"type"`
+	LessonIndex      int                `json:"lessonIndex" bson:"lessonIndex"`
+	DayIndex         int                `json:"dayIndex" bson:"dayIndex"`
+	WeekIndex        int                `json:"weekIndex" bson:"weekIndex"`
+	StartTimeMinutes int                `json:"startTimeMinutes" bson:"startTimeMinutes"`
+	EndTimeMinutes   int                `json:"endTimeMinutes" bson:"endTimeMinutes"`
 }
 
 type Info struct {
