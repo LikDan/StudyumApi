@@ -17,7 +17,7 @@ type DeleteLessonID struct {
 
 type Lesson struct {
 	Id               primitive.ObjectID `json:"id" bson:"_id" apps:"trackable,collection=Lessons"`
-	StudyPlaceId     primitive.ObjectID `json:"studyPlaceId" bson:"studyPlaceId"`
+	StudyPlaceId     primitive.ObjectID `json:"studyPlaceID" bson:"studyPlaceID"`
 	PrimaryColor     string             `json:"primaryColor" bson:"primaryColor"`
 	JournalCellColor string             `json:"journalCellColor" bson:"journalCellColor"`
 	SecondaryColor   string             `json:"secondaryColor" bson:"secondaryColor"`
@@ -39,15 +39,14 @@ type Lesson struct {
 	Homework         string             `json:"homework" bson:"homework"`
 	Description      string             `json:"description" bson:"description"`
 	IsGeneral        bool               `json:"isGeneral" bson:"isGeneral"`
+	Status           string             `json:"status" bson:"status"`
 }
 
 type GeneralLesson struct {
 	Id               primitive.ObjectID `json:"id" bson:"_id"`
-	StudyPlaceId     primitive.ObjectID `json:"studyPlaceId" bson:"studyPlaceId"`
+	StudyPlaceId     primitive.ObjectID `json:"studyPlaceID" bson:"studyPlaceID"`
 	PrimaryColor     string             `json:"primaryColor" bson:"primaryColor"`
 	SecondaryColor   string             `json:"secondaryColor" bson:"secondaryColor"`
-	EndTime          string             `json:"endTime" bson:"endTime"`
-	StartTime        string             `json:"startTime" bson:"startTime"`
 	Subject          string             `json:"subject" bson:"subject"`
 	Group            string             `json:"group" bson:"group"`
 	Teacher          string             `json:"teacher" bson:"teacher"`
@@ -88,4 +87,11 @@ type Types struct {
 type TypeEntry struct {
 	ID    primitive.ObjectID `json:"id" bson:"_id"`
 	Title string             `json:"title" bson:"title"`
+}
+
+type ScheduleInfoEntry struct {
+	ID           primitive.ObjectID `json:"id" bson:"_id"`
+	Date         time.Time          `json:"date" bson:"date"`
+	Status       string             `json:"status" bson:"status"`
+	StudyPlaceId primitive.ObjectID `json:"studyPlaceID" bson:"studyPlaceID"`
 }

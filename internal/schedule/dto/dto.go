@@ -6,17 +6,17 @@ import (
 )
 
 type AddGeneralLessonDTO struct {
-	PrimaryColor   string `json:"primaryColor" binding:"hexcolor|eq=transparent"`
-	SecondaryColor string `json:"secondaryColor" binding:"hexcolor|eq=transparent"`
-	LessonIndex    int    `json:"lessonIndex"`
-	DayIndex       int    `json:"dayIndex"`
-	WeekIndex      int    `json:"weekIndex"`
-	StartTime      string `json:"startTime" binding:"req"`
-	EndTime        string `json:"endTime" binding:"req"`
-	Subject        string `json:"subject" binding:"req"`
-	Teacher        string `json:"teacher" binding:"req"`
-	Group          string `json:"group" binding:"req"`
-	Room           string `json:"room" binding:"req"`
+	PrimaryColor     string             `json:"primaryColor" binding:"hexcolor|eq=transparent"`
+	SecondaryColor   string             `json:"secondaryColor" binding:"hexcolor|eq=transparent"`
+	LessonIndex      int                `json:"lessonIndex"`
+	DayIndex         int                `json:"dayIndex"`
+	WeekIndex        int                `json:"weekIndex"`
+	StartTimeMinutes int                `json:"startTimeMinutes" binding:"req"`
+	EndTimeMinutes   int                `json:"endTimeMinutes" binding:"req"`
+	SubjectID        primitive.ObjectID `json:"subjectID"`
+	TeacherID        primitive.ObjectID `json:"teacher"`
+	GroupID          primitive.ObjectID `json:"group"`
+	RoomID           primitive.ObjectID `json:"room"`
 }
 
 type AddLessonDTO struct {
@@ -30,6 +30,11 @@ type AddLessonDTO struct {
 	GroupID        primitive.ObjectID `json:"groupID"`
 	TeacherID      primitive.ObjectID `json:"teacherID"`
 	RoomID         primitive.ObjectID `json:"roomID"`
+}
+
+type AddScheduleInfoDTO struct {
+	Status string    `json:"status"`
+	Date   time.Time `json:"date"`
 }
 
 type UpdateLessonDTO struct {

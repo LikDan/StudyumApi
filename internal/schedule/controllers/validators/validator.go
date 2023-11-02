@@ -4,7 +4,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
 	"studyum/internal/schedule/dto"
-	"studyum/pkg/datetime"
 )
 
 var ValidationError = errors.New("validation error")
@@ -25,17 +24,7 @@ func NewSchedule(validate *validator.Validate) Validator {
 }
 
 func (s *schedule) AddGeneralLesson(dto dto.AddGeneralLessonDTO) error {
-	startDuration, err := datetime.ParseDuration(dto.StartTime)
-	if err != nil {
-		return err
-	}
-
-	endDuration, err := datetime.ParseDuration(dto.EndTime)
-	if err != nil {
-		return err
-	}
-
-	if endDuration <= startDuration {
+	if dto.StartTimeMinutes <= dto.EndTimeMinutes {
 		return errors.Wrap(ValidationError, "start time is after end time")
 	}
 

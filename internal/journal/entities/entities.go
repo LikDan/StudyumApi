@@ -93,7 +93,7 @@ type DeleteLessonID struct {
 
 type Lesson struct {
 	Id               primitive.ObjectID `json:"id" bson:"_id" apps:"trackable,collection=Lessons"`
-	StudyPlaceId     primitive.ObjectID `json:"studyPlaceId" bson:"studyPlaceId"`
+	StudyPlaceId     primitive.ObjectID `json:"studyPlaceID" bson:"studyPlaceID"`
 	PrimaryColor     string             `json:"primaryColor" bson:"primaryColor"`
 	JournalCellColor string             `json:"journalCellColor" bson:"journalCellColor"`
 	SecondaryColor   string             `json:"secondaryColor" bson:"secondaryColor"`

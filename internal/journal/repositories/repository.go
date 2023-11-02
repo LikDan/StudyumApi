@@ -24,11 +24,11 @@ type Repository interface {
 	GetAvailableOptions(ctx context.Context, id, teacherID primitive.ObjectID, editable bool) ([]entities.AvailableOption, error)
 	GetAvailableTuitionOptions(ctx context.Context, id, groupID primitive.ObjectID, editable bool) ([]entities.AvailableOption, error)
 
-	GetStudentJournal(ctx context.Context, userId, groupID primitive.ObjectID, studyPlaceId primitive.ObjectID) (entities.Journal, error)
-	GetJournal(ctx context.Context, option entities.AvailableOption, studyPlaceId primitive.ObjectID) (entities.Journal, error)
+	GetStudentJournal(ctx context.Context, userId, groupID primitive.ObjectID, studyPlaceID primitive.ObjectID) (entities.Journal, error)
+	GetJournal(ctx context.Context, option entities.AvailableOption, studyPlaceID primitive.ObjectID) (entities.Journal, error)
 
 	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
-	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId primitive.ObjectID) ([]entities.Lesson, error)
+	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceID primitive.ObjectID) ([]entities.Lesson, error)
 
 	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID) (general.StudyPlace, error)
 
@@ -38,10 +38,10 @@ type Repository interface {
 	UpdateAbsence(ctx context.Context, absence entities.Absence, teacher string) error
 	DeleteAbsenceByID(ctx context.Context, id primitive.ObjectID, teacher string) error
 
-	GenerateMarksReport(ctx context.Context, group string, lessonType string, mark string, from, to *time.Time, studyPlaceId primitive.ObjectID) (entities.GeneratedTable, error)
+	GenerateMarksReport(ctx context.Context, group string, lessonType string, mark string, from, to *time.Time, studyPlaceID primitive.ObjectID) (entities.GeneratedTable, error)
 	GenerateAbsencesReport(ctx context.Context, group string, from, to *time.Time, id primitive.ObjectID) (entities.GeneratedTable, error)
 
-	GetJournalRowWithDates(ctx context.Context, userID primitive.ObjectID, subject, teacher, group string, studyPlaceId primitive.ObjectID) ([]*entities.Cell, []time.Time, error)
+	GetJournalRowWithDates(ctx context.Context, userID primitive.ObjectID, subject, teacher, group string, studyPlaceID primitive.ObjectID) ([]*entities.Cell, []time.Time, error)
 }
 
 type repository struct {
@@ -91,10 +91,10 @@ func (j *repository) GetTypeID(ctx context.Context, studyPlaceID primitive.Objec
 	return value.ID, nil
 }
 
-func (j *repository) GenerateMarksReport(ctx context.Context, group string, lessonType string, mark string, from, to *time.Time, studyPlaceId primitive.ObjectID) (entities.GeneratedTable, error) {
+func (j *repository) GenerateMarksReport(ctx context.Context, group string, lessonType string, mark string, from, to *time.Time, studyPlaceID primitive.ObjectID) (entities.GeneratedTable, error) {
 	var lessonMatcher = bson.M{
 		"group":        group,
-		"studyPlaceId": studyPlaceId,
+		"studyPlaceID": studyPlaceID,
 		"type":         lessonType,
 	}
 
@@ -145,7 +145,7 @@ func (j *repository) GenerateMarksReport(ctx context.Context, group string, less
 					"$filter": bson.M{
 						"input": bson.M{"$concatArrays": bson.A{"$codeUsers", "$user"}},
 						"as":    "user",
-						"cond":  bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$$user.role", "group"}}, bson.M{"$eq": bson.A{"$$user.roleName", group}}, bson.M{"$eq": bson.A{"$$user.studyPlaceID", studyPlaceId}}}},
+						"cond":  bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$$user.role", "group"}}, bson.M{"$eq": bson.A{"$$user.roleName", group}}, bson.M{"$eq": bson.A{"$$user.studyPlaceID", studyPlaceID}}}},
 					},
 				},
 			},
@@ -167,7 +167,7 @@ func (j *repository) GenerateMarksReport(ctx context.Context, group string, less
 				"from": "StudyPlaces",
 				"pipeline": bson.A{
 					bson.M{"$match": bson.M{
-						"_id": studyPlaceId,
+						"_id": studyPlaceID,
 					}},
 				},
 				"as": "studyPlace",
@@ -281,10 +281,10 @@ func (j *repository) GenerateMarksReport(ctx context.Context, group string, less
 	return table, nil
 }
 
-func (j *repository) GenerateAbsencesReport(ctx context.Context, group string, from, to *time.Time, studyPlaceId primitive.ObjectID) (entities.GeneratedTable, error) {
+func (j *repository) GenerateAbsencesReport(ctx context.Context, group string, from, to *time.Time, studyPlaceID primitive.ObjectID) (entities.GeneratedTable, error) {
 	var lessonMatcher = bson.M{
 		"group":        group,
-		"studyPlaceId": studyPlaceId,
+		"studyPlaceID": studyPlaceID,
 	}
 
 	if from != nil {
@@ -334,7 +334,7 @@ func (j *repository) GenerateAbsencesReport(ctx context.Context, group string, f
 					"$filter": bson.M{
 						"input": bson.M{"$concatArrays": bson.A{"$codeUsers", "$user"}},
 						"as":    "user",
-						"cond":  bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$$user.role", "group"}}, bson.M{"$eq": bson.A{"$$user.roleName", group}}, bson.M{"$eq": bson.A{"$$user.studyPlaceID", studyPlaceId}}}},
+						"cond":  bson.M{"$and": bson.A{bson.M{"$eq": bson.A{"$$user.role", "group"}}, bson.M{"$eq": bson.A{"$$user.roleName", group}}, bson.M{"$eq": bson.A{"$$user.studyPlaceID", studyPlaceID}}}},
 					},
 				},
 			},
@@ -354,7 +354,7 @@ func (j *repository) GenerateAbsencesReport(ctx context.Context, group string, f
 				"from": "StudyPlaces",
 				"pipeline": bson.A{
 					bson.M{"$match": bson.M{
-						"_id": studyPlaceId,
+						"_id": studyPlaceID,
 					}},
 				},
 				"as": "studyPlace",
@@ -528,20 +528,20 @@ func (j *repository) getAvailableOptions(ctx context.Context, matcher bson.M, ed
 }
 
 func (j *repository) GetAllAvailableOptions(ctx context.Context, id primitive.ObjectID, editable bool) ([]entities.AvailableOption, error) {
-	return j.getAvailableOptions(ctx, bson.M{"studyPlaceId": id}, editable)
+	return j.getAvailableOptions(ctx, bson.M{"studyPlaceID": id}, editable)
 }
 
 func (j *repository) GetAvailableOptions(ctx context.Context, id, teacherID primitive.ObjectID, editable bool) ([]entities.AvailableOption, error) {
-	return j.getAvailableOptions(ctx, bson.M{"studyPlaceId": id, "teacherID": teacherID}, editable)
+	return j.getAvailableOptions(ctx, bson.M{"studyPlaceID": id, "teacherID": teacherID}, editable)
 }
 
 func (j *repository) GetAvailableTuitionOptions(ctx context.Context, id, groupID primitive.ObjectID, editable bool) ([]entities.AvailableOption, error) {
-	return j.getAvailableOptions(ctx, bson.M{"studyPlaceId": id, "groupID": groupID}, editable)
+	return j.getAvailableOptions(ctx, bson.M{"studyPlaceID": id, "groupID": groupID}, editable)
 }
 
-func (j *repository) GetStudentJournal(ctx context.Context, userId, groupID primitive.ObjectID, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
+func (j *repository) GetStudentJournal(ctx context.Context, userId, groupID primitive.ObjectID, studyPlaceID primitive.ObjectID) (entities.Journal, error) {
 	cursor, err := j.lessons.Aggregate(ctx, bson.A{
-		bson.M{"$match": bson.M{"groupID": groupID, "studyPlaceId": studyPlaceId}},
+		bson.M{"$match": bson.M{"groupID": groupID, "studyPlaceID": studyPlaceID}},
 		bson.M{
 			"$lookup": bson.M{
 				"from":         "Subjects",
@@ -562,7 +562,7 @@ func (j *repository) GetStudentJournal(ctx context.Context, userId, groupID prim
 		bson.M{
 			"$lookup": bson.M{
 				"from":     "StudyPlaces",
-				"pipeline": bson.A{bson.M{"$match": bson.M{"_id": studyPlaceId}}},
+				"pipeline": bson.A{bson.M{"$match": bson.M{"_id": studyPlaceID}}},
 				"as":       "studyPlace",
 			},
 		},
@@ -710,10 +710,10 @@ func (j *repository) GetStudentJournal(ctx context.Context, userId, groupID prim
 	return journal, nil
 }
 
-func (j *repository) GetJournal(ctx context.Context, option entities.AvailableOption, studyPlaceId primitive.ObjectID) (entities.Journal, error) {
+func (j *repository) GetJournal(ctx context.Context, option entities.AvailableOption, studyPlaceID primitive.ObjectID) (entities.Journal, error) {
 	var cursor, err = j.studyPlaceUsers.Aggregate(ctx, bson.A{
 		bson.M{
-			"$match": bson.M{"role": "student", "roleName": option.Group, "studyPlaceID": studyPlaceId},
+			"$match": bson.M{"role": "student", "roleName": option.Group, "studyPlaceID": studyPlaceID},
 		},
 		bson.M{
 			"$group": bson.M{"_id": nil, "users": bson.M{"$push": "$$ROOT"}},
@@ -727,7 +727,7 @@ func (j *repository) GetJournal(ctx context.Context, option entities.AvailableOp
 							"subjectID":    option.SubjectID,
 							"groupID":      option.GroupID,
 							"teacherID":    option.TeacherID,
-							"studyPlaceId": studyPlaceId,
+							"studyPlaceID": studyPlaceID,
 						},
 					},
 				},
@@ -739,7 +739,7 @@ func (j *repository) GetJournal(ctx context.Context, option entities.AvailableOp
 				"from": "StudyPlaces",
 				"pipeline": bson.A{
 					bson.M{"$match": bson.M{
-						"_id": studyPlaceId,
+						"_id": studyPlaceID,
 					}},
 				},
 				"as": "studyPlace",
@@ -872,7 +872,7 @@ func (j *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectI
 	return
 }
 
-func (j *repository) GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceId primitive.ObjectID) ([]entities.Lesson, error) {
+func (j *repository) GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceID primitive.ObjectID) ([]entities.Lesson, error) {
 	lessonsCursor, err := j.lessons.Aggregate(ctx, mongo.Pipeline{
 		bson.D{{"$lookup", bson.M{
 			"from":         "Marks",
@@ -883,7 +883,7 @@ func (j *repository) GetLessons(ctx context.Context, userId primitive.ObjectID, 
 			},
 			"as": "marks",
 		}}},
-		bson.D{{"$match", bson.M{"group": group, "teacher": teacher, "subject": subject, "studyPlaceId": studyPlaceId}}},
+		bson.D{{"$match", bson.M{"group": group, "teacher": teacher, "subject": subject, "studyPlaceID": studyPlaceID}}},
 		bson.D{{"$sort", bson.M{"date": 1}}},
 	})
 	if err != nil {
@@ -1006,9 +1006,9 @@ func (j *repository) DeleteAbsenceByID(ctx context.Context, id primitive.ObjectI
 	return nil
 }
 
-func (j *repository) GetJournalRowWithDates(ctx context.Context, userID primitive.ObjectID, subject, teacher, group string, studyPlaceId primitive.ObjectID) ([]*entities.Cell, []time.Time, error) {
+func (j *repository) GetJournalRowWithDates(ctx context.Context, userID primitive.ObjectID, subject, teacher, group string, studyPlaceID primitive.ObjectID) ([]*entities.Cell, []time.Time, error) {
 	rowCursor, err := j.lessons.Aggregate(ctx, bson.A{
-		bson.M{"$match": bson.M{"group": group, "subject": subject, "teacher": teacher, "studyPlaceId": studyPlaceId}},
+		bson.M{"$match": bson.M{"group": group, "subject": subject, "teacher": teacher, "studyPlaceID": studyPlaceID}},
 		bson.M{"$addFields": bson.M{
 			"marks": bson.M{"$filter": bson.M{
 				"input": "$marks",

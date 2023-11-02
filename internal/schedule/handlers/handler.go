@@ -20,6 +20,7 @@ type Handler interface {
 
 	GetLessonByID(ctx *gin.Context)
 	AddLessons(ctx *gin.Context)
+	AddScheduleInfo(ctx *gin.Context)
 	AddLesson(ctx *gin.Context)
 	UpdateLesson(ctx *gin.Context)
 	DeleteLesson(ctx *gin.Context)
@@ -43,12 +44,14 @@ func NewScheduleHandler(middleware auth.Middleware, controller controllers.Contr
 	h := &handler{Middleware: middleware, controller: controller, Group: group}
 
 	//group.GET(":type/:name", h.TryAuth(), h.GetSchedule)
-	group.GET("", h.MemberAuth(), h.GetUserSchedule)
+	group.GET("", h.TryAuth(), h.GetUserSchedule)
 
 	group.GET("general/:type/:name", h.MemberAuth(), h.GetGeneralSchedule)
 	group.GET("general", h.MemberAuth(), h.GetGeneralUserSchedule)
 
-	group.GET("types", h.MemberAuth(), h.GetScheduleTypes) //todo change endpoint to types
+	group.GET("types", h.TryAuth(), h.GetScheduleTypes) //todo change endpoint to types
+
+	group.POST("/info", h.MemberAuth("editSchedule"), h.AddScheduleInfo)
 
 	group.GET("lessons/:id", h.MemberAuth(), h.GetLessonByID) //todo change endpoint to :id
 	group.POST("/list", h.MemberAuth("editSchedule"), h.AddLessons)
@@ -250,6 +253,26 @@ func (s *handler) AddLesson(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, lesson)
+}
+
+// AddScheduleInfo godoc
+// @Router /info [post]
+func (s *handler) AddScheduleInfo(ctx *gin.Context) {
+	user := s.GetUser(ctx)
+
+	var infoDTO dto.AddScheduleInfoDTO
+	if err := ctx.BindJSON(&infoDTO); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	info, err := s.controller.AddScheduleInfo(ctx, infoDTO, user)
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, info)
 }
 
 // UpdateLesson godoc
