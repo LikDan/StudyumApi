@@ -173,13 +173,14 @@ return items;
 				},
 				bson.M{
 					"$addFields": bson.M{
-						"startDate": bson.M{"$dateAdd": bson.M{"startDate": "$$date", "unit": "minute", "amount": "$startTimeMinutes"}},
-						"endDate":   bson.M{"$dateAdd": bson.M{"startDate": "$$date", "unit": "minute", "amount": "$endTimeMinutes"}},
+						"startDate": bson.M{"$add": bson.A{"$$date", bson.M{"$multiply": bson.A{"$startTimeMinutes", 60000}}}},
+						"endDate":   bson.M{"$add": bson.A{"$$date", bson.M{"$multiply": bson.A{"$endTimeMinutes", 60000}}}},
 						"status":    "general",
 					},
 				},
-			}, "as": "generalLessons"},
-		},
+			},
+			"as": "generalLessons",
+		}},
 		bson.M{
 			"$project": bson.M{
 				"lessons": bson.M{"$cond": bson.M{
