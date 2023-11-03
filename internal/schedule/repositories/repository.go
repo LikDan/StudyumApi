@@ -119,7 +119,10 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 				"pipeline": bson.A{
 					bson.M{
 						"$match": bson.M{"$expr": bson.M{"$and": bson.A{
-							bson.M{"$eq": bson.A{"$$date", bson.M{"$dateTrunc": bson.M{"date": "$startDate", "unit": "day"}}}},
+							bson.M{"$eq": bson.A{
+								bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$$date"}},
+								bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$startDate"}},
+							}},
 							bson.M{"$eq": bson.A{"$" + type_ + "ID", typeID}},
 						}}},
 					},
