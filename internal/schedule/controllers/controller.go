@@ -506,8 +506,11 @@ func (s *controller) AddScheduleInfo(ctx context.Context, dto dto2.AddScheduleIn
 		StudyPlaceId: user.StudyPlaceInfo.ID,
 	}
 
-	err := s.repository.AddScheduleInfo(ctx, entry)
-	if err != nil {
+	if err := s.repository.RemoveScheduleInfo(ctx, user.StudyPlaceInfo.ID, dto.Date); err != nil {
+		return entities.ScheduleInfoEntry{}, err
+	}
+
+	if err := s.repository.AddScheduleInfo(ctx, entry); err != nil {
 		return entities.ScheduleInfoEntry{}, err
 	}
 

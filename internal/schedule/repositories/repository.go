@@ -44,6 +44,7 @@ type Repository interface {
 	FilterLessonMarks(ctx context.Context, lessonID primitive.ObjectID, marks []string) error
 
 	AddScheduleInfo(ctx context.Context, entry entities.ScheduleInfoEntry) error
+	RemoveScheduleInfo(ctx context.Context, studyPlaceID primitive.ObjectID, date time.Time) error
 }
 
 type repository struct {
@@ -175,8 +176,9 @@ return items;
 						"status":    "general",
 					},
 				},
-			}, "as": "generalLessons"},
-		},
+			},
+			"as": "generalLessons",
+		}},
 		bson.M{
 			"$project": bson.M{
 				"lessons": bson.M{"$cond": bson.M{
@@ -452,5 +454,10 @@ func (s *repository) GetFullLessonsByIDAndDate(ctx context.Context, userID primi
 
 func (s *repository) AddScheduleInfo(ctx context.Context, entry entities.ScheduleInfoEntry) error {
 	_, err := s.schedule.InsertOne(ctx, entry)
+	return err
+}
+
+func (s *repository) RemoveScheduleInfo(ctx context.Context, studyPlaceID primitive.ObjectID, date time.Time) error {
+	_, err := s.schedule.DeleteMany(ctx, bson.M{"studyPlaceID": studyPlaceID, "date": date})
 	return err
 }
