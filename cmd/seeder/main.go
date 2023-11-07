@@ -397,8 +397,6 @@ func saveGeneralLessons(amount int, studyPlaceID primitive.ObjectID) error {
 			StudyPlaceId:   lesson.StudyPlaceId,
 			PrimaryColor:   lesson.PrimaryColor,
 			SecondaryColor: lesson.SecondaryColor,
-			StartTime:      lesson.StartDate.Format("15:04"),
-			EndTime:        lesson.EndDate.Format("15:04"),
 			SubjectID:      lesson.SubjectID,
 			GroupID:        lesson.GroupID,
 			TeacherID:      lesson.TeacherID,
