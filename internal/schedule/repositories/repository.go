@@ -100,7 +100,7 @@ func (s *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectI
 	return
 }
 
-func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_, typeName string, typeID primitive.ObjectID, startDate, endDate time.Time, onlyGeneral bool, _ bool) (entities.Schedule, error) {
+func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_, typeName string, typeID primitive.ObjectID, startDate, endDate time.Time, isGeneral bool, _ bool) (entities.Schedule, error) {
 	if type_ == "student" {
 		type_ = "group"
 	}
@@ -108,8 +108,9 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 	cursor, err := s.schedule.Aggregate(ctx, bson.A{
 		bson.M{
 			"$match": bson.M{
-				"date":   bson.M{"$gte": startDate, "$lte": endDate},
-				"status": bson.M{"$ne": "draft"},
+				"studyPlaceID": studyPlaceID,
+				"date":         bson.M{"$gte": startDate, "$lte": endDate},
+				"status":       bson.M{"$ne": "draft"},
 			},
 		},
 		bson.M{
@@ -119,6 +120,8 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 				"pipeline": bson.A{
 					bson.M{
 						"$match": bson.M{"$expr": bson.M{"$and": bson.A{
+							bson.M{"$eq": bson.A{isGeneral, false}},
+							bson.M{"$eq": bson.A{"$studyPlaceID", studyPlaceID}},
 							bson.M{"$eq": bson.A{
 								bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$$date"}},
 								bson.M{"$dateToString": bson.M{"format": "%Y-%m-%d", "date": "$startDate"}},
@@ -142,17 +145,17 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 			"$project": bson.M{
 				"items": bson.M{
 					"$function": bson.M{
-						"body": `function (items, start, end) { 
+						"body": `function (items, start, end, isGeneral) { 
 const currentDate = new Date(start);
 while (currentDate <= end) {
-    if (!items.some(item => item.date.getTime() === currentDate.getTime())) { 
+    if (isGeneral || !items.some(item => item.date.getTime() === currentDate.getTime())) { 
         items.push({date: new Date(currentDate)}); 
     }
     currentDate.setDate(currentDate.getDate() + 1); 
 }
 return items; 
 }`,
-						"args": bson.A{"$items", startDate, endDate},
+						"args": bson.A{"$items", startDate, endDate, isGeneral},
 						"lang": "js",
 					},
 				},
@@ -166,6 +169,7 @@ return items;
 			"pipeline": bson.A{
 				bson.M{
 					"$match": bson.M{"$expr": bson.M{"$and": bson.A{
+						bson.M{"$eq": bson.A{"$studyPlaceID", studyPlaceID}},
 						bson.M{"$ne": bson.A{bson.M{"$type": "$$lessons"}, "array"}},
 						bson.M{"$eq": bson.A{"$" + type_ + "ID", typeID}},
 						bson.M{"$eq": bson.A{"$dayIndex", bson.M{"$dayOfWeek": "$$date"}}},
