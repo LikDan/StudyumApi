@@ -20,8 +20,8 @@ import (
 var NotValidParams = errors.New("not valid params")
 
 type Controller interface {
-	GetSchedule(ctx context.Context, user auth.User, studyPlaceID string, role string, roleName string, startDate, endDate time.Time) (entities.Schedule, error)
-	GetUserSchedule(ctx context.Context, user auth.User, startDate, endDate time.Time) (entities.Schedule, error)
+	GetSchedule(ctx context.Context, user auth.User, studyPlaceID, role, roleName string, startDate, endDate time.Time, isGeneral bool) (entities.Schedule, error)
+	GetUserSchedule(ctx context.Context, user auth.User, startDate, endDate time.Time, isGeneral bool) (entities.Schedule, error)
 
 	GetGeneralSchedule(ctx context.Context, user auth.User, studyPlaceID string, role string, roleName string, startDate, endDate time.Time) (entities.Schedule, error)
 	GetGeneralUserSchedule(ctx context.Context, user auth.User, startDate, endDate time.Time) (entities.Schedule, error)
@@ -71,7 +71,7 @@ func (s *controller) scheduleDated(start, end time.Time) (time.Time, time.Time) 
 	return start, end
 }
 
-func (s *controller) GetSchedule(ctx context.Context, user auth.User, studyPlaceIDHex string, type_ string, typeName string, startDate, endDate time.Time) (entities.Schedule, error) {
+func (s *controller) GetSchedule(ctx context.Context, user auth.User, studyPlaceIDHex, type_, typeName string, startDate, endDate time.Time, isGeneral bool) (entities.Schedule, error) {
 	if type_ == "" || typeName == "" {
 		return entities.Schedule{}, NotValidParams
 	}
@@ -92,10 +92,10 @@ func (s *controller) GetSchedule(ctx context.Context, user auth.User, studyPlace
 		return entities.Schedule{}, err
 	}
 
-	return s.repository.GetSchedule(ctx, studyPlaceID, type_, typeName, typeID, startDate, endDate, false, false)
+	return s.repository.GetSchedule(ctx, studyPlaceID, type_, typeName, typeID, startDate, endDate, isGeneral, false)
 }
 
-func (s *controller) GetUserSchedule(ctx context.Context, user auth.User, startDate, endDate time.Time) (entities.Schedule, error) {
+func (s *controller) GetUserSchedule(ctx context.Context, user auth.User, startDate, endDate time.Time, isGeneral bool) (entities.Schedule, error) {
 	if user.StudyPlaceInfo.Role == "" || user.StudyPlaceInfo.RoleName == "" {
 		return entities.Schedule{}, NotValidParams
 	}
@@ -107,7 +107,7 @@ func (s *controller) GetUserSchedule(ctx context.Context, user auth.User, startD
 		return entities.Schedule{}, err
 	}
 
-	return s.repository.GetSchedule(ctx, user.StudyPlaceInfo.ID, user.StudyPlaceInfo.Role, user.StudyPlaceInfo.RoleName, typeID, startDate, endDate, false, false)
+	return s.repository.GetSchedule(ctx, user.StudyPlaceInfo.ID, user.StudyPlaceInfo.Role, user.StudyPlaceInfo.RoleName, typeID, startDate, endDate, isGeneral, false)
 }
 
 func (s *controller) GetGeneralSchedule(ctx context.Context, user auth.User, studyPlaceIDHex string, type_ string, typeName string, startDate, endDate time.Time) (entities.Schedule, error) {
