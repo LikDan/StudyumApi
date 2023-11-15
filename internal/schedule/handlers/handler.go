@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 	auth "studyum/internal/auth/handlers"
 	"studyum/internal/schedule/controllers"
 	"studyum/internal/schedule/dto"
@@ -15,6 +16,8 @@ type Handler interface {
 
 	GetGeneralSchedule(ctx *gin.Context)
 	GetGeneralUserSchedule(ctx *gin.Context)
+
+	GetGeneralLessonsList(ctx *gin.Context)
 
 	GetScheduleTypes(ctx *gin.Context)
 
@@ -61,6 +64,7 @@ func NewScheduleHandler(middleware auth.Middleware, controller controllers.Contr
 	group.DELETE("between/:startDate/:endDate", h.MemberAuth("editSchedule"), h.RemoveLessonsBetweenDates)
 
 	group.POST("/general/list", h.MemberAuth("editSchedule"), h.AddGeneralLessons)
+	group.GET("/general/list", h.MemberAuth(), h.GetGeneralLessonsList)
 
 	group.POST("/makeGeneral", h.MemberAuth("editSchedule"), h.SaveCurrentScheduleAsGeneral)
 	group.POST("/makeCurrent/:date", h.MemberAuth("editSchedule"), h.SaveGeneralScheduleAsCurrent)
@@ -156,6 +160,37 @@ func (s *handler) GetGeneralSchedule(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, schedule)
+}
+
+// GetGeneralLessonsList godoc
+// @Router /general/list [get]
+func (s *handler) GetGeneralLessonsList(ctx *gin.Context) {
+	user := s.GetUser(ctx)
+
+	studyPlaceID := ctx.Query("studyPlaceID")
+	weekIndexStr := ctx.Query("weekIndex")
+	dayIndexStr := ctx.Query("dayIndex")
+
+	var weekIndex *int = nil
+	var dayIndex *int = nil
+
+	if weekIndexStr != "" {
+		i, _ := strconv.Atoi(weekIndexStr)
+		weekIndex = &i
+	}
+
+	if dayIndexStr != "" {
+		i, _ := strconv.Atoi(dayIndexStr)
+		dayIndex = &i
+	}
+
+	lessons, err := s.controller.GetGeneralLessons(ctx, user, studyPlaceID, weekIndex, dayIndex)
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, lessons)
 }
 
 // GetGeneralUserSchedule godoc

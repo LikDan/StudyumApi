@@ -44,6 +44,8 @@ type Controller interface {
 	SaveGeneralScheduleAsCurrent(ctx context.Context, user auth.User, date time.Time) error
 
 	AddScheduleInfo(ctx context.Context, dto dto2.AddScheduleInfoDTO, user auth.User) (entities.ScheduleInfoEntry, error)
+
+	GetGeneralLessons(ctx context.Context, user auth.User, id string, weekIndex *int, dayIndex *int) ([]entities.GeneralLesson, error)
 }
 
 type controller struct {
@@ -216,21 +218,11 @@ func (s *controller) AddLessons(ctx context.Context, user auth.User, lessonsDTO 
 			return nil, err
 		}
 
-		primaryColor := lessonDTO.PrimaryColor
-		if primaryColor == "" {
-			primaryColor = "#f9f9f9"
-		}
-
-		secondaryColor := lessonDTO.PrimaryColor
-		if secondaryColor == "" {
-			secondaryColor = "transparent"
-		}
-
 		lesson := entities.Lesson{
 			Id:             primitive.NewObjectID(),
 			StudyPlaceId:   user.StudyPlaceInfo.ID,
-			PrimaryColor:   primaryColor,
-			SecondaryColor: secondaryColor,
+			PrimaryColor:   lessonDTO.PrimaryColor,
+			SecondaryColor: lessonDTO.SecondaryColor,
 			Type:           lessonDTO.Type,
 			LessonIndex:    lessonDTO.LessonIndex,
 			StartDate:      lessonDTO.StartDate,
@@ -239,10 +231,6 @@ func (s *controller) AddLessons(ctx context.Context, user auth.User, lessonsDTO 
 			GroupID:        lessonDTO.GroupID,
 			TeacherID:      lessonDTO.TeacherID,
 			RoomID:         lessonDTO.RoomID,
-		}
-
-		if err := s.repository.RemoveGroupLessonBetweenDates(ctx, lesson.StartDate, lesson.EndDate, user.StudyPlaceInfo.ID, lesson.GroupID); err != nil {
-			return nil, err
 		}
 
 		s.apps.AsyncEvent(user.StudyPlaceInfo.ID, "AddLesson", lesson)
@@ -515,4 +503,21 @@ func (s *controller) AddScheduleInfo(ctx context.Context, dto dto2.AddScheduleIn
 	}
 
 	return entry, nil
+}
+
+func (s *controller) GetGeneralLessons(ctx context.Context, user auth.User, _ string, weekIndex *int, dayIndex *int) ([]entities.GeneralLesson, error) {
+	if user.StudyPlaceInfo == nil {
+		return nil, errors.New("Not authenticated")
+	}
+
+	if weekIndex == nil {
+		i := 0
+		weekIndex = &i
+	}
+
+	if dayIndex == nil {
+		return s.repository.GetAllGeneralLessons(ctx, user.StudyPlaceInfo.ID)
+	}
+
+	return s.repository.GetGeneralLessons(ctx, user.StudyPlaceInfo.ID, *weekIndex, *dayIndex)
 }
