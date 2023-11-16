@@ -66,7 +66,7 @@ func main() {
 	loadSwagger(engine.RouterGroup, "general", "auth", "user", "schedule", "journal")
 	setupSSL(engine.RouterGroup)
 
-	db := client.Database("StudyumKBP")
+	db := client.Database(os.Getenv("DATABASE"))
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     os.Getenv("REDIS_DB_URL"),
