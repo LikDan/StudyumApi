@@ -33,7 +33,7 @@ type Controller interface {
 
 	AddLesson(ctx context.Context, lesson dto2.AddLessonDTO, user auth.User) (entities.Lesson, error)
 	GetLessonByID(ctx context.Context, user auth.User, idHex string) (entities.Lesson, error)
-	UpdateLesson(ctx context.Context, lesson dto2.UpdateLessonDTO, user auth.User) error
+	UpdateLesson(ctx context.Context, lessonID string, lesson dto2.UpdateLessonDTO, user auth.User) (entities.Lesson, error)
 	DeleteLesson(ctx context.Context, idHex string, user auth.User) error
 
 	GetLessonsByDateAndID(ctx context.Context, user auth.User, idHex string) ([]entities.Lesson, error)
@@ -255,8 +255,8 @@ func (s *controller) AddLesson(ctx context.Context, addDTO dto2.AddLessonDTO, us
 		PrimaryColor:   addDTO.PrimaryColor,
 		SecondaryColor: addDTO.SecondaryColor,
 		Type:           addDTO.Type,
-		EndDate:        addDTO.EndDate,
-		StartDate:      addDTO.StartDate,
+		EndDate:        addDTO.EndDate.UTC(),
+		StartDate:      addDTO.StartDate.UTC(),
 		LessonIndex:    addDTO.LessonIndex,
 		SubjectID:      addDTO.SubjectID,
 		GroupID:        addDTO.GroupID,
@@ -270,21 +270,26 @@ func (s *controller) AddLesson(ctx context.Context, addDTO dto2.AddLessonDTO, us
 
 	s.apps.AsyncEvent(user.StudyPlaceInfo.ID, "AddLesson", lesson)
 
-	return lesson, nil
+	return s.repository.GetLessonByID(ctx, lesson.Id)
 }
 
-func (s *controller) UpdateLesson(ctx context.Context, updateDTO dto2.UpdateLessonDTO, user auth.User) error {
+func (s *controller) UpdateLesson(ctx context.Context, lessonIDHex string, updateDTO dto2.UpdateLessonDTO, user auth.User) (entities.Lesson, error) {
 	if err := s.validator.UpdateLesson(updateDTO); err != nil {
-		return err
+		return entities.Lesson{}, err
+	}
+
+	lessonID, err := primitive.ObjectIDFromHex(lessonIDHex)
+	if err != nil {
+		return entities.Lesson{}, err
 	}
 
 	lesson := entities.Lesson{
-		Id:             updateDTO.Id,
+		Id:             lessonID,
 		StudyPlaceId:   user.StudyPlaceInfo.ID,
 		PrimaryColor:   updateDTO.PrimaryColor,
 		SecondaryColor: updateDTO.SecondaryColor,
-		EndDate:        updateDTO.EndDate,
-		StartDate:      updateDTO.StartDate,
+		StartDate:      updateDTO.StartDate.UTC(),
+		EndDate:        updateDTO.EndDate.UTC(),
 		LessonIndex:    updateDTO.LessonIndex,
 		SubjectID:      updateDTO.SubjectID,
 		GroupID:        updateDTO.GroupID,
@@ -298,7 +303,7 @@ func (s *controller) UpdateLesson(ctx context.Context, updateDTO dto2.UpdateLess
 
 	err, studyPlace := s.repository.GetStudyPlaceByID(ctx, user.StudyPlaceInfo.ID, false)
 	if err != nil {
-		return err
+		return entities.Lesson{}, err
 	}
 
 	var lessonType general.LessonType
@@ -318,14 +323,14 @@ func (s *controller) UpdateLesson(ctx context.Context, updateDTO dto2.UpdateLess
 	}
 
 	if err = s.repository.FilterLessonMarks(ctx, lesson.Id, marks); err != nil {
-		return err
+		return entities.Lesson{}, err
 	}
 
 	err = s.repository.UpdateLesson(ctx, lesson)
 
 	s.apps.AsyncEvent(user.StudyPlaceInfo.ID, "UpdateLesson", lesson)
 
-	return err
+	return s.repository.GetLessonByID(ctx, lesson.Id)
 }
 
 func (s *controller) DeleteLesson(ctx context.Context, idHex string, user auth.User) error {

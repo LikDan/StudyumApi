@@ -313,10 +313,27 @@ func (s *repository) AddLesson(ctx context.Context, lesson entities.Lesson) erro
 }
 
 func (s *repository) GetLessonByID(ctx context.Context, id primitive.ObjectID) (lesson entities.Lesson, err error) {
-	opt := options.FindOne()
-	opt.Projection = bson.M{"marks": 0, "absences": 0}
+	cursor, err := s.lessons.Aggregate(ctx, bson.A{
+		bson.M{"$match": bson.M{"_id": id}},
+		bson.M{"$lookup": bson.M{"from": "StudyPlaceUsers", "localField": "teacherID", "foreignField": "_id", "as": "teacher"}},
+		bson.M{"$lookup": bson.M{"from": "Groups", "localField": "groupID", "foreignField": "_id", "as": "group"}},
+		bson.M{"$lookup": bson.M{"from": "Subjects", "localField": "subjectID", "foreignField": "_id", "as": "subject"}},
+		bson.M{"$lookup": bson.M{"from": "Rooms", "localField": "roomID", "foreignField": "_id", "as": "room"}},
+		bson.M{
+			"$addFields": bson.M{
+				"subject": bson.M{"$first": "$subject.subject"},
+				"room":    bson.M{"$first": "$room.room"},
+				"teacher": bson.M{"$first": "$teacher.roleName"},
+				"group":   bson.M{"$first": "$group.group"},
+			},
+		},
+	})
+	if err != nil {
+		return entities.Lesson{}, err
+	}
 
-	err = s.lessons.FindOne(ctx, bson.M{"_id": id}, opt).Decode(&lesson)
+	cursor.Next(ctx)
+	err = cursor.Decode(&lesson)
 	return
 }
 
@@ -332,10 +349,10 @@ func (s *repository) UpdateLesson(ctx context.Context, lesson entities.Lesson) e
 		"type":           lesson.Type,
 		"endDate":        lesson.EndDate,
 		"startDate":      lesson.StartDate,
-		"subject":        lesson.Subject,
-		"group":          lesson.Group,
-		"teacher":        lesson.Teacher,
-		"room":           lesson.Room,
+		"subjectID":      lesson.SubjectID,
+		"groupID":        lesson.GroupID,
+		"teacherID":      lesson.TeacherID,
+		"roomID":         lesson.RoomID,
 		"title":          lesson.Title,
 		"homework":       lesson.Homework,
 		"description":    lesson.Description,

@@ -40,13 +40,5 @@ func (s *schedule) AddLesson(dto dto.AddLessonDTO) error {
 }
 
 func (s *schedule) UpdateLesson(dto dto.UpdateLessonDTO) error {
-	if err := s.AddLesson(dto.AddLessonDTO); err != nil {
-		return err
-	}
-
-	if dto.Id.IsZero() {
-		return errors.Wrap(ValidationError, "not valid id")
-	}
-
-	return nil
+	return s.AddLesson(dto.AddLessonDTO)
 }

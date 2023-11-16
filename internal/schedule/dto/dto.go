@@ -39,8 +39,7 @@ type AddScheduleInfoDTO struct {
 
 type UpdateLessonDTO struct {
 	AddLessonDTO
-	Id          primitive.ObjectID `json:"id" binding:"req"`
-	Title       string             `json:"title"`
-	Homework    string             `json:"homework"`
-	Description string             `json:"description"`
+	Title       string `json:"title"`
+	Homework    string `json:"homework"`
+	Description string `json:"description"`
 }

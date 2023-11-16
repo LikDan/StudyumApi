@@ -56,12 +56,16 @@ func NewScheduleHandler(middleware auth.Middleware, controller controllers.Contr
 
 	group.POST("/info", h.MemberAuth("editSchedule"), h.AddScheduleInfo)
 
-	group.GET("lessons/:id", h.MemberAuth(), h.GetLessonByID) //todo change endpoint to :id
 	group.POST("/list", h.MemberAuth("editSchedule"), h.AddLessons)
-	group.POST("lessons", h.MemberAuth("editSchedule"), h.AddLesson)
-	group.PUT("", h.MemberAuth("editJournal"), h.UpdateLesson)
-	group.DELETE(":id", h.MemberAuth("editSchedule"), h.DeleteLesson)
 	group.DELETE("between/:startDate/:endDate", h.MemberAuth("editSchedule"), h.RemoveLessonsBetweenDates)
+
+	lessons := group.Group("lessons")
+	{
+		lessons.GET(":id", h.MemberAuth(), h.GetLessonByID)
+		lessons.POST("", h.MemberAuth("editSchedule"), h.AddLesson)
+		lessons.PUT(":id", h.MemberAuth("editSchedule"), h.UpdateLesson)
+		lessons.DELETE(":id", h.MemberAuth("editSchedule"), h.DeleteLesson)
+	}
 
 	group.POST("/general/list", h.MemberAuth("editSchedule"), h.AddGeneralLessons)
 	group.GET("/general/list", h.MemberAuth(), h.GetGeneralLessonsList)
@@ -287,7 +291,7 @@ func (s *handler) AddLesson(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, lesson)
+	ctx.JSON(http.StatusCreated, lesson)
 }
 
 // AddScheduleInfo godoc
@@ -314,14 +318,15 @@ func (s *handler) AddScheduleInfo(ctx *gin.Context) {
 // @Router / [put]
 func (s *handler) UpdateLesson(ctx *gin.Context) {
 	user := s.GetUser(ctx)
+	id := ctx.Param("id")
 
-	var lesson dto.UpdateLessonDTO
-	if err := ctx.BindJSON(&lesson); err != nil {
+	var lessonDTO dto.UpdateLessonDTO
+	if err := ctx.BindJSON(&lessonDTO); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	err := s.controller.UpdateLesson(ctx, lesson, user)
+	lesson, err := s.controller.UpdateLesson(ctx, id, lessonDTO, user)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
