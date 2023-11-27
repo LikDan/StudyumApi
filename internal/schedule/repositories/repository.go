@@ -16,7 +16,8 @@ import (
 type Repository interface {
 	GetTypeID(ctx context.Context, studyPlaceID primitive.ObjectID, type_, typeName string) (primitive.ObjectID, error)
 
-	GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeID primitive.ObjectID, startDate, endDate time.Time, onlyGeneral bool, _ bool) ([]entities.Lesson, error)
+	GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeID primitive.ObjectID, startDate, endDate time.Time) ([]entities.Lesson, error)
+	GetGeneralSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeID primitive.ObjectID) ([]entities.GeneralLesson, error)
 
 	GetScheduleType(ctx context.Context, studyPlaceID primitive.ObjectID, role string, property string) (entries []entities.TypeEntry, err error)
 	GetScheduleTeacherType(ctx context.Context, studyPlaceID primitive.ObjectID) (entries []entities.TypeEntry, err error)
@@ -38,7 +39,7 @@ type Repository interface {
 
 	RemoveGeneralLessonsByType(ctx context.Context, studyPlaceID primitive.ObjectID, role string, roleName string) error
 
-	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace general.StudyPlace)
+	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID) (err error, studyPlace general.StudyPlace)
 	GetGeneralLessons(ctx context.Context, studyPlaceID primitive.ObjectID, weekIndex, dayIndex int) ([]entities.GeneralLesson, error)
 	GetAllGeneralLessons(ctx context.Context, studyPlaceID primitive.ObjectID) ([]entities.GeneralLesson, error)
 
@@ -98,12 +99,12 @@ func (s *repository) GetTypeID(ctx context.Context, studyPlaceID primitive.Objec
 	return value.ID, nil
 }
 
-func (s *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID, restricted bool) (err error, studyPlace general.StudyPlace) {
-	err = s.studyPlaces.FindOne(ctx, bson.M{"_id": id, "restricted": restricted}).Decode(&studyPlace)
+func (s *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID) (err error, studyPlace general.StudyPlace) {
+	err = s.studyPlaces.FindOne(ctx, bson.M{"_id": id}).Decode(&studyPlace)
 	return
 }
 
-func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeID primitive.ObjectID, startDate, endDate time.Time, isGeneral bool, _ bool) ([]entities.Lesson, error) {
+func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeID primitive.ObjectID, startDate, endDate time.Time) ([]entities.Lesson, error) {
 	cursor, err := s.schedule.Aggregate(ctx, bson.A{
 		bson.M{
 			"$match": bson.M{
@@ -119,7 +120,6 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 				"pipeline": bson.A{
 					bson.M{
 						"$match": bson.M{"$expr": bson.M{"$and": bson.A{
-							bson.M{"$eq": bson.A{isGeneral, false}},
 							bson.M{"$eq": bson.A{"$studyPlaceID", studyPlaceID}},
 							bson.M{"$eq": bson.A{"$$date", bson.M{"$dateTrunc": bson.M{"date": "$startDate", "unit": "day"}}}},
 							bson.M{"$eq": bson.A{"$" + type_ + "ID", typeID}},
@@ -141,17 +141,17 @@ func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.Obj
 			"$project": bson.M{
 				"items": bson.M{
 					"$function": bson.M{
-						"body": `function (items, start, end, isGeneral) { 
+						"body": `function (items, start, end) { 
 const currentDate = new Date(start);
 while (currentDate <= end) {
-    if (isGeneral || !items.some(item => item.date.getTime() === currentDate.getTime())) { 
+    if (!items.some(item => item.date.getTime() === currentDate.getTime())) { 
         items.push({date: new Date(currentDate)}); 
     }
     currentDate.setDate(currentDate.getDate() + 1); 
 }
 return items; 
 }`,
-						"args": bson.A{"$items", startDate, endDate, isGeneral},
+						"args": bson.A{"$items", startDate, endDate},
 						"lang": "js",
 					},
 				},
@@ -227,6 +227,39 @@ return items;
 	}
 
 	var lessons []entities.Lesson
+	if err = cursor.All(ctx, &lessons); err != nil {
+		return nil, err
+	}
+
+	return lessons, nil
+}
+
+func (s *repository) GetGeneralSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeID primitive.ObjectID) ([]entities.GeneralLesson, error) {
+	cursor, err := s.generalLessons.Aggregate(ctx, bson.A{
+		bson.M{
+			"$match": bson.M{
+				"studyPlaceID": studyPlaceID,
+				type_ + "ID":   typeID,
+			},
+		},
+		bson.M{"$lookup": bson.M{"from": "StudyPlaceUsers", "localField": "teacherID", "foreignField": "_id", "as": "teacher"}},
+		bson.M{"$lookup": bson.M{"from": "Groups", "localField": "groupID", "foreignField": "_id", "as": "group"}},
+		bson.M{"$lookup": bson.M{"from": "Subjects", "localField": "subjectID", "foreignField": "_id", "as": "subject"}},
+		bson.M{"$lookup": bson.M{"from": "Rooms", "localField": "roomID", "foreignField": "_id", "as": "room"}},
+		bson.M{
+			"$addFields": bson.M{
+				"subject": bson.M{"$first": "$subject.subject"},
+				"room":    bson.M{"$first": "$room.room"},
+				"teacher": bson.M{"$first": "$teacher.roleName"},
+				"group":   bson.M{"$first": "$group.group"},
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var lessons []entities.GeneralLesson
 	if err = cursor.All(ctx, &lessons); err != nil {
 		return nil, err
 	}

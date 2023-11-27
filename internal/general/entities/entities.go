@@ -21,6 +21,7 @@ type StudyPlace struct {
 	Restricted        bool               `json:"restricted" bson:"restricted"`
 	AdminID           primitive.ObjectID `json:"adminID" bson:"adminID"`
 	AbsenceMark       string             `json:"absenceMark" bson:"absenceMark"`
+	IsSchedulePrivate bool               `json:"IsSchedulePrivate" bson:"IsSchedulePrivate"`
 }
 
 type MarkType struct {

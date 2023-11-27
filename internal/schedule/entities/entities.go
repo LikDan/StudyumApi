@@ -11,6 +11,11 @@ type Schedule struct {
 	Lessons []Lesson `json:"lessons" bson:"lessons"`
 }
 
+type GeneralSchedule struct {
+	Info           GeneralInfo     `json:"info" bson:"info"`
+	GeneralLessons []GeneralLesson `json:"lessons" bson:"lessons"`
+}
+
 type DeleteLessonID struct {
 	ID primitive.ObjectID `apps:"trackable,collection=Lessons"`
 }
@@ -69,6 +74,13 @@ type Info struct {
 	TypeName       string         `json:"typeName" bson:"typeName"`
 	StartDate      time.Time      `json:"startDate" bson:"startDate"`
 	EndDate        time.Time      `json:"endDate" bson:"endDate"`
+	Date           time.Time      `json:"date" bson:"date"`
+}
+
+type GeneralInfo struct {
+	StudyPlaceInfo StudyPlaceInfo `json:"studyPlaceInfo" bson:"studyPlaceInfo"`
+	Type           string         `json:"type" bson:"type"`
+	TypeName       string         `json:"typeName" bson:"typeName"`
 	Date           time.Time      `json:"date" bson:"date"`
 }
 

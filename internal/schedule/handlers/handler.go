@@ -12,10 +12,7 @@ import (
 
 type Handler interface {
 	GetSchedule(ctx *gin.Context)
-	GetUserSchedule(ctx *gin.Context)
-
 	GetGeneralSchedule(ctx *gin.Context)
-	GetGeneralUserSchedule(ctx *gin.Context)
 
 	GetGeneralLessonsList(ctx *gin.Context)
 
@@ -46,11 +43,8 @@ type handler struct {
 func NewScheduleHandler(middleware auth.Middleware, controller controllers.Controller, group *gin.RouterGroup) Handler {
 	h := &handler{Middleware: middleware, controller: controller, Group: group}
 
-	//group.GET(":type/:name", h.TryAuth(), h.GetSchedule)
-	group.GET("", h.TryAuth(), h.GetUserSchedule)
-
-	group.GET("general/:type/:name", h.MemberAuth(), h.GetGeneralSchedule)
-	group.GET("general", h.MemberAuth(), h.GetGeneralUserSchedule)
+	group.GET("", h.TryAuth(), h.GetSchedule)
+	group.GET("general", h.TryAuth(), h.GetGeneralSchedule)
 
 	group.GET("types", h.TryAuth(), h.GetScheduleTypes) //todo change endpoint to types
 
@@ -79,31 +73,8 @@ func NewScheduleHandler(middleware auth.Middleware, controller controllers.Contr
 // GetSchedule godoc
 // @Param type path string true "Role"
 // @Param name path string true "RoleName"
-// @Router /{type}/{name} [get]
-func (s *handler) GetSchedule(ctx *gin.Context) {
-	user := s.GetUser(ctx)
-
-	studyPlaceID := ctx.Query("studyPlaceID")
-	startDateStr := ctx.Query("startDate")
-	startDate, _ := time.Parse(time.RFC3339, startDateStr)
-	endDateStr := ctx.Query("endDate")
-	endDate, _ := time.Parse(time.RFC3339, endDateStr)
-
-	type_ := ctx.Param("type")
-	typeID := ctx.Param("name")
-
-	schedule, err := s.controller.GetSchedule(ctx, user, studyPlaceID, type_, typeID, startDate, endDate, false)
-	if err != nil {
-		_ = ctx.Error(err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, schedule)
-}
-
-// GetUserSchedule godoc
 // @Router / [get]
-func (s *handler) GetUserSchedule(ctx *gin.Context) {
+func (s *handler) GetSchedule(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
 	startDateStr := ctx.Query("startDate")
@@ -112,26 +83,10 @@ func (s *handler) GetUserSchedule(ctx *gin.Context) {
 	endDate, _ := time.Parse(time.RFC3339, endDateStr)
 
 	studyPlaceID := ctx.Query("studyPlaceID")
-	if studyPlaceID == "" {
-		studyPlaceID = user.StudyPlaceInfo.ID.Hex()
-	}
-
 	type_ := ctx.Query("type")
 	typeID := ctx.Query("typeID")
-	isGeneral := ctx.Query("general") == "true"
 
-	if type_ != "" && typeID != "" {
-		schedule, err := s.controller.GetSchedule(ctx, user, studyPlaceID, type_, typeID, startDate, endDate, isGeneral)
-		if err != nil {
-			_ = ctx.Error(err)
-			return
-		}
-
-		ctx.JSON(http.StatusOK, schedule)
-		return
-	}
-
-	schedule, err := s.controller.GetUserSchedule(ctx, user, startDate, endDate, isGeneral)
+	schedule, err := s.controller.GetSchedule(ctx, user, studyPlaceID, type_, typeID, startDate, endDate)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
@@ -143,21 +98,15 @@ func (s *handler) GetUserSchedule(ctx *gin.Context) {
 // GetGeneralSchedule godoc
 // @Param type path string true "Type"
 // @Param name path string true "RoleName"
-// @Router /general/{type}/{name} [get]
+// @Router /general [get]
 func (s *handler) GetGeneralSchedule(ctx *gin.Context) {
 	user := s.GetUser(ctx)
 
 	studyPlaceID := ctx.Query("studyPlaceID")
+	type_ := ctx.Query("type")
+	typeID := ctx.Query("typeID")
 
-	role := ctx.Param("type")
-	roleName := ctx.Param("name")
-
-	startDateStr := ctx.Query("startDate")
-	startDate, _ := time.Parse(time.RFC3339, startDateStr)
-	endDateStr := ctx.Query("endDate")
-	endDate, _ := time.Parse(time.RFC3339, endDateStr)
-
-	schedule, err := s.controller.GetGeneralSchedule(ctx, user, studyPlaceID, role, roleName, startDate, endDate)
+	schedule, err := s.controller.GetGeneralSchedule(ctx, user, studyPlaceID, type_, typeID)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
@@ -195,25 +144,6 @@ func (s *handler) GetGeneralLessonsList(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, lessons)
-}
-
-// GetGeneralUserSchedule godoc
-// @Router /general [get]
-func (s *handler) GetGeneralUserSchedule(ctx *gin.Context) {
-	user := s.GetUser(ctx)
-
-	startDateStr := ctx.Query("startDate")
-	startDate, _ := time.Parse(time.RFC3339, startDateStr)
-	endDateStr := ctx.Query("endDate")
-	endDate, _ := time.Parse(time.RFC3339, endDateStr)
-
-	schedule, err := s.controller.GetGeneralUserSchedule(ctx, user, startDate, endDate)
-	if err != nil {
-		_ = ctx.Error(err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, schedule)
 }
 
 // GetScheduleTypes godoc
