@@ -21,7 +21,7 @@ func NewI18nRepository(session *pgxpool.Pool) Repository {
 }
 
 func (r *repository) GetByCode(ctx context.Context, lang string, group string) (entities.I18n, error) {
-	return r.query(ctx, lang, "SELECT key, %s as value FROM public WHERE \"group\"=$1", group)
+	return r.query(ctx, lang, "SELECT key, \"%s\" as value FROM public WHERE \"group\"=$1", group)
 }
 
 func (r *repository) query(ctx context.Context, lang string, stmt string, values ...interface{}) (entities.I18n, error) {

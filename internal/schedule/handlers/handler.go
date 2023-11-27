@@ -89,10 +89,10 @@ func (s *handler) GetSchedule(ctx *gin.Context) {
 	endDateStr := ctx.Query("endDate")
 	endDate, _ := time.Parse(time.RFC3339, endDateStr)
 
-	role := ctx.Param("type")
-	roleName := ctx.Param("name")
+	type_ := ctx.Param("type")
+	typeID := ctx.Param("name")
 
-	schedule, err := s.controller.GetSchedule(ctx, user, studyPlaceID, role, roleName, startDate, endDate, false)
+	schedule, err := s.controller.GetSchedule(ctx, user, studyPlaceID, type_, typeID, startDate, endDate, false)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
@@ -117,11 +117,11 @@ func (s *handler) GetUserSchedule(ctx *gin.Context) {
 	}
 
 	type_ := ctx.Query("type")
-	typename := ctx.Query("typename")
+	typeID := ctx.Query("typeID")
 	isGeneral := ctx.Query("general") == "true"
 
-	if type_ != "" && typename != "" {
-		schedule, err := s.controller.GetSchedule(ctx, user, studyPlaceID, type_, typename, startDate, endDate, isGeneral)
+	if type_ != "" && typeID != "" {
+		schedule, err := s.controller.GetSchedule(ctx, user, studyPlaceID, type_, typeID, startDate, endDate, isGeneral)
 		if err != nil {
 			_ = ctx.Error(err)
 			return

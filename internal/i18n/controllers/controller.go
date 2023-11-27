@@ -28,7 +28,7 @@ type controller struct {
 }
 
 func NewController(repository repositories.Repository) Controller {
-	i18nRegex, err := regexp.Compile("^[a-z]{2}_[a-z]{2}$")
+	i18nRegex, err := regexp.Compile("^[a-z]{2}-[A-Z]{2}$")
 	if err != nil {
 		return nil
 	}

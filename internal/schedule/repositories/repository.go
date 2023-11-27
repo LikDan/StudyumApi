@@ -16,7 +16,7 @@ import (
 type Repository interface {
 	GetTypeID(ctx context.Context, studyPlaceID primitive.ObjectID, type_, typeName string) (primitive.ObjectID, error)
 
-	GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_, typeName string, typeID primitive.ObjectID, startDate, endDate time.Time, onlyGeneral bool, _ bool) (entities.Schedule, error)
+	GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeID primitive.ObjectID, startDate, endDate time.Time, onlyGeneral bool, _ bool) ([]entities.Lesson, error)
 
 	GetScheduleType(ctx context.Context, studyPlaceID primitive.ObjectID, role string, property string) (entries []entities.TypeEntry, err error)
 	GetScheduleTeacherType(ctx context.Context, studyPlaceID primitive.ObjectID) (entries []entities.TypeEntry, err error)
@@ -46,6 +46,8 @@ type Repository interface {
 
 	AddScheduleInfo(ctx context.Context, entry entities.ScheduleInfoEntry) error
 	RemoveScheduleInfo(ctx context.Context, studyPlaceID primitive.ObjectID, date time.Time) error
+
+	GetTypeName(ctx context.Context, type_ string, id primitive.ObjectID) (string, error)
 }
 
 type repository struct {
@@ -101,11 +103,7 @@ func (s *repository) GetStudyPlaceByID(ctx context.Context, id primitive.ObjectI
 	return
 }
 
-func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_, typeName string, typeID primitive.ObjectID, startDate, endDate time.Time, isGeneral bool, _ bool) (entities.Schedule, error) {
-	if type_ == "student" {
-		type_ = "group"
-	}
-
+func (s *repository) GetSchedule(ctx context.Context, studyPlaceID primitive.ObjectID, type_ string, typeID primitive.ObjectID, startDate, endDate time.Time, isGeneral bool, _ bool) ([]entities.Lesson, error) {
 	cursor, err := s.schedule.Aggregate(ctx, bson.A{
 		bson.M{
 			"$match": bson.M{
@@ -223,49 +221,17 @@ return items;
 			"status":         1,
 			"studyPlaceID":   1,
 		}},
-		bson.M{"$group": bson.M{
-			"_id":     nil,
-			"lessons": bson.M{"$push": "$$ROOT"},
-			"info": bson.M{"$first": bson.M{
-				"studyPlaceInfo": bson.M{"_id": studyPlaceID},
-				"type":           type_,
-				"typeName":       typeName, //todo remove
-				"startDate":      startDate,
-				"endDate":        endDate,
-			}},
-		}},
 	})
 	if err != nil {
-		return entities.Schedule{}, err
+		return nil, err
 	}
 
-	if !cursor.Next(ctx) {
-		var studyPlace general.StudyPlace
-		if err = s.studyPlaces.FindOne(ctx, bson.M{"_id": studyPlaceID}).Decode(&studyPlace); err != nil {
-			return entities.Schedule{}, err
-		}
-
-		return entities.Schedule{
-			Info: entities.Info{
-				StudyPlaceInfo: entities.StudyPlaceInfo{
-					Id:    studyPlace.Id,
-					Title: studyPlace.Name,
-				},
-				Type:      type_,
-				TypeName:  "typeName",
-				StartDate: startDate,
-				EndDate:   endDate,
-				Date:      time.Now(),
-			},
-		}, nil
+	var lessons []entities.Lesson
+	if err = cursor.All(ctx, &lessons); err != nil {
+		return nil, err
 	}
 
-	var schedule entities.Schedule
-	if err = cursor.Decode(&schedule); err != nil {
-		return entities.Schedule{}, err
-	}
-
-	return schedule, nil
+	return lessons, nil
 }
 
 func (s *repository) GetScheduleType(ctx context.Context, studyPlaceID primitive.ObjectID, role string, property string) (entries []entities.TypeEntry, err error) {
@@ -496,4 +462,35 @@ func (s *repository) AddScheduleInfo(ctx context.Context, entry entities.Schedul
 func (s *repository) RemoveScheduleInfo(ctx context.Context, studyPlaceID primitive.ObjectID, date time.Time) error {
 	_, err := s.schedule.DeleteMany(ctx, bson.M{"studyPlaceID": studyPlaceID, "date": date})
 	return err
+}
+
+func (s *repository) GetTypeName(ctx context.Context, type_ string, id primitive.ObjectID) (string, error) {
+	var collection string
+	var property string
+
+	switch type_ {
+	case "group":
+		collection = "Groups"
+		property = "group"
+		break
+	case "teacher":
+		collection = "SignUpUsers"
+		property = "roleName"
+		break
+	case "room":
+		collection = "Rooms"
+		property = "room"
+		break
+	case "subject":
+		collection = "Subjects"
+		property = "subject"
+		break
+	}
+
+	var typeObject map[string]any
+	if err := s.database.Collection(collection).FindOne(ctx, bson.M{"_id": id}).Decode(&typeObject); err != nil {
+		return "", err
+	}
+
+	return typeObject[property].(string), nil
 }

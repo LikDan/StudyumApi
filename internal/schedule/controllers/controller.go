@@ -73,8 +73,13 @@ func (s *controller) scheduleDated(start, end time.Time) (time.Time, time.Time) 
 	return start, end
 }
 
-func (s *controller) GetSchedule(ctx context.Context, user auth.User, studyPlaceIDHex, type_, typeName string, startDate, endDate time.Time, isGeneral bool) (entities.Schedule, error) {
-	if type_ == "" || typeName == "" {
+func (s *controller) GetSchedule(ctx context.Context, user auth.User, studyPlaceIDHex, type_, typeIDStr string, startDate, endDate time.Time, isGeneral bool) (entities.Schedule, error) {
+	typeID, err := primitive.ObjectIDFromHex(typeIDStr)
+	if err != nil {
+		return entities.Schedule{}, err
+	}
+
+	if type_ == "" || typeID.IsZero() {
 		return entities.Schedule{}, NotValidParams
 	}
 
@@ -89,12 +94,31 @@ func (s *controller) GetSchedule(ctx context.Context, user auth.User, studyPlace
 
 	startDate, endDate = s.scheduleDated(startDate, endDate)
 
-	typeID, err := s.repository.GetTypeID(ctx, studyPlaceID, type_, typeName)
+	if type_ == "student" {
+		type_ = "group"
+	}
+
+	typeName, err := s.repository.GetTypeName(ctx, type_, typeID)
 	if err != nil {
 		return entities.Schedule{}, err
 	}
 
-	return s.repository.GetSchedule(ctx, studyPlaceID, type_, typeName, typeID, startDate, endDate, isGeneral, false)
+	lessons, err := s.repository.GetSchedule(ctx, studyPlaceID, type_, typeID, startDate, endDate, isGeneral, false)
+	if err != nil {
+		return entities.Schedule{}, err
+	}
+
+	return entities.Schedule{
+		Info: entities.Info{
+			StudyPlaceInfo: entities.StudyPlaceInfo{}, //todo
+			Type:           type_,
+			TypeName:       typeName,
+			StartDate:      startDate,
+			EndDate:        endDate,
+			Date:           time.Now(),
+		},
+		Lessons: lessons,
+	}, nil
 }
 
 func (s *controller) GetUserSchedule(ctx context.Context, user auth.User, startDate, endDate time.Time, isGeneral bool) (entities.Schedule, error) {
@@ -102,18 +126,48 @@ func (s *controller) GetUserSchedule(ctx context.Context, user auth.User, startD
 		return entities.Schedule{}, NotValidParams
 	}
 
-	startDate, endDate = s.scheduleDated(startDate, endDate)
-
-	typeID, err := s.repository.GetTypeID(ctx, user.StudyPlaceInfo.ID, user.StudyPlaceInfo.Role, user.StudyPlaceInfo.RoleName)
+	typeID, err := primitive.ObjectIDFromHex(user.StudyPlaceInfo.RoleName)
 	if err != nil {
 		return entities.Schedule{}, err
 	}
 
-	return s.repository.GetSchedule(ctx, user.StudyPlaceInfo.ID, user.StudyPlaceInfo.Role, user.StudyPlaceInfo.RoleName, typeID, startDate, endDate, isGeneral, false)
+	startDate, endDate = s.scheduleDated(startDate, endDate)
+
+	type_ := user.StudyPlaceInfo.RoleName
+	if type_ == "student" {
+		type_ = "group"
+	}
+
+	typeName, err := s.repository.GetTypeName(ctx, type_, typeID)
+	if err != nil {
+		return entities.Schedule{}, err
+	}
+
+	lessons, err := s.repository.GetSchedule(ctx, user.StudyPlaceInfo.ID, user.StudyPlaceInfo.Role, typeID, startDate, endDate, isGeneral, false)
+	if err != nil {
+		return entities.Schedule{}, err
+	}
+
+	return entities.Schedule{
+		Info: entities.Info{
+			StudyPlaceInfo: entities.StudyPlaceInfo{}, //todo
+			Type:           type_,
+			TypeName:       typeName,
+			StartDate:      startDate,
+			EndDate:        endDate,
+			Date:           time.Now(),
+		},
+		Lessons: lessons,
+	}, nil
 }
 
-func (s *controller) GetGeneralSchedule(ctx context.Context, user auth.User, studyPlaceIDHex string, type_ string, typeName string, startDate, endDate time.Time) (entities.Schedule, error) {
-	if type_ == "" || typeName == "" {
+func (s *controller) GetGeneralSchedule(ctx context.Context, user auth.User, studyPlaceIDHex string, type_ string, typeIDStr string, startDate, endDate time.Time) (entities.Schedule, error) {
+	typeID, err := primitive.ObjectIDFromHex(typeIDStr)
+	if err != nil {
+		return entities.Schedule{}, err
+	}
+
+	if type_ == "" || typeID.IsZero() {
 		return entities.Schedule{}, NotValidParams
 	}
 
@@ -126,22 +180,67 @@ func (s *controller) GetGeneralSchedule(ctx context.Context, user auth.User, stu
 
 	startDate, endDate = s.scheduleDated(startDate, endDate)
 
-	typeID, err := s.repository.GetTypeID(ctx, studyPlaceID, type_, typeName)
+	if type_ == "student" {
+		type_ = "group"
+	}
+
+	typeName, err := s.repository.GetTypeName(ctx, type_, typeID)
 	if err != nil {
 		return entities.Schedule{}, err
 	}
 
-	return s.repository.GetSchedule(ctx, studyPlaceID, type_, typeName, typeID, startDate, endDate, true, !restricted)
+	lessons, err := s.repository.GetSchedule(ctx, studyPlaceID, type_, typeID, startDate, endDate, true, !restricted)
+	if err != nil {
+		return entities.Schedule{}, err
+	}
+
+	return entities.Schedule{
+		Info: entities.Info{
+			StudyPlaceInfo: entities.StudyPlaceInfo{}, //todo
+			Type:           type_,
+			TypeName:       typeName,
+			StartDate:      startDate,
+			EndDate:        endDate,
+			Date:           time.Now(),
+		},
+		Lessons: lessons,
+	}, nil
 }
 
 func (s *controller) GetGeneralUserSchedule(ctx context.Context, user auth.User, startDate, endDate time.Time) (entities.Schedule, error) {
 	startDate, endDate = s.scheduleDated(startDate, endDate)
 
-	typeID, err := s.repository.GetTypeID(ctx, user.StudyPlaceInfo.ID, user.StudyPlaceInfo.Role, user.StudyPlaceInfo.RoleName)
+	typeID, err := primitive.ObjectIDFromHex(user.StudyPlaceInfo.RoleName)
 	if err != nil {
 		return entities.Schedule{}, err
 	}
-	return s.repository.GetSchedule(ctx, user.StudyPlaceInfo.ID, user.StudyPlaceInfo.Role, user.StudyPlaceInfo.RoleName, typeID, startDate, endDate, true, false)
+
+	type_ := user.StudyPlaceInfo.RoleName
+	if type_ == "student" {
+		type_ = "group"
+	}
+
+	typeName, err := s.repository.GetTypeName(ctx, type_, typeID)
+	if err != nil {
+		return entities.Schedule{}, err
+	}
+
+	lessons, err := s.repository.GetSchedule(ctx, user.StudyPlaceInfo.ID, user.StudyPlaceInfo.Role, typeID, startDate, endDate, true, false)
+	if err != nil {
+		return entities.Schedule{}, err
+	}
+
+	return entities.Schedule{
+		Info: entities.Info{
+			StudyPlaceInfo: entities.StudyPlaceInfo{}, //todo
+			Type:           type_,
+			TypeName:       typeName,
+			StartDate:      startDate,
+			EndDate:        endDate,
+			Date:           time.Now(),
+		},
+		Lessons: lessons,
+	}, nil
 }
 
 func (s *controller) GetScheduleTypes(ctx context.Context, user auth.User, idHex string) entities.Types {
@@ -406,43 +505,44 @@ func (s *controller) RemoveLessonBetweenDates(ctx context.Context, user auth.Use
 }
 
 func (s *controller) SaveCurrentScheduleAsGeneral(ctx context.Context, user auth.User, role string, roleName string) error {
-	startDate, endDate := s.scheduleDated(time.Time{}, time.Time{})
-	schedule, err := s.repository.GetSchedule(ctx, user.StudyPlaceInfo.ID, role, roleName, primitive.NewObjectID(), startDate, endDate, false, false)
-	if err != nil {
-		return err
-	}
-
-	lessons := make([]entities.GeneralLesson, len(schedule.Lessons))
-	for i, lesson := range schedule.Lessons {
-		_, weekIndex := lesson.StartDate.ISOWeek()
-		dayIndex := int(lesson.StartDate.Weekday())
-
-		gLesson := entities.GeneralLesson{
-			Id:               primitive.NewObjectID(),
-			StudyPlaceId:     user.StudyPlaceInfo.ID,
-			EndTimeMinutes:   lesson.EndDate.Hour()*60 + lesson.EndDate.Minute(),
-			StartTimeMinutes: lesson.StartDate.Hour()*60 + lesson.StartDate.Minute(),
-			PrimaryColor:     lesson.PrimaryColor,
-			SecondaryColor:   lesson.SecondaryColor,
-			Subject:          lesson.Subject,
-			Group:            lesson.Group,
-			Teacher:          lesson.Teacher,
-			Room:             lesson.Room,
-			DayIndex:         dayIndex,
-			WeekIndex:        weekIndex,
+	//todo
+	/*	startDate, endDate := s.scheduleDated(time.Time{}, time.Time{})
+		schedule, err := s.repository.GetSchedule(ctx, user.StudyPlaceInfo.ID, role, primitive.NewObjectID(), startDate, endDate, false, false)
+		if err != nil {
+			return err
 		}
 
-		lessons[i] = gLesson
-	}
+		lessons := make([]entities.GeneralLesson, len(schedule.Lessons))
+		for i, lesson := range lessons {
+			_, weekIndex := lesson.StartDate.ISOWeek()
+			dayIndex := int(lesson.StartDate.Weekday())
 
-	if err = s.repository.RemoveGeneralLessonsByType(ctx, user.StudyPlaceInfo.ID, role, roleName); err != nil {
-		return err
-	}
+			gLesson := entities.GeneralLesson{
+				Id:               primitive.NewObjectID(),
+				StudyPlaceId:     user.StudyPlaceInfo.ID,
+				EndTimeMinutes:   lesson.EndDate.Hour()*60 + lesson.EndDate.Minute(),
+				StartTimeMinutes: lesson.StartDate.Hour()*60 + lesson.StartDate.Minute(),
+				PrimaryColor:     lesson.PrimaryColor,
+				SecondaryColor:   lesson.SecondaryColor,
+				Subject:          lesson.Subject,
+				Group:            lesson.Group,
+				Teacher:          lesson.Teacher,
+				Room:             lesson.Room,
+				DayIndex:         dayIndex,
+				WeekIndex:        weekIndex,
+			}
 
-	if err = s.repository.UpdateGeneralSchedule(ctx, lessons); err != nil {
-		return err
-	}
+			lessons[i] = gLesson
+		}
 
+		if err = s.repository.RemoveGeneralLessonsByType(ctx, user.StudyPlaceInfo.ID, role, roleName); err != nil {
+			return err
+		}
+
+		if err = s.repository.UpdateGeneralSchedule(ctx, lessons); err != nil {
+			return err
+		}
+	*/
 	return nil
 }
 
