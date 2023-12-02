@@ -10,6 +10,7 @@ var ValidationError = errors.New("validation error")
 
 type Validator interface {
 	AddGeneralLesson(dto dto.AddGeneralLessonDTO) error
+	UpdateGeneralLesson(dto dto.AddGeneralLessonDTO) error
 
 	AddLesson(dto dto.AddLessonDTO) error
 	UpdateLesson(lessonDTO dto.UpdateLessonDTO) error
@@ -24,11 +25,15 @@ func NewSchedule(validate *validator.Validate) Validator {
 }
 
 func (s *schedule) AddGeneralLesson(dto dto.AddGeneralLessonDTO) error {
-	if dto.StartTimeMinutes <= dto.EndTimeMinutes {
+	if dto.StartTimeMinutes > dto.EndTimeMinutes {
 		return errors.Wrap(ValidationError, "start time is after end time")
 	}
 
 	return nil
+}
+
+func (s *schedule) UpdateGeneralLesson(dto dto.AddGeneralLessonDTO) error {
+	return s.AddGeneralLesson(dto)
 }
 
 func (s *schedule) AddLesson(dto dto.AddLessonDTO) error {

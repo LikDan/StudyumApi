@@ -18,15 +18,20 @@ type Handler interface {
 
 	GetScheduleTypes(ctx *gin.Context)
 
-	GetLessonByID(ctx *gin.Context)
 	AddLessons(ctx *gin.Context)
-	AddScheduleInfo(ctx *gin.Context)
+	GetLessonByID(ctx *gin.Context)
 	AddLesson(ctx *gin.Context)
 	UpdateLesson(ctx *gin.Context)
 	DeleteLesson(ctx *gin.Context)
+
+	AddScheduleInfo(ctx *gin.Context)
 	RemoveLessonsBetweenDates(ctx *gin.Context)
 
 	AddGeneralLessons(ctx *gin.Context)
+	GetGeneralLessonByID(ctx *gin.Context)
+	AddGeneralLesson(ctx *gin.Context)
+	UpdateGeneralLesson(ctx *gin.Context)
+	DeleteGeneralLesson(ctx *gin.Context)
 
 	SaveCurrentScheduleAsGeneral(ctx *gin.Context)
 	SaveGeneralScheduleAsCurrent(ctx *gin.Context)
@@ -59,6 +64,14 @@ func NewScheduleHandler(middleware auth.Middleware, controller controllers.Contr
 		lessons.POST("", h.MemberAuth("editSchedule"), h.AddLesson)
 		lessons.PUT(":id", h.MemberAuth("editSchedule"), h.UpdateLesson)
 		lessons.DELETE(":id", h.MemberAuth("editSchedule"), h.DeleteLesson)
+	}
+
+	generalLessons := group.Group("generalLessons")
+	{
+		generalLessons.GET(":id", h.MemberAuth(), h.GetGeneralLessonByID)
+		generalLessons.POST("", h.MemberAuth("editSchedule"), h.AddGeneralLesson)
+		generalLessons.PUT(":id", h.MemberAuth("editSchedule"), h.UpdateGeneralLesson)
+		generalLessons.DELETE(":id", h.MemberAuth("editSchedule"), h.DeleteGeneralLesson)
 	}
 
 	group.POST("/general/list", h.MemberAuth("editSchedule"), h.AddGeneralLessons)
@@ -364,4 +377,77 @@ func (s *handler) SaveGeneralScheduleAsCurrent(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, "successful")
+}
+
+// GetLessonByID godoc
+// @Param id path string true "Lesson ID"
+// @Router /lessons/{id} [get]
+func (s *handler) GetGeneralLessonByID(ctx *gin.Context) {
+	user := s.GetUser(ctx)
+
+	id := ctx.Param("id")
+	lesson, err := s.controller.GeneralLessons.GetByID(ctx, user, id)
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, lesson)
+}
+
+// AddLesson godoc
+// @Router / [post]
+func (s *handler) AddGeneralLesson(ctx *gin.Context) {
+	user := s.GetUser(ctx)
+
+	var lessonDTO dto.AddGeneralLessonDTO
+	if err := ctx.BindJSON(&lessonDTO); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	lesson, err := s.controller.GeneralLessons.Add(ctx, user, lessonDTO)
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, lesson)
+}
+
+// UpdateLesson godoc
+// @Router / [put]
+func (s *handler) UpdateGeneralLesson(ctx *gin.Context) {
+	user := s.GetUser(ctx)
+	id := ctx.Param("id")
+
+	var lessonDTO dto.AddGeneralLessonDTO
+	if err := ctx.BindJSON(&lessonDTO); err != nil {
+		ctx.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	lesson, err := s.controller.GeneralLessons.Update(ctx, user, id, lessonDTO)
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, lesson)
+}
+
+// DeleteLesson godoc
+// @Param id path string true "Lesson ID"
+// @Router / [delete]
+func (s *handler) DeleteGeneralLesson(ctx *gin.Context) {
+	user := s.GetUser(ctx)
+	id := ctx.Param("id")
+
+	err := s.controller.GeneralLessons.DeleteByID(ctx, user, id)
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, id)
 }

@@ -26,9 +26,10 @@ func New(core *gin.RouterGroup, auth auth.Middleware, apps apps.Controller, gene
 	schedule := db.Collection("Schedule")
 
 	repository := repositories.NewScheduleRepository(studyPlaces, lessons, generalLessons, schedule, db)
+	generalLessonsRepository := repositories.NewGeneralLessonsRepository(generalLessons)
 
 	validator := validators.NewSchedule(v.New())
-	controller := controllers.NewScheduleController(repository, general, apps, validator)
+	controller := controllers.NewController(repository, generalLessonsRepository, general, apps, validator)
 
 	handler := handlers.NewScheduleHandler(auth, controller, core)
 	return handler

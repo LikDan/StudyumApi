@@ -11,12 +11,12 @@ type AddGeneralLessonDTO struct {
 	LessonIndex      int                `json:"lessonIndex"`
 	DayIndex         int                `json:"dayIndex"`
 	WeekIndex        int                `json:"weekIndex"`
-	StartTimeMinutes int                `json:"startTimeMinutes" binding:"req"`
-	EndTimeMinutes   int                `json:"endTimeMinutes" binding:"req"`
+	StartTimeMinutes int                `json:"startTimeMinutes"`
+	EndTimeMinutes   int                `json:"endTimeMinutes"`
 	SubjectID        primitive.ObjectID `json:"subjectID"`
-	TeacherID        primitive.ObjectID `json:"teacher"`
-	GroupID          primitive.ObjectID `json:"group"`
-	RoomID           primitive.ObjectID `json:"room"`
+	TeacherID        primitive.ObjectID `json:"teacherID"`
+	GroupID          primitive.ObjectID `json:"groupID"`
+	RoomID           primitive.ObjectID `json:"roomID"`
 }
 
 type AddLessonDTO struct {
