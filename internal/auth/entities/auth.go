@@ -20,6 +20,8 @@ type UserStudyPlaceInfo struct {
 	ID           primitive.ObjectID `json:"id" bson:"_id"`
 	Name         string             `json:"name" bson:"name" encryption:""`
 	Role         string             `json:"role" bson:"role"`
+	TypeID       primitive.ObjectID `json:"typeID" bson:"typeID"`
+	RoleID       primitive.ObjectID `json:"roleID" bson:"roleID"`
 	RoleName     string             `json:"roleName" bson:"roleName"`
 	TuitionGroup string             `json:"tuitionGroup" bson:"tuitionGroup"`
 	Permissions  []string           `json:"permissions" bson:"permissions"`

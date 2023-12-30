@@ -20,18 +20,20 @@ var NotValidParams = errors.New("not valid params")
 var ErrNoPermission = errors.New("no permission")
 
 type Controller interface {
-	AddMarks(ctx context.Context, marks []dtos.AddMarkDTO, user auth.User) ([]entities.Mark, error)
-	AddMark(ctx context.Context, dto dtos.AddMarkDTO, user auth.User) (entities.CellResponse, error)
-	UpdateMark(ctx context.Context, user auth.User, dto dtos.UpdateMarkDTO) (entities.CellResponse, error)
-	DeleteMark(ctx context.Context, user auth.User, markIdHex string) (entities.CellResponse, error)
+	AddMarks(ctx context.Context, marks []dtos.AddMarkDTO, user auth.User) ([]entities.StudentMark, error)
+	AddMark(ctx context.Context, dto dtos.AddMarkDTO, user auth.User) (entities.JournalLesson, error)
+	UpdateMark(ctx context.Context, user auth.User, dto dtos.UpdateMarkDTO) (entities.JournalLesson, error)
+	DeleteMark(ctx context.Context, user auth.User, markIdHex string) (entities.JournalLesson, error)
 
 	AddAbsences(ctx context.Context, dto []dtos.AddAbsencesDTO, user auth.User) ([]entities.Absence, error)
-	AddAbsence(ctx context.Context, absencesDTO dtos.AddAbsencesDTO, user auth.User) (entities.CellResponse, error)
-	UpdateAbsence(ctx context.Context, user auth.User, absences dtos.UpdateAbsencesDTO) (entities.CellResponse, error)
-	DeleteAbsence(ctx context.Context, user auth.User, id string) (entities.CellResponse, error)
+	AddAbsence(ctx context.Context, absencesDTO dtos.AddAbsencesDTO, user auth.User) (entities.JournalLesson, error)
+	UpdateAbsence(ctx context.Context, user auth.User, absences dtos.UpdateAbsencesDTO) (entities.JournalLesson, error)
+	DeleteAbsence(ctx context.Context, user auth.User, id string) (entities.JournalLesson, error)
 
 	GenerateMarksReport(ctx context.Context, config dtos.MarksReport, user auth.User) (*excelize.File, error)
 	GenerateAbsencesReport(ctx context.Context, config dtos.AbsencesReport, user auth.User) (*excelize.File, error)
+
+	GetLessonInfo(ctx context.Context, user auth.User, studentID, id string) (entities.JournalLesson, error)
 }
 
 type controller struct {
@@ -140,52 +142,22 @@ func (j *controller) GenerateAbsencesReport(ctx context.Context, config dtos.Abs
 	return f, nil
 }
 
-func (j *controller) checkMarkExistence(ctx context.Context, mark dtos.AddMarkDTO, studyPlaceID primitive.ObjectID) bool {
-	lesson, err := j.repository.GetLessonByID(ctx, mark.LessonID)
-	if err != nil {
-		return false
-	}
-	studyPlace, err := j.repository.GetStudyPlaceByID(ctx, studyPlaceID)
-	if err != nil {
-		return false
-	}
-
-	for _, lessonType := range studyPlace.LessonTypes {
-		if lessonType.Type != lesson.Type {
-			continue
-		}
-
-		for _, markType := range lessonType.Marks {
-			if markType.Mark == mark.Mark {
-				return true
-			}
-		}
-		for _, markType := range lessonType.StandaloneMarks {
-			if markType.Mark == mark.Mark {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
-func (j *controller) AddMarks(ctx context.Context, addDTO []dtos.AddMarkDTO, user auth.User) ([]entities.Mark, error) {
-	marks := make([]entities.Mark, len(addDTO))
+func (j *controller) AddMarks(ctx context.Context, addDTO []dtos.AddMarkDTO, user auth.User) ([]entities.StudentMark, error) {
+	marks := make([]entities.StudentMark, len(addDTO))
 	for i, markDTO := range addDTO {
-		if markDTO.Mark == "" || markDTO.StudentID.IsZero() || markDTO.LessonID.IsZero() || !j.checkMarkExistence(ctx, markDTO, user.StudyPlaceInfo.ID) {
+		if markDTO.MarkID.IsZero() || markDTO.StudentID.IsZero() || markDTO.LessonID.IsZero() {
 			return nil, NotValidParams
 		}
 
-		mark := entities.Mark{
+		mark := entities.StudentMark{
 			ID:           primitive.NewObjectID(),
-			Mark:         markDTO.Mark,
+			MarkID:       markDTO.MarkID,
 			StudentID:    markDTO.StudentID,
 			LessonID:     markDTO.LessonID,
 			StudyPlaceID: user.StudyPlaceInfo.ID,
 		}
 
-		if err := j.repository.AddMark(ctx, mark, user.StudyPlaceInfo.RoleName); err != nil {
+		if err := j.repository.AddMark(ctx, mark); err != nil {
 			return nil, err
 		}
 
@@ -197,67 +169,68 @@ func (j *controller) AddMarks(ctx context.Context, addDTO []dtos.AddMarkDTO, use
 	return marks, nil
 }
 
-func (j *controller) AddMark(ctx context.Context, addDTO dtos.AddMarkDTO, user auth.User) (entities.CellResponse, error) {
-	if addDTO.Mark == "" || addDTO.StudentID.IsZero() || addDTO.LessonID.IsZero() || !j.checkMarkExistence(ctx, addDTO, user.StudyPlaceInfo.ID) {
-		return entities.CellResponse{}, NotValidParams
+func (j *controller) AddMark(ctx context.Context, addDTO dtos.AddMarkDTO, user auth.User) (entities.JournalLesson, error) {
+	if addDTO.MarkID.IsZero() || addDTO.StudentID.IsZero() || addDTO.LessonID.IsZero() {
+		return entities.JournalLesson{}, NotValidParams
 	}
 
-	mark := entities.Mark{
+	mark := entities.StudentMark{
 		ID:           primitive.NewObjectID(),
-		Mark:         addDTO.Mark,
+		MarkID:       addDTO.MarkID,
 		StudentID:    addDTO.StudentID,
 		LessonID:     addDTO.LessonID,
 		StudyPlaceID: user.StudyPlaceInfo.ID,
 	}
 
-	if err := j.repository.AddMark(ctx, mark, user.StudyPlaceInfo.RoleName); err != nil {
-		return entities.CellResponse{}, err
+	if err := j.repository.AddMark(ctx, mark); err != nil {
+		return entities.JournalLesson{}, err
 	}
 
 	j.apps.AsyncEvent(user.StudyPlaceInfo.ID, "AddMark", mark)
 
-	return j.journal.GetUpdateInfo(ctx, mark.StudentID, mark.LessonID)
+	return j.repository.GetStudentLessonByID(ctx, mark.StudentID, mark.LessonID)
 }
 
-func (j *controller) UpdateMark(ctx context.Context, user auth.User, updateDTO dtos.UpdateMarkDTO) (entities.CellResponse, error) {
-	if updateDTO.Mark == "" || updateDTO.ID.IsZero() || updateDTO.LessonID.IsZero() || !j.checkMarkExistence(ctx, updateDTO.AddMarkDTO, user.StudyPlaceInfo.ID) {
-		return entities.CellResponse{}, NotValidParams
+func (j *controller) UpdateMark(ctx context.Context, user auth.User, updateDTO dtos.UpdateMarkDTO) (entities.JournalLesson, error) {
+	if updateDTO.MarkID.IsZero() || updateDTO.ID.IsZero() || updateDTO.LessonID.IsZero() {
+		return entities.JournalLesson{}, NotValidParams
 	}
 
-	mark := entities.Mark{
+	mark := entities.StudentMark{
 		ID:        updateDTO.ID,
-		Mark:      updateDTO.Mark,
+		MarkID:    updateDTO.MarkID,
 		StudentID: updateDTO.StudentID,
 		LessonID:  updateDTO.LessonID,
 	}
 
-	if err := j.repository.UpdateMark(ctx, mark, user.StudyPlaceInfo.RoleName); err != nil {
-		return entities.CellResponse{}, err
+	if err := j.repository.UpdateMark(ctx, mark); err != nil {
+		return entities.JournalLesson{}, err
 	}
 
 	j.apps.AsyncEvent(user.StudyPlaceInfo.ID, "UpdateMark", mark)
 
-	return j.journal.GetUpdateInfo(ctx, mark.StudentID, mark.LessonID)
+	return j.repository.GetStudentLessonByID(ctx, mark.StudentID, mark.LessonID)
 }
 
-func (j *controller) DeleteMark(ctx context.Context, user auth.User, markIdHex string) (entities.CellResponse, error) {
-	markId, err := primitive.ObjectIDFromHex(markIdHex)
-	if err != nil || markId == primitive.NilObjectID {
-		return entities.CellResponse{}, errors.Wrap(NotValidParams, "markId")
+func (j *controller) DeleteMark(ctx context.Context, user auth.User, markIdHex string) (entities.JournalLesson, error) {
+	markID, err := primitive.ObjectIDFromHex(markIdHex)
+	if err != nil || markID.IsZero() {
+		return entities.JournalLesson{}, err
 	}
 
-	mark, err := j.repository.GetMarkByID(ctx, markId)
+	mark, err := j.repository.GetMarkByID(ctx, markID)
 	if err != nil {
-		return entities.CellResponse{}, err
+		return entities.JournalLesson{}, err
 	}
 
 	j.apps.Event(user.StudyPlaceInfo.ID, "RemoveMark", mark)
 
-	if err = j.repository.DeleteMarkByID(ctx, markId, user.StudyPlaceInfo.RoleName); err != nil {
-		return entities.CellResponse{}, err
+	err = j.repository.DeleteMarkByID(ctx, markID)
+	if err != nil {
+		return entities.JournalLesson{}, err
 	}
 
-	return j.journal.GetUpdateInfo(ctx, mark.StudentID, mark.LessonID)
+	return j.repository.GetStudentLessonByID(ctx, mark.StudentID, mark.LessonID)
 }
 
 func (j *controller) AddAbsences(ctx context.Context, dto []dtos.AddAbsencesDTO, user auth.User) ([]entities.Absence, error) {
@@ -275,7 +248,7 @@ func (j *controller) AddAbsences(ctx context.Context, dto []dtos.AddAbsencesDTO,
 			StudyPlaceID: user.StudyPlaceInfo.ID,
 		}
 
-		if err := j.repository.AddAbsence(ctx, absence, user.StudyPlaceInfo.RoleName); err != nil {
+		if err := j.repository.AddAbsence(ctx, absence); err != nil {
 			return nil, err
 		}
 
@@ -287,9 +260,9 @@ func (j *controller) AddAbsences(ctx context.Context, dto []dtos.AddAbsencesDTO,
 	return absences, nil
 }
 
-func (j *controller) AddAbsence(ctx context.Context, dto dtos.AddAbsencesDTO, user auth.User) (entities.CellResponse, error) {
+func (j *controller) AddAbsence(ctx context.Context, dto dtos.AddAbsencesDTO, user auth.User) (entities.JournalLesson, error) {
 	if dto.StudentID.IsZero() || dto.LessonID.IsZero() {
-		return entities.CellResponse{}, NotValidParams
+		return entities.JournalLesson{}, NotValidParams
 	}
 
 	absence := entities.Absence{
@@ -300,19 +273,19 @@ func (j *controller) AddAbsence(ctx context.Context, dto dtos.AddAbsencesDTO, us
 		StudyPlaceID: user.StudyPlaceInfo.ID,
 	}
 
-	err := j.repository.AddAbsence(ctx, absence, user.StudyPlaceInfo.RoleName)
+	err := j.repository.AddAbsence(ctx, absence)
 	if err != nil {
-		return entities.CellResponse{}, err
+		return entities.JournalLesson{}, err
 	}
 
 	j.apps.AsyncEvent(user.StudyPlaceInfo.ID, "AddAbsence", absence)
 
-	return j.journal.GetUpdateInfo(ctx, absence.StudentID, absence.LessonID)
+	return j.repository.GetStudentLessonByID(ctx, absence.StudentID, absence.LessonID)
 }
 
-func (j *controller) UpdateAbsence(ctx context.Context, user auth.User, dto dtos.UpdateAbsencesDTO) (entities.CellResponse, error) {
+func (j *controller) UpdateAbsence(ctx context.Context, user auth.User, dto dtos.UpdateAbsencesDTO) (entities.JournalLesson, error) {
 	if dto.ID.IsZero() || dto.LessonID.IsZero() {
-		return entities.CellResponse{}, NotValidParams
+		return entities.JournalLesson{}, NotValidParams
 	}
 
 	absence := entities.Absence{
@@ -323,31 +296,47 @@ func (j *controller) UpdateAbsence(ctx context.Context, user auth.User, dto dtos
 		StudyPlaceID: user.StudyPlaceInfo.ID,
 	}
 
-	if err := j.repository.UpdateAbsence(ctx, absence, user.StudyPlaceInfo.RoleName); err != nil {
-		return entities.CellResponse{}, err
+	if err := j.repository.UpdateAbsence(ctx, absence); err != nil {
+		return entities.JournalLesson{}, err
 	}
 
 	j.apps.AsyncEvent(user.StudyPlaceInfo.ID, "UpdateAbsence", absence)
 
-	return j.journal.GetUpdateInfo(ctx, absence.StudentID, absence.LessonID)
+	return j.repository.GetStudentLessonByID(ctx, absence.StudentID, absence.LessonID)
 }
 
-func (j *controller) DeleteAbsence(ctx context.Context, user auth.User, idHex string) (entities.CellResponse, error) {
+func (j *controller) DeleteAbsence(ctx context.Context, user auth.User, idHex string) (entities.JournalLesson, error) {
 	id, err := primitive.ObjectIDFromHex(idHex)
 	if err != nil {
-		return entities.CellResponse{}, errors.Wrap(NotValidParams, "markId")
+		return entities.JournalLesson{}, err
 	}
 
 	absence, err := j.repository.GetAbsenceByID(ctx, id)
 	if err != nil {
-		return entities.CellResponse{}, err
+		return entities.JournalLesson{}, err
 	}
 
 	j.apps.AsyncEvent(user.StudyPlaceInfo.ID, "RemoveAbsence", entities.DeleteAbsenceID{ID: absence.ID})
 
-	if err = j.repository.DeleteAbsenceByID(ctx, id, user.StudyPlaceInfo.RoleName); err != nil {
-		return entities.CellResponse{}, err
+	err = j.repository.DeleteAbsenceByID(ctx, id)
+	if err != nil {
+		return entities.JournalLesson{}, err
 	}
 
-	return j.journal.GetUpdateInfo(ctx, absence.StudentID, absence.LessonID)
+	return j.repository.GetStudentLessonByID(ctx, absence.StudentID, absence.LessonID)
+}
+
+func (j *controller) GetLessonInfo(ctx context.Context, user auth.User, studentIDHex, idHex string) (entities.JournalLesson, error) {
+	id, err := primitive.ObjectIDFromHex(idHex)
+	if err != nil {
+		return entities.JournalLesson{}, errors.Wrap(NotValidParams, "markId")
+	}
+
+	studentID, err := primitive.ObjectIDFromHex(studentIDHex)
+	if err != nil {
+		return entities.JournalLesson{}, errors.Wrap(NotValidParams, "markId")
+	}
+
+	//todo check access to student ID
+	return j.repository.GetStudentLessonByID(ctx, studentID, id)
 }

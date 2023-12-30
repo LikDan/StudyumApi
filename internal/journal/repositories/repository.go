@@ -8,6 +8,7 @@ import (
 	general "studyum/internal/general/entities"
 	"studyum/internal/journal/entities"
 	"studyum/pkg/hMongo"
+	"studyum/pkg/slicetools"
 	"time"
 )
 
@@ -15,33 +16,33 @@ type Repository interface {
 	GetTypeID(ctx context.Context, studyPlaceID primitive.ObjectID, type_, typeName string) (primitive.ObjectID, error)
 
 	GetMarkByID(ctx context.Context, id primitive.ObjectID) (entities.Mark, error)
-	AddMarks(ctx context.Context, marks []entities.Mark, teacher string) error
-	AddMark(ctx context.Context, mark entities.Mark, teacher string) error
-	UpdateMark(ctx context.Context, mark entities.Mark, teacher string) error
-	DeleteMarkByID(ctx context.Context, id primitive.ObjectID, teacher string) error
+	AddMarks(ctx context.Context, marks []entities.StudentMark) error
+	AddMark(ctx context.Context, mark entities.StudentMark) error
+	UpdateMark(ctx context.Context, mark entities.StudentMark) error
+	DeleteMarkByID(ctx context.Context, id primitive.ObjectID) error
 
 	GetAllAvailableOptions(ctx context.Context, id primitive.ObjectID, editable bool) ([]entities.AvailableOption, error)
 	GetAvailableOptions(ctx context.Context, id, teacherID primitive.ObjectID, editable bool) ([]entities.AvailableOption, error)
 	GetAvailableTuitionOptions(ctx context.Context, id, groupID primitive.ObjectID, editable bool) ([]entities.AvailableOption, error)
 
 	GetStudentJournal(ctx context.Context, userId, groupID primitive.ObjectID, studyPlaceID primitive.ObjectID) (entities.Journal, error)
-	GetJournal(ctx context.Context, option entities.AvailableOption, studyPlaceID primitive.ObjectID) (entities.Journal, error)
+	GetJournal(ctx context.Context, studyPlaceID primitive.ObjectID, groupID primitive.ObjectID, subjectID primitive.ObjectID) (entities.Journal, error)
 
-	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.Lesson, error)
+	GetLessonByID(ctx context.Context, id primitive.ObjectID) (entities.JournalLesson, error)
+	GetStudentLessonByID(ctx context.Context, studentID, id primitive.ObjectID) (entities.JournalLesson, error)
+
 	GetLessons(ctx context.Context, userId primitive.ObjectID, group, teacher, subject string, studyPlaceID primitive.ObjectID) ([]entities.Lesson, error)
 
 	GetStudyPlaceByID(ctx context.Context, id primitive.ObjectID) (general.StudyPlace, error)
 
 	GetAbsenceByID(ctx context.Context, id primitive.ObjectID) (entities.Absence, error)
-	AddAbsences(ctx context.Context, absences []entities.Absence, teacher string) error
-	AddAbsence(ctx context.Context, absence entities.Absence, teacher string) error
-	UpdateAbsence(ctx context.Context, absence entities.Absence, teacher string) error
-	DeleteAbsenceByID(ctx context.Context, id primitive.ObjectID, teacher string) error
+	AddAbsences(ctx context.Context, absences []entities.Absence) error
+	AddAbsence(ctx context.Context, absence entities.Absence) error
+	UpdateAbsence(ctx context.Context, absence entities.Absence) error
+	DeleteAbsenceByID(ctx context.Context, id primitive.ObjectID) error
 
 	GenerateMarksReport(ctx context.Context, group string, lessonType string, mark string, from, to *time.Time, studyPlaceID primitive.ObjectID) (entities.GeneratedTable, error)
 	GenerateAbsencesReport(ctx context.Context, group string, from, to *time.Time, id primitive.ObjectID) (entities.GeneratedTable, error)
-
-	GetJournalRowWithDates(ctx context.Context, userID primitive.ObjectID, subject, teacher, group string, studyPlaceID primitive.ObjectID) ([]*entities.Cell, []time.Time, error)
 }
 
 type repository struct {
@@ -49,12 +50,14 @@ type repository struct {
 	lessons         *mongo.Collection
 	studyPlaces     *mongo.Collection
 	studyPlaceUsers *mongo.Collection
+	marks           *mongo.Collection
+	absences        *mongo.Collection
 
 	database *mongo.Database
 }
 
-func NewJournalRepository(users *mongo.Collection, lessons *mongo.Collection, studyPlaces *mongo.Collection, studyPlaceUsers *mongo.Collection, database *mongo.Database) Repository {
-	return &repository{users: users, lessons: lessons, studyPlaces: studyPlaces, studyPlaceUsers: studyPlaceUsers, database: database}
+func NewJournalRepository(users *mongo.Collection, lessons *mongo.Collection, studyPlaces *mongo.Collection, studyPlaceUsers *mongo.Collection, marks *mongo.Collection, absences *mongo.Collection, database *mongo.Database) Repository {
+	return &repository{users: users, lessons: lessons, studyPlaces: studyPlaces, studyPlaceUsers: studyPlaceUsers, marks: marks, absences: absences, database: database}
 }
 
 func (j *repository) GetTypeID(ctx context.Context, studyPlaceID primitive.ObjectID, type_, typeName string) (primitive.ObjectID, error) {
@@ -455,19 +458,14 @@ func (j *repository) getAvailableOptions(ctx context.Context, matcher bson.M, ed
 			},
 			"teacherID": bson.M{"$first": "$teacherID"},
 			"subjectID": bson.M{"$first": "$subjectID"},
-			"groupID":   bson.M{"$first": "$groupID"}},
-		},
+			"groupID":   bson.M{"$first": "$groupID"},
+		}},
 		bson.M{
 			"$lookup": bson.M{
-				"from":         "StudyPlaceUsers",
+				"from":         "Teachers",
 				"localField":   "teacherID",
 				"foreignField": "_id",
 				"as":           "teacher",
-			},
-		},
-		bson.M{
-			"$addFields": bson.M{
-				"teacher": bson.M{"$first": "$teacher.roleName"},
 			},
 		},
 		bson.M{
@@ -476,11 +474,6 @@ func (j *repository) getAvailableOptions(ctx context.Context, matcher bson.M, ed
 				"localField":   "groupID",
 				"foreignField": "_id",
 				"as":           "group",
-			},
-		},
-		bson.M{
-			"$addFields": bson.M{
-				"group": bson.M{"$first": "$group.group"},
 			},
 		},
 		bson.M{
@@ -493,25 +486,29 @@ func (j *repository) getAvailableOptions(ctx context.Context, matcher bson.M, ed
 		},
 		bson.M{
 			"$addFields": bson.M{
-				"subject": bson.M{"$first": "$subject.subject"},
+				"teacher": bson.M{"$first": "$teacher"},
+				"group":   bson.M{"$first": "$group"},
+				"subject": bson.M{"$first": "$subject"},
 			},
 		},
 		bson.M{
 			"$lookup": bson.M{
-				"from":         "Rooms",
-				"localField":   "roomID",
-				"foreignField": "_id",
-				"as":           "room",
-			},
-		},
-		bson.M{
-			"$addFields": bson.M{
-				"room": bson.M{"$first": "$room.room"},
+				"from": "StudyPlaceUsers",
+				"let":  bson.M{"groupID": "$groupID"},
+				"pipeline": bson.A{
+					bson.M{
+						"$match": bson.M{"$expr": bson.M{"$and": bson.A{
+							bson.M{"$eq": bson.A{"$studyPlaceID", matcher["studyPlaceID"]}},
+							bson.M{"$eq": bson.A{"$$groupID", "$roleID"}},
+						}}},
+					},
+				},
+				"as": "hasMembers",
 			},
 		},
 		bson.M{"$addFields": bson.M{
 			"editable":   editable,
-			"hasMembers": true,
+			"hasMembers": bson.M{"$ne": bson.A{bson.M{"$size": "$hasMembers"}, 0}},
 		}},
 		bson.M{"$sort": bson.M{"hasMembers": -1, "group": 1, "groupID": 1, "subject": 1, "subjectID": 1, "teacher": 1, "teacherID": 1}},
 	})
@@ -540,152 +537,139 @@ func (j *repository) GetAvailableTuitionOptions(ctx context.Context, id, groupID
 }
 
 func (j *repository) GetStudentJournal(ctx context.Context, userId, groupID primitive.ObjectID, studyPlaceID primitive.ObjectID) (entities.Journal, error) {
-	cursor, err := j.lessons.Aggregate(ctx, bson.A{
-		bson.M{"$match": bson.M{"groupID": groupID, "studyPlaceID": studyPlaceID}},
-		bson.M{
+	cursor, err := j.lessons.Aggregate(ctx, []bson.M{
+		{
+			"$match": bson.M{
+				"studyPlaceID": studyPlaceID,
+				"groupID":      groupID,
+			},
+		},
+		{
+			"$lookup": bson.M{
+				"from": "AggregatedMarks",
+				"let": bson.M{
+					"lessonID": "$_id",
+				},
+				"pipeline": bson.A{
+					bson.M{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$and": bson.A{
+									bson.M{"$eq": bson.A{"$$lessonID", "$lessonID"}},
+									bson.M{"$eq": bson.A{"$studentID", userId}},
+								},
+							},
+						},
+					},
+					bson.M{
+						"$project": bson.M{
+							"_id":        1,
+							"mark":       1,
+							"markWeight": 1,
+						},
+					},
+				},
+				"as": "marks",
+			},
+		},
+		{
+			"$lookup": bson.M{
+				"from": "Absences",
+				"let": bson.M{
+					"lessonID": "$_id",
+				},
+				"pipeline": bson.A{
+					bson.M{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$and": bson.A{
+									bson.M{"$eq": bson.A{"$lessonID", "$$lessonID"}},
+									bson.M{"$eq": bson.A{"$studentID", userId}},
+								},
+							},
+						},
+					},
+					bson.M{
+						"$project": bson.M{
+							"_id":  1,
+							"time": 1,
+						},
+					},
+				},
+				"as": "absences",
+			},
+		},
+		{
 			"$lookup": bson.M{
 				"from":         "Subjects",
 				"localField":   "subjectID",
 				"foreignField": "_id",
-				"as":           "subject",
+				"as":           "subjects",
 			},
 		},
-		bson.M{
-			"$addFields": bson.M{
-				"subject": bson.M{"$first": "$subject.subject"},
-			},
-		},
-		bson.M{"$addFields": bson.M{
-			"marks":    hMongo.Filter("marks", hMongo.AEq("$$marks.studentID", userId)),
-			"absences": hMongo.Filter("absences", hMongo.AEq("$$absences.studentID", userId)),
-		}},
-		bson.M{
-			"$lookup": bson.M{
-				"from":     "StudyPlaces",
-				"pipeline": bson.A{bson.M{"$match": bson.M{"_id": studyPlaceID}}},
-				"as":       "studyPlace",
-			},
-		},
-		bson.M{
+		{
 			"$group": bson.M{
-				"_id":        nil,
-				"studyPlace": bson.M{"$first": bson.M{"$first": "$studyPlace"}},
-				"lessons":    bson.M{"$push": "$$ROOT"},
-				"dates":      bson.M{"$addToSet": bson.M{"$toDate": bson.M{"$dateToString": bson.M{"date": "$startDate", "format": "%m/%d/%Y"}}}},
-			},
-		},
-		bson.M{
-			"$addFields": bson.M{
-				"dates": bson.M{
-					"$sortArray": bson.M{
-						"input":  "$dates",
-						"sortBy": 1,
+				"_id": bson.M{
+					"subject": bson.M{
+						"_id":   bson.M{"$first": "$subjects._id"},
+						"title": bson.M{"$first": "$subjects.subject"},
+					},
+					"date": bson.M{
+						"date": bson.M{
+							"$dateTrunc": bson.M{
+								"date": "$startDate",
+								"unit": "day",
+							},
+						},
 					},
 				},
+				"lessonsIDs": bson.M{"$push": "$_id"},
+				"marks":      bson.M{"$push": "$marks"},
+				"absences":   bson.M{"$push": "$absences"},
 			},
 		},
-		bson.M{
+		{
 			"$project": bson.M{
-				"lessons.studyPlace": 0,
-			},
-		},
-		bson.M{
-			"$addFields": bson.M{
-				"rows": bson.M{
-					"$function": bson.M{
-						// language=JavaScript
-						"body": `function (studyPlace, lessons, dates) {
-                        const groupBy = function (xs, key) {
-                            return xs.reduce(function (rv, x) {
-                                //TODO sort
-                                (rv[x[key]] = rv[x[key]] || []).push(x);
-                                return rv;
-                            }, {});
-                        };
-
-                        let groupedLessons = groupBy(lessons, 'subject')
-
-                        for (const [key, value] of Object.entries(groupedLessons)) {
-                            groupedLessons[key] = value.sort((a, b) => a.startDate - b.startDate)
-                        }
-
-                        let rows = []
-                        for (const [key, value] of Object.entries(groupedLessons)) {
-                            rows.unshift({title: key, cells: [], info: {}})
-
-                            let added = 0
-                            for (let i = 0; i < value.length; i++) {
-                                let startTime = new Date(value[i].startDate.toDateString()).getTime()
-                                if (i > 0 && new Date(value[i - 1].startDate.toDateString()).getTime() === startTime) {
-									rows[0].cells.at(-1)
-									let prevLesson = rows[0].cells.at(-1)
-
-									if (value[i].journalCellColor != studyPlace.journalColors.general && prevLesson.journalCellColor == studyPlace.journalColors.general) {
-										prevLesson.journalCellColor = value[i].journalCellColor
-									}
-
-									prevLesson.marks = prevLesson.marks?.concat(value[i].marks ?? []) ?? value[i].marks
-									prevLesson.absences = prevLesson.absences?.concat(value[i].absences ?? []) ?? value[i].absences
-									prevLesson.type.push(value[i].type)
-									added--
-									continue
-                                }
-                                while (dates[i + added].getTime() !== startTime) {
-                                    rows[0].cells.push(null)
-                                    added++
-                                }
-                                rows[0].cells.push({
-                                 _id: value[i]._id,
-                                 type: [value[i].type],
-                                 journalCellColor: value[i].journalCellColor,
-                                 marks: value[i].marks,
-                                 absences: value[i].absences
-                                })
-                            }
-
-                            for (let i = added + value.length; i < dates.length; i++) {
-                                rows[0].cells.push(null)
-                            }
-                        }
-
-                        return rows.sort((a, b) => a.title > b.title)
-                    }`,
-						"args": bson.A{"$studyPlace", "$lessons", "$dates"},
-						"lang": "js",
+				"cell": bson.M{
+					"_id":        "$_id",
+					"date":       "$_id.date",
+					"rowTitle":   "$_id.subject",
+					"lessonsIDs": "$lessonsIDs",
+					"marks": bson.M{
+						"$reduce": bson.M{
+							"input":        "$marks",
+							"initialValue": bson.A{},
+							"in": bson.M{
+								"$concatArrays": bson.A{"$$value", "$$this"},
+							},
+						},
 					},
-				},
-			},
-		},
-		bson.M{
-			"$addFields": bson.M{
-				"info": bson.M{
-					"editable":   false,
-					"studyPlace": "$studyPlace",
-					"group":      groupID,
-					"teacher":    "",
-					"subject":    "",
-					"time":       time.Now(),
-				},
-			},
-		},
-		bson.M{
-			"$addFields": bson.M{
-				"dates": bson.M{
-					"$map": bson.M{
-						"input": "$dates",
-						"as":    "date",
-						"in": bson.M{
-							"startDate": "$$date",
-							"endDate":   "$$date",
+					"absences": bson.M{
+						"$reduce": bson.M{
+							"input":        "$absences",
+							"initialValue": bson.A{},
+							"in": bson.M{
+								"$concatArrays": bson.A{"$$value", "$$this"},
+							},
 						},
 					},
 				},
 			},
 		},
-		bson.M{
+		{
+			"$group": bson.M{
+				"_id":       nil,
+				"dates":     bson.M{"$addToSet": "$_id.date"},
+				"rowTitles": bson.M{"$addToSet": "$_id.subject"},
+				"cells":     bson.M{"$push": "$cell"},
+			},
+		},
+		{
 			"$project": bson.M{
-				"lessons":    0,
-				"studyPlace": 0,
+				"_id":       0,
+				"dates":     1,
+				"rowTitles": 1,
+				"cells":     1,
 			},
 		},
 	})
@@ -694,13 +678,7 @@ func (j *repository) GetStudentJournal(ctx context.Context, userId, groupID prim
 	}
 
 	if !cursor.Next(ctx) {
-		return entities.Journal{
-			Info: entities.Info{
-				Editable:   false,
-				StudyPlace: general.StudyPlace{},
-				Group:      "group",
-			},
-		}, nil
+		return entities.Journal{}, nil
 	}
 	var journal entities.Journal
 	if err = cursor.Decode(&journal); err != nil {
@@ -710,131 +688,127 @@ func (j *repository) GetStudentJournal(ctx context.Context, userId, groupID prim
 	return journal, nil
 }
 
-func (j *repository) GetJournal(ctx context.Context, option entities.AvailableOption, studyPlaceID primitive.ObjectID) (entities.Journal, error) {
-	var cursor, err = j.studyPlaceUsers.Aggregate(ctx, bson.A{
-		bson.M{
-			"$match": bson.M{"role": "student", "roleName": option.Group, "studyPlaceID": studyPlaceID},
+func (j *repository) GetJournal(ctx context.Context, studyPlaceID primitive.ObjectID, groupID primitive.ObjectID, subjectID primitive.ObjectID) (entities.Journal, error) {
+	var cursor, err = j.studyPlaceUsers.Aggregate(ctx, []bson.M{
+		{
+			"$match": bson.M{
+				"studyPlaceID": studyPlaceID,
+				"role":         "student",
+				"roleID":       groupID,
+			},
 		},
-		bson.M{
-			"$group": bson.M{"_id": nil, "users": bson.M{"$push": "$$ROOT"}},
-		},
-		bson.M{
+		{
 			"$lookup": bson.M{
 				"from": "Lessons",
-				"pipeline": bson.A{
-					bson.M{
+				"let":  bson.M{"groupID": groupID, "subjectID": subjectID},
+				"pipeline": []bson.M{
+					{
 						"$match": bson.M{
-							"subjectID":    option.SubjectID,
-							"groupID":      option.GroupID,
-							"teacherID":    option.TeacherID,
-							"studyPlaceID": studyPlaceID,
+							"$expr": bson.M{
+								"$and": bson.A{
+									bson.M{"$eq": bson.A{studyPlaceID, "$studyPlaceID"}},
+									bson.M{"$eq": bson.A{"$groupID", "$$groupID"}},
+									bson.M{"$eq": bson.A{"$subjectID", "$$subjectID"}},
+								},
+							},
 						},
 					},
 				},
 				"as": "lessons",
 			},
 		},
-		bson.M{
-			"$lookup": bson.M{
-				"from": "StudyPlaces",
-				"pipeline": bson.A{
-					bson.M{"$match": bson.M{
-						"_id": studyPlaceID,
-					}},
-				},
-				"as": "studyPlace",
-			},
-		},
-		bson.M{
-			"$addFields": bson.M{
-				"lessons": bson.M{
-					"$sortArray": bson.M{
-						"input":  "$lessons",
-						"sortBy": bson.M{"startDate": 1},
-					},
-				},
-			},
-		},
-		bson.M{
-			"$addFields": bson.M{
-				"dates": "$lessons",
-			},
-		},
-		bson.M{
+		{
 			"$project": bson.M{
-				"dates.marks":            0,
-				"dates.absences":         0,
-				"dates.journalCellColor": 0,
-				"dates.studyPlace":       0,
+				"_id":     1,
+				"lessons": 1,
+				"name":    1,
 			},
 		},
-		bson.M{
-			"$unwind": "$users",
-		},
-		bson.M{
+		{
 			"$unwind": "$lessons",
 		},
-		bson.M{
-			"$addFields": bson.M{
-				"lessons.marks":    hMongo.Filter("lessons.marks", hMongo.AEq("$$marks.studentID", "$users._id")),
-				"lessons.absences": hMongo.Filter("lessons.absences", hMongo.AEq("$$absences.studentID", "$users._id")),
+		{
+			"$lookup": bson.M{
+				"from": "AggregatedMarks",
+				"let":  bson.M{"lessonID": "$lessons._id", "studentID": "$_id"},
+				"pipeline": []bson.M{
+					{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$and": bson.A{
+									bson.M{"$eq": bson.A{"$$lessonID", "$lessonID"}},
+									bson.M{"$eq": bson.A{"$$studentID", "$studentID"}},
+								},
+							},
+						},
+					},
+					{
+						"$project": bson.M{
+							"_id":        1,
+							"mark":       1,
+							"markWeight": 1,
+						},
+					},
+				},
+				"as": "marks",
 			},
 		},
-		bson.M{
-			"$addFields": bson.M{
-				"lessons.type": bson.A{"$lessons.type"},
+		{
+			"$lookup": bson.M{
+				"from": "Absences",
+				"let":  bson.M{"lessonID": "$lessons._id", "studentID": "$_id"},
+				"pipeline": []bson.M{
+					{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$and": bson.A{
+									bson.M{"$eq": bson.A{"$$lessonID", "$lessonID"}},
+									bson.M{"$eq": bson.A{"$$studentID", "$studentID"}},
+								},
+							},
+						},
+					},
+					{
+						"$project": bson.M{
+							"_id":  1,
+							"time": 1,
+						},
+					},
+				},
+				"as": "absences",
 			},
 		},
-		bson.M{
+		{
+			"$project": bson.M{
+				"date": bson.M{
+					"_id":  "$lessons._id",
+					"date": "$lessons.startDate",
+				},
+				"rowTitle": bson.M{
+					"_id":   "$_id",
+					"title": "$name",
+				},
+				"cell": bson.M{
+					"date": bson.M{
+						"_id":  "$lessons._id",
+						"date": "$lessons.startDate",
+					},
+					"rowTitle": bson.M{
+						"_id":   "$_id",
+						"title": "$name",
+					},
+					"lessonsIDs": bson.A{"$lessons._id"},
+					"marks":      "$marks",
+					"absences":   "$absences",
+				},
+			},
+		},
+		{
 			"$group": bson.M{
-				"_id": bson.M{
-					"_id":   "$users._id",
-					"title": "$users.name",
-				},
-				"dates":      bson.M{"$first": "$dates"},
-				"cells":      bson.M{"$push": "$lessons"},
-				"studyPlace": bson.M{"$first": bson.M{"$first": "$studyPlace"}},
-			},
-		},
-		bson.M{
-			"$project": bson.M{
-				"dates": "$dates",
-				"row": bson.M{
-					"_id":   "$_id._id",
-					"title": "$_id.title",
-					"cells": "$cells",
-				},
-				"studyPlace": "$studyPlace",
-			},
-		},
-		bson.M{
-			"$group": bson.M{
-				"_id":        nil,
-				"dates":      bson.M{"$first": "$dates"},
-				"rows":       bson.M{"$push": "$row"},
-				"studyPlace": bson.M{"$first": "$studyPlace"},
-			},
-		},
-		bson.M{
-			"$project": bson.M{
-				"rows.studyPlace": 0,
-			},
-		},
-		bson.M{
-			"$addFields": bson.M{
-				"info": bson.M{
-					"editable":   option.Editable,
-					"studyPlace": "$studyPlace",
-					"subject":    option.Subject,
-					"group":      option.Group,
-					"teacher":    option.Teacher,
-					"time":       time.Now(),
-				},
-			},
-		},
-		bson.M{
-			"$project": bson.M{
-				"studyPlace": 0,
+				"_id":       nil,
+				"dates":     bson.M{"$addToSet": "$date"},
+				"rowTitles": bson.M{"$addToSet": "$rowTitle"},
+				"cells":     bson.M{"$push": "$cell"},
 			},
 		},
 	})
@@ -844,16 +818,9 @@ func (j *repository) GetJournal(ctx context.Context, option entities.AvailableOp
 	}
 
 	if !cursor.Next(ctx) {
-		return entities.Journal{
-			Info: entities.Info{
-				Editable:   option.Editable,
-				StudyPlace: general.StudyPlace{},
-				Group:      option.Subject,
-				Teacher:    option.Group,
-				Subject:    option.Teacher,
-			},
-		}, nil
+		return entities.Journal{}, nil
 	}
+
 	var journal entities.Journal
 	if err = cursor.Decode(&journal); err != nil {
 		return entities.Journal{}, err
@@ -862,8 +829,135 @@ func (j *repository) GetJournal(ctx context.Context, option entities.AvailableOp
 	return journal, nil
 }
 
-func (j *repository) GetLessonByID(ctx context.Context, id primitive.ObjectID) (lesson entities.Lesson, err error) {
-	err = j.lessons.FindOne(ctx, bson.M{"_id": id}).Decode(&lesson)
+func (j *repository) GetLessonByID(ctx context.Context, id primitive.ObjectID) (lesson entities.JournalLesson, err error) {
+	cursor, err := j.lessons.Aggregate(ctx, bson.A{
+		bson.M{"$match": bson.M{"_id": id}},
+		bson.M{"$lookup": bson.M{"from": "StudyPlaceUsers", "localField": "teacherID", "foreignField": "_id", "as": "teacher"}},
+		bson.M{"$lookup": bson.M{"from": "Groups", "localField": "groupID", "foreignField": "_id", "as": "group"}},
+		bson.M{"$lookup": bson.M{"from": "Subjects", "localField": "subjectID", "foreignField": "_id", "as": "subject"}},
+		bson.M{"$lookup": bson.M{"from": "Rooms", "localField": "roomID", "foreignField": "_id", "as": "room"}},
+		bson.M{"$lookup": bson.M{"from": "LessonTypes", "localField": "typeID", "foreignField": "_id", "as": "type"}},
+		bson.M{
+			"$addFields": bson.M{
+				"subject": bson.M{"$first": "$subject.subject"},
+				"room":    bson.M{"$first": "$room.room"},
+				"teacher": bson.M{"$first": "$teacher.roleName"},
+				"group":   bson.M{"$first": "$group.group"},
+				"type":    bson.M{"$first": "$type"},
+			},
+		},
+	})
+	if err != nil {
+		return entities.JournalLesson{}, err
+	}
+
+	if !cursor.Next(ctx) {
+		return entities.JournalLesson{}, mongo.ErrNoDocuments
+	}
+
+	if err = cursor.Decode(&lesson); err != nil {
+		return entities.JournalLesson{}, err
+	}
+
+	return
+}
+
+func (j *repository) GetStudentLessonByID(ctx context.Context, studentID, id primitive.ObjectID) (lesson entities.JournalLesson, err error) {
+	cursor, err := j.lessons.Aggregate(ctx, []bson.M{
+		{"$match": bson.M{"_id": id}},
+		{"$lookup": bson.M{"from": "Teachers", "localField": "teacherID", "foreignField": "_id", "as": "teacher"}},
+		{"$lookup": bson.M{"from": "Groups", "localField": "groupID", "foreignField": "_id", "as": "group"}},
+		{"$lookup": bson.M{"from": "Subjects", "localField": "subjectID", "foreignField": "_id", "as": "subject"}},
+		{"$lookup": bson.M{"from": "Rooms", "localField": "roomID", "foreignField": "_id", "as": "room"}},
+		{"$lookup": bson.M{"from": "LessonTypes", "localField": "typeID", "foreignField": "_id", "as": "type"}},
+		{
+			"$lookup": bson.M{
+				"from": "AggregatedMarks",
+				"let":  bson.M{"lessonID": "$_id"},
+				"pipeline": []bson.M{
+					{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$and": bson.A{
+									bson.M{"$eq": bson.A{"$$lessonID", "$lessonID"}},
+									bson.M{"$eq": bson.A{"$studentID", studentID}},
+								},
+							},
+						},
+					},
+					{
+						"$project": bson.M{
+							"_id":        1,
+							"mark":       1,
+							"markWeight": 1,
+						},
+					},
+				},
+				"as": "marks",
+			},
+		},
+		{
+			"$lookup": bson.M{
+				"from": "Absences",
+				"let":  bson.M{"lessonID": "$_id"},
+				"pipeline": []bson.M{
+					{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$and": bson.A{
+									bson.M{"$eq": bson.A{"$$lessonID", "$lessonID"}},
+									bson.M{"$eq": bson.A{"$studentID", studentID}},
+								},
+							},
+						},
+					},
+					{
+						"$project": bson.M{
+							"_id":  1,
+							"time": 1,
+						},
+					},
+				},
+				"as": "absence",
+			},
+		},
+		{
+			"$addFields": bson.M{
+				"subject": bson.M{"$first": "$subject"},
+				"room":    bson.M{"$first": "$room"},
+				"teacher": bson.M{"$first": "$teacher"},
+				"group":   bson.M{"$first": "$group"},
+				"type":    bson.M{"$first": "$type"},
+				"absence": bson.M{"$first": "$absence"},
+			},
+		},
+		{
+			"$lookup": bson.M{
+				"from": "StudyPlaceMarks",
+				"let":  bson.M{"typeID": "$type._id"},
+				"pipeline": []bson.M{
+					{
+						"$match": bson.M{"$expr": bson.M{
+							"$in": bson.A{"$$typeID", "$assignLessonTypeIDs"},
+						}},
+					},
+				},
+				"as": "type.availableMarks",
+			},
+		},
+	})
+	if err != nil {
+		return entities.JournalLesson{}, err
+	}
+
+	if !cursor.Next(ctx) {
+		return entities.JournalLesson{}, mongo.ErrNoDocuments
+	}
+
+	if err = cursor.Decode(&lesson); err != nil {
+		return entities.JournalLesson{}, err
+	}
+
 	return
 }
 
@@ -898,155 +992,52 @@ func (j *repository) GetLessons(ctx context.Context, userId primitive.ObjectID, 
 	return marks, nil
 }
 
-func (j *repository) AddMarks(ctx context.Context, marks []entities.Mark, teacher string) error {
-	if _, err := j.lessons.UpdateOne(ctx, bson.M{"_id": marks[0].LessonID, "teacher": teacher}, hMongo.PushArray("marks", marks)); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (j *repository) AddMark(ctx context.Context, mark entities.Mark, teacher string) error {
-	_, err := j.lessons.UpdateOne(ctx, bson.M{"_id": mark.LessonID, "teacher": teacher}, hMongo.Push("marks", mark))
+func (j *repository) AddMarks(ctx context.Context, marks []entities.StudentMark) error {
+	_, err := j.marks.InsertMany(ctx, slicetools.ToInterface(marks))
 	return err
 }
 
-func (j *repository) UpdateMark(ctx context.Context, mark entities.Mark, teacher string) error {
-	if _, err := j.lessons.UpdateOne(ctx,
-		bson.M{"_id": mark.LessonID, "teacher": teacher, "marks._id": mark.ID},
-		bson.M{"$set": bson.M{
-			"marks.$.lessonID":  mark.LessonID,
-			"marks.$.studentID": mark.StudentID,
-			"marks.$.mark":      mark.Mark,
-		}},
-	); err != nil {
-		return err
-	}
-
-	return nil
+func (j *repository) AddMark(ctx context.Context, mark entities.StudentMark) error {
+	_, err := j.marks.InsertOne(ctx, mark)
+	return err
 }
 
-func (j *repository) DeleteMarkByID(ctx context.Context, id primitive.ObjectID, teacher string) error {
-	if _, err := j.lessons.UpdateOne(ctx, bson.M{"teacher": teacher, "marks._id": id}, bson.M{"$pull": bson.M{"marks": bson.M{"_id": id}}}); err != nil {
-		return err
-	}
+func (j *repository) UpdateMark(ctx context.Context, mark entities.StudentMark) error {
+	_, err := j.marks.UpdateOne(ctx, bson.M{"_id": mark.ID}, mark)
+	return err
+}
 
-	return nil
+func (j *repository) DeleteMarkByID(ctx context.Context, id primitive.ObjectID) error {
+	_, err := j.marks.DeleteOne(ctx, bson.M{"_id": id})
+	return err
 }
 
 func (j *repository) GetMarkByID(ctx context.Context, id primitive.ObjectID) (mark entities.Mark, err error) {
-	markCursor, err := j.lessons.Aggregate(ctx, bson.A{
-		bson.M{"$match": bson.M{"marks._id": id}},
-		bson.M{"$unwind": "$marks"},
-		bson.M{"$match": bson.M{"marks._id": id}},
-		bson.M{"$replaceRoot": bson.M{"newRoot": "$marks"}},
-	})
-	if err != nil {
-		return entities.Mark{}, err
-	}
-
-	if !markCursor.Next(ctx) {
-		return entities.Mark{}, mongo.ErrNoDocuments
-	}
-
-	err = markCursor.Decode(&mark)
+	err = j.marks.FindOne(ctx, bson.M{"_id": id}).Decode(&mark)
 	return
 }
 
 func (j *repository) GetAbsenceByID(ctx context.Context, id primitive.ObjectID) (absence entities.Absence, err error) {
-	markCursor, err := j.lessons.Aggregate(ctx, bson.A{
-		bson.M{"$match": bson.M{"absences._id": id}},
-		bson.M{"$unwind": "$absences"},
-		bson.M{"$match": bson.M{"absences._id": id}},
-		bson.M{"$replaceRoot": bson.M{"newRoot": "$absences"}},
-	})
-	if err != nil {
-		return entities.Absence{}, err
-	}
-
-	if !markCursor.Next(ctx) {
-		return entities.Absence{}, mongo.ErrNoDocuments
-	}
-
-	err = markCursor.Decode(&absence)
+	err = j.absences.FindOne(ctx, bson.M{"_id": id}).Decode(&absence)
 	return
 }
 
-func (j *repository) AddAbsences(ctx context.Context, absences []entities.Absence, teacher string) error {
-	ids := make([]primitive.ObjectID, len(absences))
-	for i, absence := range absences {
-		ids[i] = absence.StudentID
-	}
-
-	if _, err := j.lessons.UpdateOne(ctx, bson.M{"_id": absences[0].LessonID, "teacher": teacher, "absences.$.studentID": bson.M{"$nin": ids}}, hMongo.PushArray("absences", absences)); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (j *repository) AddAbsence(ctx context.Context, absence entities.Absence, teacher string) error {
-	_, err := j.lessons.UpdateOne(ctx, bson.M{"_id": absence.LessonID, "teacher": teacher, "absences.studentID": bson.M{"$nin": bson.A{absence.StudentID}}}, hMongo.Push("absences", absence))
+func (j *repository) AddAbsences(ctx context.Context, absences []entities.Absence) error {
+	_, err := j.absences.InsertMany(ctx, slicetools.ToInterface(absences))
 	return err
 }
 
-func (j *repository) UpdateAbsence(ctx context.Context, absence entities.Absence, teacher string) error {
-	if _, err := j.lessons.UpdateOne(ctx, bson.M{"_id": absence.LessonID, "teacher": teacher, "absences._id": absence.ID}, bson.M{"$set": bson.M{"absences.$": absence}}); err != nil {
-		return err
-	}
-
-	return nil
+func (j *repository) AddAbsence(ctx context.Context, absence entities.Absence) error {
+	_, err := j.absences.InsertOne(ctx, absence)
+	return err
 }
 
-func (j *repository) DeleteAbsenceByID(ctx context.Context, id primitive.ObjectID, teacher string) error {
-	if _, err := j.lessons.UpdateOne(ctx, bson.M{"teacher": teacher, "absences._id": id}, bson.M{"$pull": bson.M{"absences": bson.M{"_id": id}}}); err != nil {
-		return err
-	}
-
-	return nil
+func (j *repository) UpdateAbsence(ctx context.Context, absence entities.Absence) error {
+	_, err := j.absences.UpdateOne(ctx, bson.M{"_id": absence.ID}, absence)
+	return err
 }
 
-func (j *repository) GetJournalRowWithDates(ctx context.Context, userID primitive.ObjectID, subject, teacher, group string, studyPlaceID primitive.ObjectID) ([]*entities.Cell, []time.Time, error) {
-	rowCursor, err := j.lessons.Aggregate(ctx, bson.A{
-		bson.M{"$match": bson.M{"group": group, "subject": subject, "teacher": teacher, "studyPlaceID": studyPlaceID}},
-		bson.M{"$addFields": bson.M{
-			"marks": bson.M{"$filter": bson.M{
-				"input": "$marks",
-				"as":    "mark",
-				"cond":  bson.M{"$eq": bson.A{"$$mark.studentID", userID}},
-			}},
-			"absences": bson.M{"$filter": bson.M{
-				"input": "$absences",
-				"as":    "absence",
-				"cond":  bson.M{"$eq": bson.A{"$$absence.studentID", userID}},
-			}},
-		}},
-		bson.M{"$sort": bson.M{"startDate": 1}},
-		bson.M{"$group": bson.M{
-			"_id":   nil,
-			"dates": bson.M{"$push": "$startDate"},
-			"cells": bson.M{"$push": bson.M{
-				"id":       "$_id",
-				"type":     bson.A{"$type"},
-				"marks":    "$marks",
-				"absences": "$absences",
-			}},
-		}},
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-	if !rowCursor.Next(ctx) {
-		return nil, nil, mongo.ErrNoDocuments
-	}
-
-	var res struct {
-		Cells []*entities.Cell `bson:"cells"`
-		Dates []time.Time      `bson:"dates"`
-	}
-	if err = rowCursor.Decode(&res); err != nil {
-		return nil, nil, err
-	}
-
-	return res.Cells, res.Dates, nil
+func (j *repository) DeleteAbsenceByID(ctx context.Context, id primitive.ObjectID) error {
+	_, err := j.absences.DeleteOne(ctx, bson.M{"_id": id})
+	return err
 }

@@ -27,6 +27,8 @@ type Handler interface {
 	AddAbsence(ctx *gin.Context)
 	UpdateAbsence(ctx *gin.Context)
 	DeleteAbsence(ctx *gin.Context)
+
+	GetLesson(ctx *gin.Context)
 }
 
 type handler struct {
@@ -47,11 +49,12 @@ func NewJournalHandler(middleware auth.Middleware, controller controllers.Contro
 		generate.POST("/absences", h.GenerateAbsences)
 	}
 
+	group.GET("/lessons/:id", h.Auth(), h.GetLesson)
+
 	group.GET("/options", h.MemberAuth(), h.GetJournalAvailableOptions)
 	group.GET("/:group/:subject/:teacher", h.MemberAuth(), h.GetJournal)
 	group.GET("", h.MemberAuth(), h.GetUserJournal)
 
-	//todo change endpoint to marks
 	mark := group.Group("/marks", h.MemberAuth("editJournal"))
 	{
 		mark.POST("list", h.AddMarks)
@@ -133,9 +136,9 @@ func (j *handler) GetJournalAvailableOptions(ctx *gin.Context) {
 func (j *handler) GetJournal(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
-	group := ctx.Param("group")
-	subject := ctx.Param("subject")
-	teacher := ctx.Param("teacher")
+	group := ctx.Param("groupID")
+	subject := ctx.Param("subjectID")
+	teacher := ctx.Param("teacherID")
 
 	journal, err := j.journalController.BuildSubjectsJournal(ctx, group, subject, teacher, user)
 	if err != nil {
@@ -151,9 +154,9 @@ func (j *handler) GetJournal(ctx *gin.Context) {
 func (j *handler) GetUserJournal(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
-	group := ctx.Query("group")
-	subject := ctx.Query("subject")
-	teacher := ctx.Query("teacher")
+	group := ctx.Query("groupID")
+	subject := ctx.Query("subjectID")
+	teacher := ctx.Query("teacherID")
 
 	var journal entities.Journal
 	var err error
@@ -176,13 +179,13 @@ func (j *handler) GetUserJournal(ctx *gin.Context) {
 func (j *handler) AddMarks(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
-	var marks []dtos.AddMarkDTO
-	if err := ctx.BindJSON(&marks); err != nil {
+	var marksDTO []dtos.AddMarkDTO
+	if err := ctx.BindJSON(&marksDTO); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	lesson, err := j.controller.AddMarks(ctx, marks, user)
+	lesson, err := j.controller.AddMarks(ctx, marksDTO, user)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
@@ -196,19 +199,19 @@ func (j *handler) AddMarks(ctx *gin.Context) {
 func (j *handler) AddMark(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
-	var mark dtos.AddMarkDTO
-	if err := ctx.BindJSON(&mark); err != nil {
+	var markDTO dtos.AddMarkDTO
+	if err := ctx.BindJSON(&markDTO); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	cellResponse, err := j.controller.AddMark(ctx, mark, user)
+	lesson, err := j.controller.AddMark(ctx, markDTO, user)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, cellResponse)
+	ctx.JSON(http.StatusOK, lesson)
 }
 
 // UpdateMark godoc
@@ -216,19 +219,19 @@ func (j *handler) AddMark(ctx *gin.Context) {
 func (j *handler) UpdateMark(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
-	var mark dtos.UpdateMarkDTO
-	if err := ctx.BindJSON(&mark); err != nil {
+	var markDTO dtos.UpdateMarkDTO
+	if err := ctx.BindJSON(&markDTO); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
-	cellResponse, err := j.controller.UpdateMark(ctx, user, mark)
+	lesson, err := j.controller.UpdateMark(ctx, user, markDTO)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, cellResponse)
+	ctx.JSON(http.StatusOK, lesson)
 }
 
 // DeleteMark godoc
@@ -239,13 +242,13 @@ func (j *handler) DeleteMark(ctx *gin.Context) {
 
 	markId := ctx.Param("id")
 
-	cellResponse, err := j.controller.DeleteMark(ctx, user, markId)
+	lesson, err := j.controller.DeleteMark(ctx, user, markId)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, cellResponse)
+	ctx.JSON(http.StatusOK, lesson)
 }
 
 // AddAbsences godoc
@@ -279,13 +282,13 @@ func (j *handler) AddAbsence(ctx *gin.Context) {
 		return
 	}
 
-	cellResponse, err := j.controller.AddAbsence(ctx, absencesDTO, user)
+	lesson, err := j.controller.AddAbsence(ctx, absencesDTO, user)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, cellResponse)
+	ctx.JSON(http.StatusOK, lesson)
 }
 
 // UpdateAbsence godoc
@@ -299,13 +302,13 @@ func (j *handler) UpdateAbsence(ctx *gin.Context) {
 		return
 	}
 
-	cellResponse, err := j.controller.UpdateAbsence(ctx, user, absences)
+	lesson, err := j.controller.UpdateAbsence(ctx, user, absences)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, cellResponse)
+	ctx.JSON(http.StatusOK, lesson)
 }
 
 // DeleteAbsence godoc
@@ -315,11 +318,29 @@ func (j *handler) DeleteAbsence(ctx *gin.Context) {
 	user := j.GetUser(ctx)
 
 	absencesID := ctx.Param("id")
-	cellResponse, err := j.controller.DeleteAbsence(ctx, user, absencesID)
+	lesson, err := j.controller.DeleteAbsence(ctx, user, absencesID)
 	if err != nil {
 		_ = ctx.Error(err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, cellResponse)
+	ctx.JSON(http.StatusOK, lesson)
+}
+
+// GetLesson godoc
+// @Param id path string true "Lesson ID"
+// @Router /lessons/{id} [delete]
+func (j *handler) GetLesson(ctx *gin.Context) {
+	user := j.GetUser(ctx)
+
+	id := ctx.Param("id")
+	studentID := ctx.Query("studentID")
+
+	lessonInfo, err := j.controller.GetLessonInfo(ctx, user, studentID, id)
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, lessonInfo)
 }

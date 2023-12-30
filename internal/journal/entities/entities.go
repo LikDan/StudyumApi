@@ -2,55 +2,48 @@ package entities
 
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	general "studyum/internal/general/entities"
+	core "studyum/internal/core/entities"
 	"time"
 )
 
 type Journal struct {
-	Info  Info     `json:"info" bson:"info"`
-	Rows  []Row    `json:"rows" bson:"rows"`
-	Dates []Lesson `json:"dates" bson:"dates"`
+	Cells     []JournalCell     `json:"cells" bson:"cells"`
+	Dates     []JournalDate     `json:"dates" bson:"dates"`
+	RowTitles []JournalRowTitle `json:"rowTitles" bson:"rowTitles"`
+	Info      JournalInfo       `json:"info" bson:"info"`
 }
 
-type Info struct {
-	Editable   bool               `json:"editable" bson:"editable"`
-	StudyPlace general.StudyPlace `json:"studyPlace" bson:"studyPlace"`
-	Group      string             `json:"group" bson:"group"`
-	Teacher    string             `json:"teacher" bson:"teacher"`
-	Subject    string             `json:"subject" bson:"subject"`
+type JournalDate struct {
+	ID   primitive.ObjectID `json:"id" bson:"_id"`
+	Date time.Time          `json:"date" bson:"date"`
 }
 
-type Row struct {
-	ID                 string         `json:"id" bson:"_id"`
-	Title              string         `json:"title" bson:"title"`
-	Cells              []*Cell        `json:"cells" bson:"cells"`
-	AverageMark        float32        `json:"averageMark" bson:"averageMark"`
-	NumericMarksSum    int            `json:"numericMarksSum" bson:"numericMarksSum"`
-	NumericMarksLength int            `json:"numericMarksAmount" bson:"numericMarksAmount"`
-	AbsencesAmount     int            `json:"absencesAmount" bson:"absencesAmount"`
-	AbsencesTime       int            `json:"absencesTime" bson:"absencesTime"`
-	MarksAmount        map[string]int `json:"marksAmount" bson:"marksAmount"`
-	Color              string         `json:"color" bson:"color"`
+type JournalRowTitle struct {
+	ID    primitive.ObjectID `json:"id" bson:"_id"`
+	Title string             `json:"title" bson:"title"`
 }
 
-type Cell struct {
-	Id               primitive.ObjectID `json:"id" bson:"_id"`
-	Type             []string           `json:"type" bson:"type"`
-	JournalCellColor string             `json:"journalCellColor" bson:"journalCellColor"`
-	Marks            []Mark             `json:"marks,omitempty" bson:"marks"`
-	Absences         []Absence          `json:"absences,omitempty" bson:"absences"`
+type JournalCell struct {
+	Date       JournalDate          `json:"-" bson:"date"`
+	RowTitle   JournalRowTitle      `json:"-" bson:"rowTitle"`
+	LessonsIDs []primitive.ObjectID `json:"lessonsIDs" bson:"lessonsIDs"`
+	Marks      []Mark               `json:"marks" bson:"marks"`
+	Absences   []Absence            `json:"absences" bson:"absences"`
+	Point      Point                `json:"point" bson:"point"`
+}
+
+type Point struct {
+	X int `json:"x" bson:"x"`
+	Y int `json:"y" bson:"y"`
 }
 
 type AvailableOption struct {
-	Teacher    string             `json:"teacher"`
-	Subject    string             `json:"subject"`
-	Group      string             `json:"group"`
-	TeacherID  primitive.ObjectID `json:"teacherID"`
-	SubjectID  primitive.ObjectID `json:"subjectID"`
-	GroupID    primitive.ObjectID `json:"groupID"`
-	Header     string             `json:"header"`
-	Editable   bool               `json:"editable"`
-	HasMembers bool               `json:"hasMembers"`
+	Teacher    core.Teacher `json:"teacher"`
+	Subject    core.Subject `json:"subject"`
+	Group      core.Group   `json:"group"`
+	Header     string       `json:"header"`
+	Editable   bool         `json:"editable"`
+	HasMembers bool         `json:"hasMembers"`
 }
 
 type CategoryOptions struct {
@@ -62,9 +55,18 @@ type DeleteMarkID struct {
 	ID primitive.ObjectID `apps:"trackable,collection=Lessons,type=array,nested=marks"`
 }
 
+type StudentMark struct {
+	ID           primitive.ObjectID `json:"id" bson:"_id"`
+	MarkID       primitive.ObjectID `json:"markID" bson:"markID"`
+	LessonID     primitive.ObjectID `json:"lessonID" bson:"lessonID"`
+	StudentID    primitive.ObjectID `json:"studentID" bson:"studentID"`
+	StudyPlaceID primitive.ObjectID `json:"studyPlaceID" bson:"studyPlaceID"`
+}
+
 type Mark struct {
 	ID           primitive.ObjectID `json:"id" bson:"_id" apps:"trackable,collection=Lessons,type=array,nested=marks"`
 	Mark         string             `json:"mark" bson:"mark"`
+	MarkWeight   int                `json:"markWeight" bson:"markWeight"`
 	StudentID    primitive.ObjectID `json:"studentID" bson:"studentID"`
 	LessonID     primitive.ObjectID `json:"lessonID" bson:"lessonID"`
 	StudyPlaceID primitive.ObjectID `json:"studyPlaceID" bson:"studyPlaceID"`
@@ -89,6 +91,48 @@ type MarkAmount struct {
 
 type DeleteLessonID struct {
 	ID primitive.ObjectID `apps:"trackable,collection=Lessons"`
+}
+
+type JournalLesson struct {
+	ID             primitive.ObjectID `json:"id" bson:"_id"`
+	StudyPlaceID   string             `json:"studyPlaceID" bson:"studyPlaceID"`
+	EndDate        time.Time          `json:"endDate" bson:"endDate"`
+	StartDate      time.Time          `json:"startDate" bson:"startDate"`
+	PrimaryColor   string             `json:"primaryColor" bson:"primaryColor"`
+	SecondaryColor string             `json:"secondaryColor" bson:"secondaryColor"`
+	LessonIndex    int                `json:"lessonIndex" bson:"lessonIndex"`
+	Subject        core.Subject       `json:"subject" bson:"subject"`
+	Group          core.Group         `json:"group" bson:"group"`
+	Teacher        core.Teacher       `json:"teacher" bson:"teacher"`
+	Room           core.Room          `json:"room" bson:"room"`
+	Type           LessonType         `json:"type" bson:"type"`
+	SubjectID      primitive.ObjectID `json:"subjectID" bson:"subjectID"`
+	GroupID        primitive.ObjectID `json:"groupID" bson:"groupID"`
+	TeacherID      primitive.ObjectID `json:"teacherID" bson:"teacherID"`
+	RoomID         primitive.ObjectID `json:"roomID" bson:"roomID"`
+	TypeID         primitive.ObjectID `json:"typeID" bson:"typeID"`
+	Title          string             `json:"title" bson:"title"`
+	Homework       string             `json:"homework" bson:"homework"`
+	Description    string             `json:"description" bson:"description"`
+	Marks          []Mark             `json:"marks" bson:"marks"`
+	Absence        *Absence           `json:"absence" bson:"absence"`
+}
+
+type LessonType struct {
+	ID             primitive.ObjectID `json:"id" bson:"_id"`
+	AbsenceMark    string             `json:"absenceMark" bson:"absenceMark"`
+	AssignedColor  string             `json:"assignedColor" bson:"assignedColor"`
+	StudyPlaceID   primitive.ObjectID `json:"studyPlaceID" bson:"studyPlaceID"`
+	AvailableMarks []Mark             `json:"availableMarks" bson:"availableMarks"`
+	Type           string             `json:"type" bson:"type"`
+}
+
+type AvailableMark struct {
+	ID                  primitive.ObjectID   `json:"id" bson:"_id"`
+	AssignLessonTypeIDs []primitive.ObjectID `json:"assignLessonTypeIDs" bson:"assignLessonTypeIDs"`
+	Mark                string               `json:"mark" bson:"mark"`
+	MarkWeight          int                  `json:"markWeight" bson:"markWeight"`
+	StudyPlaceID        primitive.ObjectID   `json:"studyPlaceID" bson:"studyPlaceID"`
 }
 
 type Lesson struct {
@@ -120,4 +164,8 @@ type Lesson struct {
 type GeneratedTable struct {
 	Titles []string   `json:"titles" bson:"titles"`
 	Rows   [][]string `json:"rows" bson:"rows"`
+}
+
+type JournalInfo struct {
+	Editable bool `json:"editable" bson:"editable"`
 }

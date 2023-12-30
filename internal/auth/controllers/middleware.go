@@ -87,6 +87,10 @@ func (c *middleware) AuthViaApiToken(ctx context.Context, token string) (entitie
 }
 
 func (c *middleware) hasPermission(user entities.User, permissions []string) bool {
+	if user.StudyPlaceInfo == nil || len(user.StudyPlaceInfo.Permissions) == 0 {
+		return len(permissions) == 0
+	}
+
 	for _, uPermission := range user.StudyPlaceInfo.Permissions {
 		if uPermission == "admin" {
 			return true

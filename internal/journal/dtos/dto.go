@@ -6,7 +6,7 @@ import (
 )
 
 type AddMarkDTO struct {
-	Mark      string             `json:"mark"`
+	MarkID    primitive.ObjectID `json:"markID"`
 	StudentID primitive.ObjectID `json:"studentID"`
 	LessonID  primitive.ObjectID `json:"lessonID"`
 }

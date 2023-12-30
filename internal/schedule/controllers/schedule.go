@@ -129,12 +129,14 @@ func (s *scheduleController) GetSchedule(ctx context.Context, user auth.User, st
 
 	return entities.Schedule{
 		Info: entities.Info{
-			StudyPlaceInfo: entities.StudyPlaceInfo{}, //todo
-			Type:           type_,
-			TypeName:       typeName,
-			StartDate:      startDate,
-			EndDate:        endDate,
-			Date:           time.Now(),
+			StudyPlaceInfo: entities.StudyPlaceInfo{
+				Id: studyPlaceID,
+			},
+			Type:      type_,
+			TypeName:  typeName,
+			StartDate: startDate,
+			EndDate:   endDate,
+			Date:      time.Now(),
 		},
 		Lessons: lessons,
 	}, nil
@@ -155,10 +157,12 @@ func (s *scheduleController) GetGeneralSchedule(ctx context.Context, user auth.U
 
 	return entities.GeneralSchedule{
 		Info: entities.GeneralInfo{
-			StudyPlaceInfo: entities.StudyPlaceInfo{}, //todo
-			Type:           type_,
-			TypeName:       typeName,
-			Date:           time.Now(),
+			StudyPlaceInfo: entities.StudyPlaceInfo{
+				Id: studyPlaceID,
+			},
+			Type:     type_,
+			TypeName: typeName,
+			Date:     time.Now(),
 		},
 		GeneralLessons: lessons,
 	}, nil

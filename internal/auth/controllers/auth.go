@@ -152,6 +152,7 @@ func (c *auth) SignUp(ctx context.Context, ip string, data dto.SignUp) (entities
 }
 
 func (c *auth) SignUpStage1(ctx context.Context, user entities.User, data dto.SignUpStage1) (entities.User, error) {
+	data.Name = c.encryption.EncryptString(data.Name)
 	user.StudyPlaceInfo = &entities.UserStudyPlaceInfo{
 		ID:           data.StudyPlaceID,
 		Name:         data.Name,
