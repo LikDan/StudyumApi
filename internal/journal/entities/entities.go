@@ -14,8 +14,9 @@ type Journal struct {
 }
 
 type JournalDate struct {
-	ID   primitive.ObjectID `json:"id" bson:"_id"`
-	Date time.Time          `json:"date" bson:"date"`
+	ID      primitive.ObjectID   `json:"id" bson:"_id"`
+	Date    time.Time            `json:"date" bson:"date"`
+	TypeIDs []primitive.ObjectID `json:"typeIDs" bson:"typeIDs"`
 }
 
 type JournalRowTitle struct {
@@ -24,12 +25,17 @@ type JournalRowTitle struct {
 }
 
 type JournalCell struct {
-	Date       JournalDate          `json:"-" bson:"date"`
-	RowTitle   JournalRowTitle      `json:"-" bson:"rowTitle"`
-	LessonsIDs []primitive.ObjectID `json:"lessonsIDs" bson:"lessonsIDs"`
-	Marks      []Mark               `json:"marks" bson:"marks"`
-	Absences   []Absence            `json:"absences" bson:"absences"`
-	Point      Point                `json:"point" bson:"point"`
+	Date     JournalDate        `json:"-" bson:"date"`
+	RowTitle JournalRowTitle    `json:"-" bson:"rowTitle"`
+	Entries  []JournalCellEntry `json:"entries" bson:"entries"`
+	Point    Point              `json:"point" bson:"point"`
+}
+
+type JournalCellEntry struct {
+	LessonsID primitive.ObjectID `json:"lessonID" bson:"lessonID"`
+	TypeID    primitive.ObjectID `json:"typeID" bson:"typeID"`
+	Marks     []Mark             `json:"marks" bson:"marks"`
+	Absences  []Absence          `json:"absences" bson:"absences"`
 }
 
 type Point struct {
@@ -64,7 +70,8 @@ type StudentMark struct {
 }
 
 type Mark struct {
-	ID           primitive.ObjectID `json:"id" bson:"_id" apps:"trackable,collection=Lessons,type=array,nested=marks"`
+	ID           primitive.ObjectID `json:"id" bson:"_id"`
+	MarkID       primitive.ObjectID `json:"markID" bson:"markID"`
 	Mark         string             `json:"mark" bson:"mark"`
 	MarkWeight   int                `json:"markWeight" bson:"markWeight"`
 	StudentID    primitive.ObjectID `json:"studentID" bson:"studentID"`
@@ -167,5 +174,17 @@ type GeneratedTable struct {
 }
 
 type JournalInfo struct {
-	Editable bool `json:"editable" bson:"editable"`
+	Editable bool            `json:"editable" bson:"editable"`
+	Configs  []JournalConfig `json:"configs" bson:"configs"`
+}
+
+type JournalConfig struct {
+	ID           primitive.ObjectID `json:"id" bson:"_id"`
+	Title        string             `json:"title" bson:"title"`
+	Index        int                `json:"index" bson:"index"`
+	MarkIDs      []string           `json:"markIDs" bson:"markIDs"`
+	ShowAbsences bool               `json:"showAbsences" bson:"showAbsences"`
+	ShowLatency  bool               `json:"showLatency" bson:"showLatency"`
+	StudyPlaceID primitive.ObjectID `json:"studyPlaceID" bson:"studyPlaceID"`
+	TypeIDs      []string           `json:"typeIDs" bson:"typeIDs"`
 }

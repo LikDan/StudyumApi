@@ -623,37 +623,23 @@ func (j *repository) GetStudentJournal(ctx context.Context, userId, groupID prim
 						},
 					},
 				},
-				"lessonsIDs": bson.M{"$push": "$_id"},
-				"marks":      bson.M{"$push": "$marks"},
-				"absences":   bson.M{"$push": "$absences"},
+				"entries": bson.M{"$push": bson.M{
+					"lessonID": "$_id",
+					"typeID":   "$typeID",
+					"marks":    "$marks",
+					"absences": "$absences",
+				}},
 			},
 		},
 		{
 			"$project": bson.M{
 				"cell": bson.M{
-					"_id":        "$_id",
-					"date":       "$_id.date",
-					"rowTitle":   "$_id.subject",
-					"lessonsIDs": "$lessonsIDs",
-					"marks": bson.M{
-						"$reduce": bson.M{
-							"input":        "$marks",
-							"initialValue": bson.A{},
-							"in": bson.M{
-								"$concatArrays": bson.A{"$$value", "$$this"},
-							},
-						},
-					},
-					"absences": bson.M{
-						"$reduce": bson.M{
-							"input":        "$absences",
-							"initialValue": bson.A{},
-							"in": bson.M{
-								"$concatArrays": bson.A{"$$value", "$$this"},
-							},
-						},
-					},
+					"_id":      "$_id",
+					"date":     "$_id.date",
+					"rowTitle": "$_id.subject",
+					"entries":  "$entries",
 				},
+				"cell.date.typeIDs": "$entries.typeIDs",
 			},
 		},
 		{
@@ -665,11 +651,23 @@ func (j *repository) GetStudentJournal(ctx context.Context, userId, groupID prim
 			},
 		},
 		{
+			"$lookup": bson.M{
+				"from": "JournalConfigs",
+				"pipeline": []bson.M{
+					{
+						"$match": bson.M{"studyPlaceID": studyPlaceID},
+					},
+				},
+				"as": "info.configs",
+			},
+		},
+		{
 			"$project": bson.M{
 				"_id":       0,
 				"dates":     1,
 				"rowTitles": 1,
 				"cells":     1,
+				"info":      1,
 			},
 		},
 	})
@@ -745,6 +743,7 @@ func (j *repository) GetJournal(ctx context.Context, studyPlaceID primitive.Obje
 					{
 						"$project": bson.M{
 							"_id":        1,
+							"markID":     1,
 							"mark":       1,
 							"markWeight": 1,
 						},
@@ -781,8 +780,9 @@ func (j *repository) GetJournal(ctx context.Context, studyPlaceID primitive.Obje
 		{
 			"$project": bson.M{
 				"date": bson.M{
-					"_id":  "$lessons._id",
-					"date": "$lessons.startDate",
+					"_id":     "$lessons._id",
+					"date":    "$lessons.startDate",
+					"typeIDs": bson.A{"$lessons.typeID"},
 				},
 				"rowTitle": bson.M{
 					"_id":   "$_id",
@@ -797,9 +797,14 @@ func (j *repository) GetJournal(ctx context.Context, studyPlaceID primitive.Obje
 						"_id":   "$_id",
 						"title": "$name",
 					},
-					"lessonsIDs": bson.A{"$lessons._id"},
-					"marks":      "$marks",
-					"absences":   "$absences",
+					"entries": bson.A{
+						bson.M{
+							"lessonID": "$lessons._id",
+							"typeID":   "$lessons.typeID",
+							"marks":    "$marks",
+							"absences": "$absences",
+						},
+					},
 				},
 			},
 		},
@@ -809,6 +814,17 @@ func (j *repository) GetJournal(ctx context.Context, studyPlaceID primitive.Obje
 				"dates":     bson.M{"$addToSet": "$date"},
 				"rowTitles": bson.M{"$addToSet": "$rowTitle"},
 				"cells":     bson.M{"$push": "$cell"},
+			},
+		},
+		{
+			"$lookup": bson.M{
+				"from": "JournalConfigs",
+				"pipeline": []bson.M{
+					{
+						"$match": bson.M{"studyPlaceID": studyPlaceID},
+					},
+				},
+				"as": "info.configs",
 			},
 		},
 	})
@@ -888,6 +904,7 @@ func (j *repository) GetStudentLessonByID(ctx context.Context, studentID, id pri
 					{
 						"$project": bson.M{
 							"_id":        1,
+							"markID":     1,
 							"mark":       1,
 							"markWeight": 1,
 						},
